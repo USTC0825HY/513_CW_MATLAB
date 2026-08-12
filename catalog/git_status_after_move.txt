@@ -1,0 +1,61 @@
+[F:\01_Laser\code\matlab\laser_analysis]
+## main...origin/main
+ M 01_workflows/01_data_conversion/s01_convert_ila_to_pico_mat.m
+ M 01_workflows/03_calibration/s06_calibrate_ila_single_sine.m
+ M 01_workflows/04_noise_and_chain/s03_calc_dac_integrated_noise_1k_100k.m
+ M 01_workflows/04_noise_and_chain/s05_compare_ad_p1_p100_input_noise.m
+ M 01_workflows/04_noise_and_chain/s11_analyze_dac_output_noise_metrics.m
+ D 01_workflows/04_noise_and_chain/s14_analyze_ad2208_jg12_jg15_10m25m_noise.m
+ D 01_workflows/04_noise_and_chain/s15_analyze_dac766_c1_noise_metrics.m
+ D 01_workflows/04_noise_and_chain/s16_analyze_jg18_jg3_g100_1hz_noise.m
+ D 01_workflows/04_noise_and_chain/s18_analyze_ad9245_x2g_jg3_g100_psd_asd.m
+ D 01_workflows/04_noise_and_chain/s20_analyze_ad9245_x3g_jg2_g100_psd_asd.m
+ D 01_workflows/04_noise_and_chain/s22_analyze_ad9245_x4g_jg32_g100_psd_asd.m
+ D 01_workflows/04_noise_and_chain/s24_analyze_ad9245_x1g_jg11_g100_psd_asd.m
+ D 01_workflows/04_noise_and_chain/s25_analyze_ad9245_x4g_jg32_g100_psd_asd_updated.m
+ M README.md
+ M ref/HYpfd_pinlvji_300MHz.m
+ M ref/virtual_data/s01_generate_virtual_ltc2208_test_csv.m
+ M setup_laser_analysis.m
+ M utilities/laser_test_paths.m
+?? 01_workflows/04_noise_and_chain/s17_batch_da766_dc_noise.m
+?? PDH_data_process/
+
+[F:\01_Laser\code\matlab\laser_analysis\PDH_data_process]
+## master
+ M frequency_counter/README.md
+ M frequency_counter/plot_allen_with_freq_counter.ipynb
+ M phase_noise_analyzer/process_phase_noise.ipynb
+?? DDS_analysis/
+?? docs/
+?? phase_noise_analyzer/process_jwsjgq.m
+
+[F:\01_Laser\code\fpga\legacy\jianding_szsd_old]
+## main...origin/main
+ M cw_tools/create_ad677_debug_ips.tcl
+ M cw_tools/create_vio_ad677_run.tcl
+ M cw_tools_process_archive_20260729/README_CW_BUILDS.md
+ D jianding_szsd.srcs/constrs_1/cw/jiandingtest_cw_delay.xdc
+ D jianding_szsd.srcs/constrs_1/cw/jiandingtest_cw_main.xdc
+ D jianding_szsd.srcs/constrs_1/new/jiandingtest.xdc
+ M jianding_szsd.srcs/sources_1/TLV5638/TLV5638_top.v
+ M jianding_szsd.srcs/sources_1/jiandingtest_new/ad677_flow_ctrl_cw.v
+ M jianding_szsd.srcs/sources_1/jiandingtest_new/ad766_top.v
+ M jianding_szsd.srcs/sources_1/jiandingtest_new/ad_677_ctrl_cw.v
+ D jianding_szsd.srcs/sources_1/jiandingtest_new/jianding_test_top.v
+?? jianding_szsd.srcs/constrs_1/new/jiandingtest_cw.xdc
+?? jianding_szsd.srcs/sources_1/jiandingtest_new/jianding_test_top_hy.v
+
+[F:\01_Laser\code\fpga\projects\pdh_dlock\PDH_DLOCK]
+## main...origin/main
+ M sources/ControlSoftware/UART_Demo_Hex/UART/MainWindow.xaml
+ M sources/ControlSoftware/UART_Demo_Hex/UART/MainWindow.xaml.cs
+ M sources/ControlSoftware/UART_Demo_Hex/UART/UART.csproj
+ M sources/HDL/constrs_1/new/debug.xdc
+ M sources/HDL/sources_1/ip/dds_sin.xcix
+ M sources/HDL/sources_1/new/FPGA_Top.v
+ M sources/HDL/sources_1/new/cmd_interpreter.v
+ M sources/HDL/tb_b9726_driver_v2/new/tb_b9726_driver_v2.v
+?? sources/ControlSoftware/UART_Demo_Hex/UART/OpenTK.dll.config
+?? sources/ControlSoftware/UART_Demo_Hex/UART/packages.config
+

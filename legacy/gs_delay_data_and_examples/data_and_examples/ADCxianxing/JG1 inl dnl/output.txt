@@ -1,0 +1,702 @@
+========================================
+Start to analysis
+     常规模型:
+     fitResult(x) = a*sin(2*pi*b*x+c)+d
+     系数(置信边界为 95%):
+       a =   3.274e+04  (固定在边界处)
+       b =      0.0101  (固定在边界处)
+       c =       2.524  (2.521, 2.526)
+       d =      -588.3  (固定在边界处)
+           sse: 1.0554e+09
+       rsquare: 0.99804
+           dfe: 999
+    adjrsquare: 0.99804
+          rmse: 1027.8
+========================================
+Fitting Amplitude = 32736.000000 (-0.008486 dBFS)
+The interval for ADC nonlinearity test is from -31768 to 31148
+========================================
+Total combined samples: 7864320
+Valid samples within signal range [-31768, 31148]: 6286193
+Number of unique covered ADC codes: 62917
+Full scale code coverage ratio: 96.00 %
+========================================
+Histogram code range: -31768 ~ 31148, total bins: 62917
+========================================
+Max absolute DNL: 0.4983 LSB
+Max absolute INL: 202.5908 LSB
+========================================
+Figures saved to folder: D:\labmatlab\ad da test\AD\INL DNL\JG1 inl dnl\
+Saved files: DNL_Plot.png , INL_Plot.png
+========================================
+========================================
+Start to analysis
+     常规模型:
+     fitResult(x) = a*sin(2*pi*b*x+c)+d
+     系数(置信边界为 95%):
+       a =   3.274e+04  (固定在边界处)
+       b =      0.0101  (固定在边界处)
+       c =       2.524  (2.521, 2.526)
+       d =      -588.3  (固定在边界处)
+           sse: 1.0554e+09
+       rsquare: 0.99804
+           dfe: 999
+    adjrsquare: 0.99804
+          rmse: 1027.8
+========================================
+Fitting Amplitude = 32736.000000 (-0.008486 dBFS)
+The interval for ADC nonlinearity test is from -31768 to 31148
+{错误使用 <a href="matlab:matlab.lang.internal.introspective.errorDocCallback('xlsread', 'D:\MATLAB\R2025b\toolbox\matlab\io\legacy\spreadsheet\iofun\xlsread.m', 148)" style="font-weight:bold">xlsread</a> (<a href="matlab: opentoline('D:\MATLAB\R2025b\toolbox\matlab\io\legacy\spreadsheet\iofun\xlsread.m',148,0)">第 148 行</a>)
+无法激活 Excel 工作表。
+出错 <a href="matlab:matlab.lang.internal.introspective.errorDocCallback('adc_inl_dnl', 'D:\labmatlab\process_code\adc_data_process\adc_inl_dnl\adc_inl_dnl.m', 64)" style="font-weight:bold">adc_inl_dnl</a> (<a href="matlab: opentoline('D:\labmatlab\process_code\adc_data_process\adc_inl_dnl\adc_inl_dnl.m',64,0)">第 64 行</a>)
+    data = xlsread(filePath);
+           ^^^^^^^^^^^^^^^^^} 
+help xlsread
+ <strong>xlsread</strong> - （不推荐）读取电子表格文件
+    此 MATLAB 函数 读取名为 filename 的 Microsoft Excel 电子表格工作表中的第一个工作
+    表，并在一个矩阵中返回数值数据。
+
+    建议不要使用 <strong>xlsread</strong>。请对代码进行相应更改后改用 'readtable'、'readmatrix' 或
+    'readcell'。
+
+    语法
+      num = <strong>xlsread</strong>(filename)
+      num = <strong>xlsread</strong>(filename,sheet)
+      num = <strong>xlsread</strong>(filename,xlRange)
+      num = <strong>xlsread</strong>(filename,sheet,xlRange)
+      num = <strong>xlsread</strong>(filename,sheet,xlRange,'basic')
+      [num,txt,raw] = <strong>xlsread</strong>(___)
+
+      ___ = <strong>xlsread</strong>(filename,-1)
+
+      [num,txt,raw,custom] = <strong>xlsread</strong>(filename,sheet,xlRange,'',processFcn)
+
+    输入参数
+      <a href="matlab:web C:\ProgramData\MATLAB\SupportPackages\R2025b\help/matlab/ref/xlsread.html#btg5vmt-1-filename">filename</a> - 文件名
+        字符向量 | 字符串
+      <a href="matlab:web C:\ProgramData\MATLAB\SupportPackages\R2025b\help/matlab/ref/xlsread.html#btg5vmt-1-sheet">sheet</a> - 工作表
+        字符向量 | 字符串 | 正整数
+      <a href="matlab:web C:\ProgramData\MATLAB\SupportPackages\R2025b\help/matlab/ref/xlsread.html#btg5vmt-1-xlRange">xlRange</a> - 矩形范围
+        字符向量 | 字符串
+      <a href="matlab:web C:\ProgramData\MATLAB\SupportPackages\R2025b\help/matlab/ref/xlsread.html#btg5vmt-1-basic">'basic'</a> - 请求在 basic 模式下读取的标记
+        字符向量 | 字符串
+      <a href="matlab:web C:\ProgramData\MATLAB\SupportPackages\R2025b\help/matlab/ref/xlsread.html#btg5vmt-1-processFcn">processFcn</a> - 自定义函数的句柄
+        函数句柄
+
+    输出参数
+      <a href="matlab:web C:\ProgramData\MATLAB\SupportPackages\R2025b\help/matlab/ref/xlsread.html#btg5vmt-1-num">num</a> - 数值数据
+        矩阵
+      <a href="matlab:web C:\ProgramData\MATLAB\SupportPackages\R2025b\help/matlab/ref/xlsread.html#btg5vmt-1-txt">txt</a> - 文本数据
+        元胞数组
+      <a href="matlab:web C:\ProgramData\MATLAB\SupportPackages\R2025b\help/matlab/ref/xlsread.html#btg5vmt-1-raw">raw</a> - 数值数据和文本数据
+        元胞数组
+      <a href="matlab:web C:\ProgramData\MATLAB\SupportPackages\R2025b\help/matlab/ref/xlsread.html#btg5vmt-1-custom">custom</a> - 对应于 processFcn 的函数的第二个输出
+        由函数定义
+
+    示例
+      <a href="matlab:web C:\ProgramData\MATLAB\SupportPackages\R2025b\help/matlab/ref/xlsread.html#bthf_dr">将工作表读取到数值矩阵</a>
+      <a href="matlab:web C:\ProgramData\MATLAB\SupportPackages\R2025b\help/matlab/ref/xlsread.html#bthgbma">读取元胞的范围</a>
+      <a href="matlab:web C:\ProgramData\MATLAB\SupportPackages\R2025b\help/matlab/ref/xlsread.html#bthgbe6">读取列</a>
+      <a href="matlab:web C:\ProgramData\MATLAB\SupportPackages\R2025b\help/matlab/ref/xlsread.html#bthgbmn">请求数值、文本和原始数据</a>
+      <a href="matlab:web C:\ProgramData\MATLAB\SupportPackages\R2025b\help/matlab/ref/xlsread.html#bthgb2w">对工作表执行函数</a>
+      <a href="matlab:web C:\ProgramData\MATLAB\SupportPackages\R2025b\help/matlab/ref/xlsread.html#bthgc6m">请求自定义输出</a>
+
+    另请参阅 <a href="matlab:help readmatrix -displayBanner">readmatrix</a>, <a href="matlab:help readcell -displayBanner">readcell</a>, <a href="matlab:help xlswrite -displayBanner">xlswrite</a>, <a href="matlab:help xlsfinfo -displayBanner">xlsfinfo</a>, <a href="matlab:help importdata -displayBanner">importdata</a>, <a href="matlab:help uiimport -displayBanner">uiimport</a>,
+      <a href="matlab:help readtable -displayBanner">readtable</a>
+
+    已在 R2006a 之前的 MATLAB 中引入
+    <a href="matlab:doc xlsread">xlsread 的文档</a>
+
+adc_inl_dnl
+Selected 1 files...
+========================================
+Start to analysis
+     常规模型:
+     fitResult(x) = a*sin(2*pi*b*x+c)+d
+     系数(置信边界为 95%):
+       a =   3.274e+04  (固定在边界处)
+       b =      0.0101  (固定在边界处)
+       c =       2.524  (2.521, 2.526)
+       d =      -588.3  (固定在边界处)
+           sse: 1.0554e+09
+       rsquare: 0.99804
+           dfe: 999
+    adjrsquare: 0.99804
+          rmse: 1027.8
+========================================
+Fitting Amplitude = 32736.000000 (-0.008486 dBFS)
+The interval for ADC nonlinearity test is from -31768 to 31148
+========================================
+Total combined samples: 7864320
+Valid samples within signal range [-31768, 31148]: 6286193
+Number of unique covered ADC codes: 62917
+Full scale code coverage ratio: 100.00 %
+========================================
+Histogram code range: -31768 ~ 31148, total bins: 62917
+========================================
+Max absolute DNL: 0.4983 LSB
+Max absolute INL: 202.5908 LSB
+========================================
+Figures saved to folder: D:\labmatlab\ad da test\AD\INL DNL\JG1 inl dnl\
+Saved files: DNL_Plot.png , INL_Plot.png
+========================================
+========================================
+Start to analysis
+     常规模型:
+     fitResult(x) = a*sin(2*pi*b*x+c)+d
+     系数(置信边界为 95%):
+       a =   3.274e+04  (固定在边界处)
+       b =      0.0101  (固定在边界处)
+       c =       2.524  (2.521, 2.526)
+       d =      -588.3  (固定在边界处)
+           sse: 1.0554e+09
+       rsquare: 0.99804
+           dfe: 999
+    adjrsquare: 0.99804
+          rmse: 1027.8
+========================================
+Fitting Amplitude = 32736.000000 (-0.008486 dBFS)
+The interval for ADC nonlinearity test is from -31768 to 31148
+========================================
+Total combined samples: 7864320
+Valid samples within signal range [-31768, 31148]: 6286193
+Number of unique covered ADC codes: 62917
+Full scale code coverage ratio: 100.00 %
+========================================
+Histogram code range: -31768 ~ 31148, total bins: 62917
+========================================
+Max absolute DNL: 0.4983 LSB
+Max absolute INL: 202.5908 LSB
+========================================
+Figures saved to folder: D:\labmatlab\ad da test\AD\INL DNL\JG1 inl dnl\
+Saved files: DNL_Plot.png , INL_Plot.png
+========================================
+========================================
+Start to analysis
+     常规模型:
+     fitResult(x) = a*sin(2*pi*b*x+c)+d
+     系数(置信边界为 95%):
+       a =   3.274e+04  (固定在边界处)
+       b =      0.0101  (固定在边界处)
+       c =       2.524  (2.521, 2.526)
+       d =      -588.3  (固定在边界处)
+           sse: 1.0554e+09
+       rsquare: 0.99804
+           dfe: 999
+    adjrsquare: 0.99804
+          rmse: 1027.8
+========================================
+Fitting Amplitude = 32736.000000 (-0.008486 dBFS)
+The interval for ADC nonlinearity test is from -31768 to 31148
+========================================
+Total combined samples: 7864320
+Valid samples within signal range [-31768, 31148]: 6286193
+Number of unique covered ADC codes: 62917
+Full scale code coverage ratio: 100.00 %
+========================================
+Histogram code range: -31768 ~ 31148, total bins: 62917
+========================================
+Max absolute DNL: 0.4983 LSB
+{函数或变量 'x' 无法识别。
+出错 <a href="matlab:matlab.lang.internal.introspective.errorDocCallback('adc_inl_dnl', 'D:\labmatlab\process_code\adc_data_process\adc_inl_dnl\adc_inl_dnl.m', 191)" style="font-weight:bold">adc_inl_dnl</a> (<a href="matlab: opentoline('D:\labmatlab\process_code\adc_data_process\adc_inl_dnl\adc_inl_dnl.m',191,0)">第 191 行</a>)
+p = polyfit(x, y, 1);
+            ^} 
+adc_inl_dnl
+Selected 1 files...
+========================================
+Start to analysis
+     常规模型:
+     fitResult(x) = a*sin(2*pi*b*x+c)+d
+     系数(置信边界为 95%):
+       a =   3.274e+04  (固定在边界处)
+       b =      0.0101  (固定在边界处)
+       c =       2.524  (2.521, 2.526)
+       d =      -588.3  (固定在边界处)
+           sse: 1.0554e+09
+       rsquare: 0.99804
+           dfe: 999
+    adjrsquare: 0.99804
+          rmse: 1027.8
+========================================
+Fitting Amplitude = 32736.000000 (-0.008486 dBFS)
+The interval for ADC nonlinearity test is from -31768 to 31148
+========================================
+Total combined samples: 7864320
+Valid samples within signal range [-31768, 31148]: 6286193
+Number of unique covered ADC codes: 62917
+Full scale code coverage ratio: 100.00 %
+========================================
+Histogram code range: -31768 ~ 31148, total bins: 62917
+========================================
+Max absolute DNL: 0.4983 LSB
+Max absolute INL: 231.8819 LSB
+========================================
+Figures saved to folder: D:\labmatlab\ad da test\AD\INL DNL\JG1 inl dnl\
+Saved files: DNL_Plot.png , INL_Plot.png
+========================================
+========================================
+Start to analysis
+     常规模型:
+     fitResult(x) = a*sin(2*pi*b*x+c)+d
+     系数(置信边界为 95%):
+       a =   3.274e+04  (固定在边界处)
+       b =      0.0101  (固定在边界处)
+       c =       2.524  (2.521, 2.526)
+       d =      -588.3  (固定在边界处)
+           sse: 1.0554e+09
+       rsquare: 0.99804
+           dfe: 999
+    adjrsquare: 0.99804
+          rmse: 1027.8
+========================================
+Fitting Amplitude = 32736.000000 (-0.008486 dBFS)
+The interval for ADC nonlinearity test is from -31768 to 31148
+========================================
+Total combined samples: 7864320
+Valid samples within signal range [-31768, 31148]: 6286193
+Number of unique covered ADC codes: 62917
+Full scale code coverage ratio: 100.00 %
+========================================
+Histogram code range: -31768 ~ 31148, total bins: 62917
+========================================
+Max absolute DNL: 0.4983 LSB
+Max absolute INL: 231.8819 LSB
+========================================
+Figures saved to folder: D:\labmatlab\ad da test\AD\INL DNL\JG1 inl dnl\
+Saved files: DNL_Plot.png , INL_Plot.png
+========================================
+========================================
+Start to analysis
+     常规模型:
+     fitResult(x) = a*sin(2*pi*b*x+c)+d
+     系数(置信边界为 95%):
+       a =   3.274e+04  (固定在边界处)
+       b =      0.0101  (固定在边界处)
+       c =       2.524  (2.521, 2.526)
+       d =      -588.3  (固定在边界处)
+           sse: 1.0554e+09
+       rsquare: 0.99804
+           dfe: 999
+    adjrsquare: 0.99804
+          rmse: 1027.8
+========================================
+Fitting Amplitude = 32736.000000 (-0.008486 dBFS)
+The interval for ADC nonlinearity test is from -31768 to 31148
+========================================
+Total combined samples: 7864320
+Valid samples within signal range [-31768, 31148]: 6286193
+Number of unique covered ADC codes: 62917
+Full scale code coverage ratio: 100.00 %
+========================================
+Histogram code range: -31768 ~ 31148, total bins: 62917
+========================================
+Max absolute DNL: 0.4983 LSB
+Max absolute INL: 231.8819 LSB
+========================================
+Figures saved to folder: D:\labmatlab\ad da test\AD\INL DNL\JG1 inl dnl\
+Saved files: DNL_Plot.png , INL_Plot.png
+========================================
+========================================
+Start to analysis
+     常规模型:
+     fitResult(x) = a*sin(2*pi*b*x+c)+d
+     系数(置信边界为 95%):
+       a =   3.274e+04  (固定在边界处)
+       b =      0.0101  (固定在边界处)
+       c =       2.524  (2.521, 2.526)
+       d =      -588.3  (固定在边界处)
+           sse: 1.0554e+09
+       rsquare: 0.99804
+           dfe: 999
+    adjrsquare: 0.99804
+          rmse: 1027.8
+========================================
+Fitting Amplitude = 32736.000000 (-0.008486 dBFS)
+The interval for ADC nonlinearity test is from -31768 to 31148
+========================================
+Total combined samples: 7864320
+Valid samples within signal range [-31768, 31148]: 6286193
+Number of unique covered ADC codes: 62917
+Full scale code coverage ratio: 100.00 %
+========================================
+Histogram code range: -31768 ~ 31148, total bins: 62917
+========================================
+Max absolute DNL: 0.4983 LSB
+Max absolute INL: 231.8819 LSB
+========================================
+Figures saved to folder: D:\labmatlab\ad da test\AD\INL DNL\JG1 inl dnl\
+Saved files: DNL_Plot.png , INL_Plot.png
+========================================
+========================================
+Start to analysis
+     常规模型:
+     fitResult(x) = a*sin(2*pi*b*x+c)+d
+     系数(置信边界为 95%):
+       a =   3.274e+04  (固定在边界处)
+       b =      0.0101  (固定在边界处)
+       c =       2.524  (2.521, 2.526)
+       d =      -588.3  (固定在边界处)
+           sse: 1.0554e+09
+       rsquare: 0.99804
+           dfe: 999
+    adjrsquare: 0.99804
+          rmse: 1027.8
+========================================
+Fitting Amplitude = 32736.000000 (-0.008486 dBFS)
+The interval for ADC nonlinearity test is from -31768 to 31148
+========================================
+Total combined samples: 7864320
+Valid samples within signal range [-31768, 31148]: 6286193
+Number of unique covered ADC codes: 62917
+Full scale code coverage ratio: 100.00 %
+========================================
+Histogram code range: -31768 ~ 31148, total bins: 62917
+========================================
+Max absolute DNL: 0.4983 LSB
+Max absolute INL: 231.8819 LSB
+========================================
+Figures saved to folder: D:\labmatlab\ad da test\AD\INL DNL\JG1 inl dnl\
+Saved files: DNL_Plot.png , INL_Plot.png
+========================================
+========================================
+Start to analysis
+     常规模型:
+     fitResult(x) = a*sin(2*pi*b*x+c)+d
+     系数(置信边界为 95%):
+       a =   3.274e+04  (固定在边界处)
+       b =      0.0101  (固定在边界处)
+       c =       2.524  (2.521, 2.526)
+       d =      -588.3  (固定在边界处)
+           sse: 1.0554e+09
+       rsquare: 0.99804
+           dfe: 999
+    adjrsquare: 0.99804
+          rmse: 1027.8
+========================================
+Fitting Amplitude = 32736.000000 (-0.008486 dBFS)
+The interval for ADC nonlinearity test is from -31768 to 31148
+========================================
+Total combined samples: 7864320
+Valid samples within signal range [-31768, 31148]: 6286193
+Number of unique covered ADC codes: 62917
+Full scale code coverage ratio: 100.00 %
+========================================
+Histogram code range: -31768 ~ 31148, total bins: 62917
+========================================
+Max absolute DNL: 0.4983 LSB
+Max absolute INL: 231.8819 LSB
+========================================
+Figures saved to folder: D:\labmatlab\ad da test\AD\INL DNL\JG1 inl dnl\
+Saved files: DNL_Plot.png , INL_Plot.png
+========================================
+========================================
+Start to analysis
+     常规模型:
+     fitResult(x) = a*sin(2*pi*b*x+c)+d
+     系数(置信边界为 95%):
+       a =   3.274e+04  (固定在边界处)
+       b =      0.0101  (固定在边界处)
+       c =       2.524  (2.521, 2.526)
+       d =      -588.3  (固定在边界处)
+           sse: 1.0554e+09
+       rsquare: 0.99804
+           dfe: 999
+    adjrsquare: 0.99804
+          rmse: 1027.8
+========================================
+Fitting Amplitude = 32736.000000 (-0.008486 dBFS)
+The interval for ADC nonlinearity test is from -31768 to 31148
+========================================
+Total combined samples: 7864320
+Valid samples within signal range [-31768, 31148]: 6286193
+Number of unique covered ADC codes: 62917
+Full scale code coverage ratio: 100.00 %
+========================================
+Histogram code range: -31768 ~ 31148, total bins: 6291
+========================================
+Max absolute DNL: 0.1684 LSB
+Max absolute INL: 23.0950 LSB
+[警告: 导出的图像显示了坐标区工具栏。要从图像中删除坐标区工具栏，请再次导出。] 
+========================================
+Figures saved to folder: D:\labmatlab\ad da test\AD\INL DNL\JG1 inl dnl\
+Saved files: DNL_Plot.png , INL_Plot.png
+========================================
+========================================
+Start to analysis
+     常规模型:
+     fitResult(x) = a*sin(2*pi*b*x+c)+d
+     系数(置信边界为 95%):
+       a =   3.274e+04  (固定在边界处)
+       b =      0.0101  (固定在边界处)
+       c =       2.524  (2.521, 2.526)
+       d =      -588.3  (固定在边界处)
+           sse: 1.0554e+09
+       rsquare: 0.99804
+           dfe: 999
+    adjrsquare: 0.99804
+          rmse: 1027.8
+========================================
+Fitting Amplitude = 32736.000000 (-0.008486 dBFS)
+The interval for ADC nonlinearity test is from -31768 to 31148
+========================================
+Total combined samples: 7864320
+Valid samples within signal range [-31768, 31148]: 6286193
+Number of unique covered ADC codes: 62917
+Full scale code coverage ratio: 100.00 %
+========================================
+Histogram code range: -31768 ~ 31148, total bins: 7864
+========================================
+Max absolute DNL: 0.1868 LSB
+Max absolute INL: 28.9047 LSB
+========================================
+Figures saved to folder: D:\labmatlab\ad da test\AD\INL DNL\JG1 inl dnl\
+Saved files: DNL_Plot.png , INL_Plot.png
+========================================
+========================================
+Start to analysis
+     常规模型:
+     fitResult(x) = a*sin(2*pi*b*x+c)+d
+     系数(置信边界为 95%):
+       a =   3.274e+04  (固定在边界处)
+       b =      0.0101  (固定在边界处)
+       c =       2.524  (2.521, 2.526)
+       d =      -588.3  (固定在边界处)
+           sse: 1.0554e+09
+       rsquare: 0.99804
+           dfe: 999
+    adjrsquare: 0.99804
+          rmse: 1027.8
+========================================
+Fitting Amplitude = 32736.000000 (-0.008486 dBFS)
+The interval for ADC nonlinearity test is from -31768 to 31148
+========================================
+Total combined samples: 7864320
+Valid samples within signal range [-31768, 31148]: 6286193
+Number of unique covered ADC codes: 62917
+Full scale code coverage ratio: 100.00 %
+========================================
+Histogram code range: -31768 ~ 31148, total bins: 62917
+========================================
+Max absolute DNL: 0.4983 LSB
+Max absolute INL: 231.8819 LSB
+========================================
+Figures saved to folder: D:\labmatlab\ad da test\AD\INL DNL\JG1 inl dnl\
+Saved files: DNL_Plot.png , INL_Plot.png
+========================================
+========================================
+Start to analysis
+     常规模型:
+     fitResult(x) = a*sin(2*pi*b*x+c)+d
+     系数(置信边界为 95%):
+       a =   3.274e+04  (固定在边界处)
+       b =      0.0101  (固定在边界处)
+       c =       2.524  (2.521, 2.526)
+       d =      -588.3  (固定在边界处)
+           sse: 1.0554e+09
+       rsquare: 0.99804
+           dfe: 999
+    adjrsquare: 0.99804
+          rmse: 1027.8
+========================================
+Fitting Amplitude = 32736.000000 (-0.008486 dBFS)
+The interval for ADC nonlinearity test is from -31768 to 31148
+========================================
+Total combined samples: 7864320
+Valid samples within signal range [-31768, 31148]: 6286193
+Number of unique covered ADC codes: 62917
+Full scale code coverage ratio: 100.00 %
+========================================
+Histogram code range: -31768 ~ 31148, total bins: 62917
+========================================
+Max absolute DNL: 0.4983 LSB
+Max absolute INL: 231.8819 LSB
+========================================
+Figures saved to folder: D:\labmatlab\ad da test\AD\INL DNL\JG1 inl dnl\
+Saved files: DNL_Plot.png , INL_Plot.png
+========================================
+========================================
+Start to analysis
+     常规模型:
+     fitResult(x) = a*sin(2*pi*b*x+c)+d
+     系数(置信边界为 95%):
+       a =   3.274e+04  (固定在边界处)
+       b =      0.0101  (固定在边界处)
+       c =       2.524  (2.521, 2.526)
+       d =      -588.3  (固定在边界处)
+           sse: 1.0554e+09
+       rsquare: 0.99804
+           dfe: 999
+    adjrsquare: 0.99804
+          rmse: 1027.8
+========================================
+Fitting Amplitude = 32736.000000 (-0.008486 dBFS)
+The interval for ADC nonlinearity test is from -31768 to 31148
+========================================
+Total combined samples: 7864320
+Valid samples within signal range [-31768, 31148]: 6286193
+Number of unique covered ADC codes: 62917
+Full scale code coverage ratio: 100.00 %
+========================================
+Histogram code range: -31768 ~ 31148, total bins: 62917
+========================================
+Max absolute DNL: 0.4983 LSB
+Max absolute INL: 231.8819 LSB
+========================================
+Figures saved to folder: D:\labmatlab\ad da test\AD\INL DNL\JG1 inl dnl\
+Saved files: DNL_Plot.png , INL_Plot.png
+========================================
+========================================
+Start to analysis
+     常规模型:
+     fitResult(x) = a*sin(2*pi*b*x+c)+d
+     系数(置信边界为 95%):
+       a =   3.274e+04  (固定在边界处)
+       b =      0.0101  (固定在边界处)
+       c =       2.524  (2.521, 2.526)
+       d =      -588.3  (固定在边界处)
+           sse: 1.0554e+09
+       rsquare: 0.99804
+           dfe: 999
+    adjrsquare: 0.99804
+          rmse: 1027.8
+========================================
+Fitting Amplitude = 32736.000000 (-0.008486 dBFS)
+The interval for ADC nonlinearity test is from -31768 to 31148
+========================================
+Total combined samples: 7864320
+Valid samples within signal range [-31768, 31148]: 6286193
+Number of unique covered ADC codes: 62917
+Full scale code coverage ratio: 100.00 %
+========================================
+Histogram code range: -31768 ~ 31148, total bins: 62917
+========================================
+Max absolute DNL: 0.4983 LSB
+Max absolute INL: 231.8819 LSB
+========================================
+Figures saved to folder: D:\labmatlab\ad da test\AD\INL DNL\JG1 inl dnl\
+Saved files: DNL_Plot.png , INL_Plot.png
+========================================
+========================================
+Start to analysis
+     常规模型:
+     fitResult(x) = a*sin(2*pi*b*x+c)+d
+     系数(置信边界为 95%):
+       a =   3.274e+04  (固定在边界处)
+       b =      0.0101  (固定在边界处)
+       c =       2.524  (2.521, 2.526)
+       d =      -588.3  (固定在边界处)
+           sse: 1.0554e+09
+       rsquare: 0.99804
+           dfe: 999
+    adjrsquare: 0.99804
+          rmse: 1027.8
+========================================
+Fitting Amplitude = 32736.000000 (-0.008486 dBFS)
+The interval for ADC nonlinearity test is from -31768 to 31148
+========================================
+Total combined samples: 7864320
+Valid samples within signal range [-31768, 31148]: 6286193
+Number of unique covered ADC codes: 62917
+Full scale code coverage ratio: 100.00 %
+========================================
+Histogram code range: -31768 ~ 31148, total bins: 62917
+========================================
+Max absolute DNL: 0.4983 LSB
+Max absolute INL: 231.8819 LSB
+========================================
+Figures saved to folder: D:\labmatlab\数据和例子\ADCxianxing\JG1 inl dnl\
+Saved files: DNL_Plot.png , INL_Plot.png
+========================================
+========================================
+Start to analysis
+     常规模型:
+     fitResult(x) = a*sin(2*pi*b*x+c)+d
+     系数(置信边界为 95%):
+       a =   3.274e+04  (固定在边界处)
+       b =      0.0101  (固定在边界处)
+       c =       2.524  (2.521, 2.526)
+       d =      -588.3  (固定在边界处)
+           sse: 1.0554e+09
+       rsquare: 0.99804
+           dfe: 999
+    adjrsquare: 0.99804
+          rmse: 1027.8
+========================================
+Fitting Amplitude = 32736.000000 (-0.008486 dBFS)
+The interval for ADC nonlinearity test is from -31768 to 31148
+========================================
+Total combined samples: 7864320
+Valid samples within signal range [-31768, 31148]: 6286193
+Number of unique covered ADC codes: 62917
+Full scale code coverage ratio: 100.00 %
+========================================
+Histogram code range: -31768 ~ 31148, total bins: 62917
+========================================
+Max absolute DNL: 0.4983 LSB
+Max absolute INL: 231.8819 LSB
+========================================
+Figures saved to folder: D:\labmatlab\数据和例子\ADCxianxing\JG1 inl dnl\
+Saved files: DNL_Plot.png , INL_Plot.png
+========================================
+========================================
+Start to analysis
+     常规模型:
+     fitResult(x) = a*sin(2*pi*b*x+c)+d
+     系数(置信边界为 95%):
+       a =   3.274e+04  (固定在边界处)
+       b =      0.0101  (固定在边界处)
+       c =       2.524  (2.521, 2.526)
+       d =      -588.3  (固定在边界处)
+           sse: 1.0554e+09
+       rsquare: 0.99804
+           dfe: 999
+    adjrsquare: 0.99804
+          rmse: 1027.8
+========================================
+Fitting Amplitude = 32736.000000 (-0.008486 dBFS)
+The interval for ADC nonlinearity test is from -31768 to 31148
+========================================
+Total combined samples: 7864320
+Valid samples within signal range [-31768, 31148]: 6286193
+Number of unique covered ADC codes: 62917
+Full scale code coverage ratio: 100.00 %
+========================================
+Histogram code range: -31768 ~ 31148, total bins: 62917
+========================================
+Max absolute DNL: 0.4983 LSB
+Max absolute INL: 524.1998 LSB
+========================================
+Figures saved to folder: D:\labmatlab\数据和例子\ADCxianxing\JG1 inl dnl\
+Saved files: DNL_Plot.png , INL_Plot.png
+========================================
+========================================
+Start to analysis
+     常规模型:
+     fitResult(x) = a*sin(2*pi*b*x+c)+d
+     系数(置信边界为 95%):
+       a =   3.274e+04  (固定在边界处)
+       b =      0.0101  (固定在边界处)
+       c =       2.524  (2.521, 2.526)
+       d =      -588.3  (固定在边界处)
+           sse: 1.0554e+09
+       rsquare: 0.99804
+           dfe: 999
+    adjrsquare: 0.99804
+          rmse: 1027.8
+========================================
+Fitting Amplitude = 32736.000000 (-0.008486 dBFS)
+The interval for ADC nonlinearity test is from -31768 to 31148
+========================================
+Total combined samples: 7864320
+Valid samples within signal range [-31768, 31148]: 6286193
+Number of unique covered ADC codes: 62917
+Full scale code coverage ratio: 100.00 %
+========================================
+Histogram code range: -31768 ~ 31148, total bins: 62917
+========================================
+Max absolute DNL: 0.4983 LSB
+Max absolute INL: 231.8819 LSB
+========================================
+Figures saved to folder: D:\labmatlab\数据和例子\ADCxianxing\JG1 inl dnl\
+Saved files: DNL_Plot.png , INL_Plot.png
+========================================

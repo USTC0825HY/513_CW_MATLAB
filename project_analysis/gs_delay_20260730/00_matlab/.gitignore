@@ -1,0 +1,26 @@
+# Generated device releases and MATLAB artifacts
+_release/
+**/results/
+**/run_*/
+slprj/
+codegen/
+*.asv
+*.m~
+*.autosave
+*.mex*
+*.fig
+
+# Historical example data remain on disk but are not source-controlled.
+Matlab_AND_ExampleData_lyp/**/*.csv
+Matlab_AND_ExampleData_lyp/**/*.png
+Matlab_AND_ExampleData_lyp/**/*.fig
+Matlab_AND_ExampleData_lyp/**/*.mat
+Matlab_AND_ExampleData_lyp/**/*.txt
+
+# Raw measurement data never belong in the source repository.
+**/raw/
+
+# Small, curated regression fixtures and golden summaries are intentional.
+!tests/fixtures/**/*.csv
+!tests/golden/**/*.csv
+

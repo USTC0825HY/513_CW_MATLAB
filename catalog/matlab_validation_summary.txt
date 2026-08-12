@@ -1,0 +1,6 @@
+STATUS=PASS
+TOTAL=9
+PASSED=9
+FAILED=0
+INCOMPLETE=0
+CODE_ROOT=F:\01_Laser\code\matlab\laser_analysis

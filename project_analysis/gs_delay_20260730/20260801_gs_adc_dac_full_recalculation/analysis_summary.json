@@ -1,0 +1,61 @@
+{
+  "raw_csv_count": 49,
+  "ad9245_sfdr_file_count": 17,
+  "sfdr_fail_count_nominal": 3,
+  "bandwidth_3db_hz": 3799982.95044345,
+  "bandwidth_invalid_files": [
+    "5MHz.ila.csv",
+    "10MHz.csv"
+  ],
+  "isolation_min_db": 102.835034053978,
+  "power_calibration": {
+    "slope": 0.9983867239979219,
+    "intercept": -14.3065724250359,
+    "r2": 0.9999943495835041
+  },
+  "power_duplicate_pairs": [
+    [
+      "-2dBm.ila.csv",
+      "-5dBm.csv"
+    ],
+    [
+      "6dBm.csv",
+      "5dBm.csv"
+    ]
+  ],
+  "ad766_linearity_max_abs_residual_v": 0.0790851734978641,
+  "ad766_noise": [
+    {
+      "fileName": "6V_7FFF_DC.csv",
+      "sampleCount": 10000000,
+      "sampleIntervalS": 2.39999999984697e-06,
+      "sampleRateHz": 416666.666693235,
+      "durationS": 23.999997600000004,
+      "meanVoltageV": 5.9071397703549895,
+      "noiseRmsV": 0.009419988988667421,
+      "noisePeakToPeakV": 0.0847699999999998,
+      "asdAt1HzVPerSqrtHz": 0.000396149180071039,
+      "integratedNoise1kTo100kVrms": 0.00650436409986721,
+      "asdPass": 0,
+      "integratedPass": 0,
+      "welchWindowSamples": 1666666,
+      "frequencyResolutionHz": 0.19868214926397101
+    },
+    {
+      "fileName": "CODE_8000_DC.csv",
+      "sampleCount": 10000000,
+      "sampleIntervalS": 2.39999999984697e-06,
+      "sampleRateHz": 416666.666693235,
+      "durationS": 23.999997600000004,
+      "meanVoltageV": -0.1567616951806,
+      "noiseRmsV": 0.000405301172456402,
+      "noisePeakToPeakV": 0.00448299999999999,
+      "asdAt1HzVPerSqrtHz": 9.22089527997549e-06,
+      "integratedNoise1kTo100kVrms": 0.000269758250272174,
+      "asdPass": 1,
+      "integratedPass": 1,
+      "welchWindowSamples": 1666666,
+      "frequencyResolutionHz": 0.19868214926397101
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "ValidationTime": "2026-08-07T18:16:39.8612301+08:00",
+  "BeforeFileCount": 30953,
+  "AfterFileCount": 30953,
+  "BeforeTotalBytes": 21847900164,
+  "AfterTotalBytes": 21847900164,
+  "VerifiedFiles": 30953,
+  "MissingFiles": 0,
+  "SizeMismatchFiles": 0,
+  "HashMismatchFiles": 0,
+  "HashErrors": 0
+}

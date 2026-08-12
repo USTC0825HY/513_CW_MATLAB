@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="dBm、Vrms 与 Vpp 本地换算工具" />
+    <title>dBm · 电压换算器</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div class="eyebrow"><span class="signal-dot"></span>RF TOOLKIT</div>
+        <h1>功率与电压，<br /><span>一触即换。</span></h1>
+        <p>在 dBm、Vrms 和 Vpp 之间快速换算。所有计算均在本地浏览器中完成。</p>
+      </header>
+
+      <section class="converter-card" aria-labelledby="converter-title">
+        <div class="card-heading">
+          <div>
+            <p class="section-label">CONVERTER</p>
+            <h2 id="converter-title">参数换算</h2>
+          </div>
+          <button id="reset-button" class="reset-button" type="button">重置</button>
+        </div>
+
+        <div class="impedance-panel">
+          <div class="field-title">
+            <label for="impedance">负载阻抗</label>
+            <span>纯电阻负载</span>
+          </div>
+          <div class="impedance-controls">
+            <div class="input-shell compact">
+              <input id="impedance" type="number" value="50" min="0" step="any" inputmode="decimal" />
+              <span class="unit">Ω</span>
+            </div>
+            <div class="presets" aria-label="常用阻抗">
+              <button class="preset active" type="button" data-value="50">50 Ω</button>
+              <button class="preset" type="button" data-value="75">75 Ω</button>
+              <button class="preset" type="button" data-value="600">600 Ω</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="value-grid">
+          <div class="value-field active" data-source="dbm">
+            <div class="field-title">
+              <label for="dbm">功率电平</label>
+              <span>相对于 1 mW</span>
+            </div>
+            <div class="input-shell">
+              <input id="dbm" type="number" value="0" step="any" inputmode="decimal" aria-describedby="status" />
+              <span class="unit">dBm</span>
+            </div>
+          </div>
+
+          <div class="equals" aria-hidden="true"><span></span><span></span></div>
+
+          <div class="value-field" data-source="vrms">
+            <div class="field-title">
+              <label for="vrms">有效值电压</label>
+              <span>RMS voltage</span>
+            </div>
+            <div class="input-shell">
+              <input id="vrms" type="number" step="any" inputmode="decimal" aria-describedby="status" />
+              <span class="unit">Vrms</span>
+            </div>
+          </div>
+
+          <div class="equals" aria-hidden="true"><span></span><span></span></div>
+
+          <div class="value-field" data-source="vpp">
+            <div class="field-title">
+              <label for="vpp">峰峰值电压</label>
+              <span>Peak-to-peak</span>
+            </div>
+            <div class="input-shell">
+              <input id="vpp" type="number" step="any" inputmode="decimal" aria-describedby="status" />
+              <span class="unit">Vpp</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="status" class="status" role="status" aria-live="polite">
+          <span class="status-icon">✓</span>
+          <span id="status-text">当前以 dBm 为输入，结果基于 50 Ω 负载。</span>
+        </div>
+      </section>
+
+      <section class="formula-card" aria-labelledby="formula-title">
+        <div>
+          <p class="section-label">REFERENCE</p>
+          <h2 id="formula-title">换算依据</h2>
+        </div>
+        <div class="formulas">
+          <code>P = 10<sup>dBm / 10</sup> ÷ 1000</code>
+          <code>V<sub>rms</sub> = √(P × R)</code>
+          <code>V<sub>pp</sub> = 2√2 × V<sub>rms</sub></code>
+        </div>
+        <p class="note">Vpp 与 Vrms 的关系按无直流偏置的正弦波计算。</p>
+      </section>
+    </main>
+  </body>
+</html>

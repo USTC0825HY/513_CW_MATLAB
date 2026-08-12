@@ -1,0 +1,12 @@
+# Raw measurement data can be large and should remain local.
+**/data/**
+
+# Jupyter/Python generated files
+.ipynb_checkpoints/
+__pycache__/
+*.py[cod]
+
+# Generated figures
+*.png
+*.pdf
+*.svg

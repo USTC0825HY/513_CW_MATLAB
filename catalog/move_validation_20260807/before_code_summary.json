@@ -1,0 +1,17 @@
+{
+  "WorkspaceRoot": "F:\\01_Laser",
+  "SnapshotTime": "2026-08-07T18:02:42.2394192+08:00",
+  "SourcePaths": [
+    "MATLAB",
+    "202607_上海_电2\\logic",
+    ".Xil",
+    "20260727_513test\\02_GS与延迟驱动测试\\03_Analysis_分析脚本与结果",
+    "20260727_513test\\02_GS与延迟驱动测试\\04_FPGA_工程与固件\\01_Source_工程主副本",
+    "20260727_513test\\02_GS与延迟驱动测试\\04_FPGA_工程与固件\\99_Generated_可重建生成物",
+    "20260727_513test\\02_GS与延迟驱动测试\\99_Review_待确认\\疑似重复FPGA工程_LOGIC_jianding_szsd_ver729",
+    "20260727_513test\\03_CW测试\\04_FPGA_工程与固件\\01_Source_工程主副本",
+    "20260727_513test\\03_CW测试\\04_FPGA_工程与固件\\99_Generated_可重建生成物"
+  ],
+  "FileCount": 30953,
+  "TotalBytes": 21847900164
+}

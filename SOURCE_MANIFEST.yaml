@@ -1,0 +1,18 @@
+schema: 1
+repository: laser-matlab
+scope: MATLAB, Python, notebook, analysis tooling, and migration catalog
+projects:
+  - path: laser_analysis
+    kind: matlab-python
+    entrypoints: [setup_laser_analysis.m]
+  - path: laser_analysis/PDH_data_process
+    kind: matlab-python
+  - path: project_analysis/gs_delay_20260730
+    kind: matlab-python
+  - path: legacy
+    kind: archived-analysis
+  - path: tools
+    kind: utility
+  - path: catalog
+    kind: migration-and-validation-records
+artifact_policy: keep-raw-measurements-outside-git-and-record-sha256

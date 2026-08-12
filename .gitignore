@@ -1,0 +1,58 @@
+# Analysis outputs and raw measurements
+**/raw/
+**/data/
+**/result/
+**/results/
+**/output/
+**/reports_generated/
+**/release/
+
+# MATLAB generated state
+**/slprj/
+**/codegen/
+**/*.asv
+**/*.m~
+**/*.autosave
+**/*.mex*
+
+# Python/Jupyter generated state
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ipynb_checkpoints/
+**/.venv/
+**/.venv*/
+**/venv/
+**/venv*/
+**/*.sqlite
+**/*.sqlite-shm
+**/*.sqlite-wal
+
+# Local IDE/build state
+**/.vs/
+**/bin/
+**/obj/
+**/packages/
+**/*.user
+**/*.suo
+**/*.log
+**/*~
+**/*.swp
+**/*.swo
+**/.DS_Store
+**/Thumbs.db
+
+# Large measurement and MATLAB binary artifacts
+**/*.mat
+**/*.fig
+**/*.h5
+**/*.hdf5
+**/*.csv
+**/*.tsv
+
+# Curated small regression data may be explicitly re-included below.
+!**/tests/fixtures/**/*.csv
+!**/tests/golden/**/*.csv
+!catalog/*.csv
+!catalog/*.json

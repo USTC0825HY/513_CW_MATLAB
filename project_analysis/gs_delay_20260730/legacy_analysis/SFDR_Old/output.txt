@@ -1,0 +1,63 @@
+========================================
+Start to analysis
+========================================
+I-channel:
+	Max = 1.388998e+04	Min = -1.388002e+04, Mean = 0.00
+========================================
+{函数或变量 'find_accu_peak' 无法识别。
+出错 <a href="matlab:matlab.lang.internal.introspective.errorDocCallback('adc_sfdr', 'F:\01_Laser\20260727_513test\20260730_GS_YCQD_TEST\Matlab_AND_ExampleData\sfdr\adc_sfdr.m', 76)" style="font-weight:bold">adc_sfdr</a> (<a href="matlab: opentoline('F:\01_Laser\20260727_513test\20260730_GS_YCQD_TEST\Matlab_AND_ExampleData\sfdr\adc_sfdr.m',76,0)">第 76 行</a>)
+        [~, sigIndexAccu] = find_accu_peak(data_freq_db, sigIndex-sigSpan, sigIndex+sigSpan); % Interpolation for sub-bin accurate frequency
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^} 
+adc_sfdr
+Selected 1 files...
+========================================
+Start to analysis
+========================================
+I-channel:
+	Max = 1.388998e+04	Min = -1.388002e+04, Mean = 0.00
+========================================
+Signal Frequency = 0.25 MHz
+hd[2] = 104.60	Accurate @ 2622.46	Origin @ 2.622220e+03
+HD[2]	from 2614 to 2630
+hd[3] = 103.85	Accurate @ 3933.32	Origin @ 3.932830e+03
+HD[3]	from 3925 to 3941
+hd[4] = 90.70	Accurate @ 5243.67	Origin @ 5.243440e+03
+HD[4]	from 5236 to 5252
+hd[5] = 90.14	Accurate @ 6554.53	Origin @ 6.554050e+03
+HD[5]	from 6547 to 6563
+hd[6] = 88.87	Accurate @ 7865.48	Origin @ 7.864660e+03
+HD[6]	from 7857 to 7873
+hd[7] = 78.96	Accurate @ 9176.10	Origin @ 9.175270e+03
+HD[7]	from 9168 to 9184
+hd[8] = 88.76	Accurate @ 10486.51	Origin @ 1.048588e+04
+HD[8]	from 10479 to 10495
+========================================
+     常规模型:
+     fitResult(x) = a*sin(2*pi*b*x+c)+d
+     系数(置信边界为 95%):
+       a =   1.386e+04  (1.386e+04, 1.386e+04)
+       b =        0.01  (0.01, 0.01)
+       c =      0.6738  (0.6737, 0.6739)
+       d =     -0.4992  (-1.018, 0.01973)
+           sse: 69473
+       rsquare: 1
+           dfe: 996
+    adjrsquare: 1
+          rmse: 8.3518
+Fitting Amplitude = 13859.554360 (-7.474013 dBFS)
+Fitted peak code       = 13859.055
+Fitted valley code     = -13860.054
+Fitted peak average    = 13859.055
+Fitted center code    = -0.499
+Fitted offset code     = -0.499
+Code_pp               = 27719.109
+========================================
+SFDR  =  69.31
+SNR   =  62.99
+SINAD =  61.26
+THD =  66.07
+ENOB  =  11.13
+[警告: 导出的图像显示了坐标区工具栏。要从图像中删除坐标区工具栏，请再次导出。] 
+========================================
+ans =
+       11.125
