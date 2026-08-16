@@ -1,170 +1,106 @@
 function result = s28_analyze_channel_isolation(cfg)
-%S28_ANALYZE_CHANNEL_ISOLATION Analyze aggressor-victim isolation.
-%   RESULT = s28_analyze_channel_isolation(CFG) fits the same stimulus tone
-%   in an excited channel and a victim channel, then computes
-%   20*log10(Aaggressor/Avictim). ADC ILA and DAC oscilloscope captures use
-%   the same amplitude-fit method.
-%
-%   Rows are paired by case_id, aggressor_channel, and victim_channel.
-%   Both channel rows must have the same explicit reference_plane and a
-%   valid stimulus_frequency_hz. Otherwise the numeric evidence is retained
-%   but the compliance status is 暂不能判定.
+%S28_ANALYZE_CHANNEL_ISOLATION DA compatibility adapter.
+%   For DA captures CFG must provide dataFolder, pairManifest and optional
+%   outputFolder/deviceId.  ADC isolation remains available through the
+%   corresponding device entry in CW_513_ANALYSIS.
 
-arguments
-    cfg (1, 1) struct
+if nargin < 1 || ~isstruct(cfg)
+    error('cw513:IsolationConfigRequired', '请提供隔离度配置结构体。');
+end
+workflowFolder = fileparts(mfilename('fullpath'));
+laserAnalysisFolder = fileparts(fileparts(workflowFolder));
+cwRoot = fullfile(fileparts(laserAnalysisFolder), '513DIANXING_analysis', ...
+    'CW_analysis', 'CW_513_ANALYSIS');
+if ~isfolder(cwRoot)
+    error('cw513:LibraryMissing', ...
+        '需要先添加 CW_513_ANALYSIS 分析库路径：%s', cwRoot);
+end
+addpath(fullfile(cwRoot, '_shared'));
+deviceId = localField(cfg, 'deviceId', 'DA9726');
+if strncmpi(char(deviceId), 'DA766', 5) || strcmpi(char(deviceId), '766')
+    addpath(fullfile(cwRoot, '766_hy'));
+else
+    addpath(fullfile(cwRoot, '9726_hy'));
+end
+if isfield(cfg, 'pairManifest')
+    pairManifest = cfg.pairManifest;
+elseif isfield(cfg, 'manifestFile') && isfile(cfg.manifestFile)
+    pairManifest = localLegacyManifest(readtable(cfg.manifestFile));
+else
+    error('cw513:IsolationManifestRequired', ...
+        'DA隔离度必须明确提供 pairManifest 或 manifestFile。');
+end
+if ~isfield(cfg, 'dataFolder')
+    cfg.dataFolder = localManifestFolder(pairManifest);
+end
+outputFolder = localField(cfg, 'outputFolder', localField(cfg, 'outputDir', ''));
+result = dac_isolation_analysis(cfg.dataFolder, pairManifest, outputFolder, cfg);
+result.details = result.summary;
 end
 
-manifest = laser_analysis.read_test_manifest(cfg.manifestFile, ...
-    ["case_id", "channel", "source_file", "aggressor_channel", ...
-    "victim_channel"]);
-pairKeys = unique(manifest(:, ...
-    {'case_id', 'aggressor_channel', 'victim_channel'}), 'rows', 'stable');
-rows = cell(height(pairKeys), 11);
-curveRows = cell(0, 6);
-sourceRows = cell(0, 7);
+function value = localField(structure, name, defaultValue)
+if isfield(structure, name) && ~isempty(structure.(name))
+    value = structure.(name);
+else
+    value = defaultValue;
+end
+end
 
-for k = 1:height(pairKeys)
-    key = pairKeys(k, :);
-    groupMask = manifest.case_id == key.case_id & ...
-        manifest.aggressor_channel == key.aggressor_channel & ...
-        manifest.victim_channel == key.victim_channel;
+function pairs = localLegacyManifest(manifest)
+required = {'source_file', 'aggressor_channel', 'victim_channel', ...
+    'stimulus_frequency_hz'};
+for k = 1:numel(required)
+    if ~ismember(required{k}, manifest.Properties.VariableNames)
+        error('cw513:IsolationManifestRequired', ...
+            '旧隔离清单缺少字段：%s', required{k});
+    end
+end
+pairs = struct([]);
+if ismember('case_id', manifest.Properties.VariableNames)
+    keys = unique(manifest(:, {'case_id', 'aggressor_channel', ...
+        'victim_channel'}), 'rows', 'stable');
+else
+    keys = table(1, manifest.aggressor_channel(1), ...
+        manifest.victim_channel(1), 'VariableNames', ...
+        {'case_id', 'aggressor_channel', 'victim_channel'});
+end
+for k = 1:height(keys)
+    if ismember('case_id', manifest.Properties.VariableNames)
+        groupMask = string(manifest.case_id) == string(keys.case_id(k)) & ...
+            string(manifest.aggressor_channel) == string(keys.aggressor_channel(k)) & ...
+            string(manifest.victim_channel) == string(keys.victim_channel(k));
+    else
+        groupMask = true(height(manifest), 1);
+    end
     group = manifest(groupMask, :);
-    aggressorRow = group(group.channel == key.aggressor_channel, :);
-    victimRow = group(group.channel == key.victim_channel, :);
-    reason = "";
-    aggressorAmplitude = NaN;
-    victimAmplitude = NaN;
-    toneHz = localUniqueFinite(group.stimulus_frequency_hz);
-    if height(aggressorRow) ~= 1 || height(victimRow) ~= 1
-        reason = "每个通道组合必须恰有一条 aggressor 和 victim 记录";
-    elseif ~isfinite(toneHz)
-        reason = "激励频率缺失或不一致";
+    if ismember('channel', group.Properties.VariableNames)
+        driveMask = string(group.channel) == string(keys.aggressor_channel(k));
+        victimMask = string(group.channel) == string(keys.victim_channel(k));
     else
-        aggressor = laser_analysis.load_test_capture(aggressorRow);
-        victim = laser_analysis.load_test_capture(victimRow);
-        if ~isfinite(aggressor.fs_hz) || ~isfinite(victim.fs_hz) || ...
-                toneHz >= min(aggressor.fs_hz, victim.fs_hz) / 2
-            reason = "采样率缺失或激励超出 Nyquist";
-        else
-            aggressorFit = laser_analysis.fit_tone( ...
-                aggressor.time_s, aggressor.value, toneHz);
-            victimFit = laser_analysis.fit_tone( ...
-                victim.time_s, victim.value, toneHz);
-            aggressorAmplitude = aggressorFit.amplitude;
-            victimAmplitude = victimFit.amplitude;
-            sourceRows = [sourceRows; localSourceRows( ...
-                key.case_id, aggressorRow, aggressor); ...
-                localSourceRows(key.case_id, victimRow, victim)]; %#ok<AGROW>
-        end
+        driveMask = true(height(group), 1); victimMask = driveMask;
+        victimMask(1:min(1, height(group))) = false;
     end
-    if aggressorAmplitude > 0 && victimAmplitude > 0
-        isolationDb = 20 * log10(aggressorAmplitude / victimAmplitude);
-    else
-        isolationDb = NaN;
+    if nnz(driveMask) ~= 1 || nnz(victimMask) ~= 1
+        continue;
     end
-    subsystem = localIsolationSubsystem(group.data_role);
-    requirement = laser_analysis.find_requirement(cfg, "isolation", subsystem);
-    status = laser_analysis.evaluate_requirement( ...
-        isolationDb, requirement, cfg.formalEnabled);
-    referencePlanes = unique(strtrim(group.reference_plane));
-    if strlength(reason) > 0 || numel(referencePlanes) ~= 1 || ...
-            strlength(referencePlanes) == 0
-        status = "暂不能判定";
-    end
-    rows(k, :) = {key.case_id, key.aggressor_channel, ...
-        key.victim_channel, toneHz, aggressorAmplitude, victimAmplitude, ...
-        isolationDb, subsystem, localRequirementId(requirement), status, reason};
-    curveRows(end + 1, :) = {key.case_id, key.victim_channel, ...
-        "isolation", toneHz, isolationDb, "dB"}; %#ok<AGROW>
-end
-
-details = cell2table(rows, 'VariableNames', { ...
-    'case_id', 'aggressor_channel', 'victim_channel', ...
-    'stimulus_frequency_hz', 'aggressor_amplitude', 'victim_amplitude', ...
-    'isolation_db', 'subsystem', 'requirement_id', 'status', 'reason'});
-summary = localSummary(details);
-curves = cell2table(curveRows, 'VariableNames', { ...
-    'case_id', 'channel', 'curve_type', 'x_value', 'y_value', 'unit'});
-sources = cell2table(sourceRows, 'VariableNames', { ...
-    'case_id', 'channel', 'source_file', 'sha256', 'reference_plane', ...
-    'calibration_source', 'sample_count'});
-output = laser_analysis.write_evidence_bundle( ...
-    cfg, summary, details, curves, sources);
-figureHandle = localPlot(details);
-figurePath = laser_analysis.save_evidence_figure( ...
-    figureHandle, output, "channel_isolation", cfg);
-result = struct('config', cfg, 'summary', summary, 'details', details, ...
-    'curves', curves, 'sources', sources, 'output', output, ...
-    'figure', figurePath);
-save(output.resultMat, 'result', '-append');
-end
-
-function row = localSourceRows(caseId, manifestRow, capture)
-%LOCALSOURCEROWS Build one source provenance row.
-row = {caseId, manifestRow.channel, capture.source_file, capture.sha256, ...
-    capture.reference_plane, manifestRow.calibration_source, ...
-    capture.sample_count};
-end
-
-function value = localUniqueFinite(values)
-%LOCALUNIQUEFINITE Return one unique finite number or NaN.
-values = unique(values(isfinite(values)));
-if isscalar(values), value = values; else, value = NaN; end
-end
-
-function subsystem = localIsolationSubsystem(dataRole)
-%LOCALISOLATIONSUBSYSTEM Select ADC or DAC from explicit data_role.
-dataRole = lower(strtrim(dataRole));
-if any(contains(dataRole, "dac"))
-    subsystem = "dac";
-elseif any(contains(dataRole, "adc"))
-    subsystem = "adc";
-else
-    subsystem = "";
+    driveRow = group(find(driveMask, 1), :);
+    victimRow = group(find(victimMask, 1), :);
+    row = struct();
+    row.driven_file = char(string(driveRow.source_file));
+    row.victim_file = char(string(victimRow.source_file));
+    row.driven_variable = 'A'; row.victim_variable = 'A';
+    row.frequency_hz = group.stimulus_frequency_hz(1);
+    row.driven_label = char(string(keys.aggressor_channel(k)));
+    row.victim_label = char(string(keys.victim_channel(k)));
+    pairs = [pairs; row]; %#ok<AGROW>
 end
 end
 
-function id = localRequirementId(requirement)
-%LOCALREQUIREMENTID Return the unique requirement id when available.
-if height(requirement) == 1
-    id = requirement.requirement_id;
-else
-    id = "";
+function folder = localManifestFolder(pairs)
+if isempty(pairs)
+    folder = pwd;
+    return;
 end
-end
-
-function summary = localSummary(details)
-%LOCALSUMMARY Report the worst isolation pair for each subsystem.
-subsystems = unique(details.subsystem, 'stable');
-rows = cell(numel(subsystems), 6);
-for k = 1:numel(subsystems)
-    mask = details.subsystem == subsystems(k);
-    part = details(mask, :);
-    valid = find(isfinite(part.isolation_db));
-    if isempty(valid)
-        worst = NaN;
-        pair = "";
-        status = "暂不能判定";
-    else
-        [worst, index] = min(part.isolation_db(valid));
-        row = part(valid(index), :);
-        pair = row.aggressor_channel + "->" + row.victim_channel;
-        status = row.status;
-    end
-    rows(k, :) = {subsystems(k), worst, pair, status, ...
-        height(part), nnz(part.status == "暂不能判定")};
-end
-summary = cell2table(rows, 'VariableNames', { ...
-    'subsystem', 'worst_isolation_db', 'worst_pair', 'status', ...
-    'pair_count', 'undetermined_count'});
-end
-
-function figureHandle = localPlot(details)
-%LOCALPLOT Plot isolation values by channel pair.
-figureHandle = figure('Visible', 'off', 'Color', 'w');
-labels = details.aggressor_channel + "->" + details.victim_channel;
-bar(categorical(labels), details.isolation_db);
-ylabel('Isolation (dB)');
-title('Channel isolation');
-grid on;
+folder = fileparts(char(pairs(1).driven_file));
+if isempty(folder), folder = pwd; end
 end
