@@ -15,6 +15,11 @@ config.removeMean = true;
 config.sampleRate = 250e3;
 config.dacBits = 16;
 config.dacCodeBits = config.dacBits;
+% Default legacy-compatible interpretation.  Captures whose file names are
+% hexadecimal unsigned DAC setpoints may override these two fields at run
+% time without changing the default behavior for decimal signed captures.
+config.codeNameFormat = 'signed_decimal';
+config.codeVppDefinition = 'twice_abs_signed_code';
 config.adcBits = config.dacBits;
 config.adcCodeFormat = 'voltage';
 config.toneFrequencyHz = 1e3;

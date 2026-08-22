@@ -4,13 +4,21 @@ function config = ad2208Config(analysisId)
 config = struct();
 config.deviceId = 'AD2208';
 config.analysisId = lower(char(analysisId));
-config.version = '1.3.0';
+config.version = '1.4.0';
 config.releaseReady = true;
 config.adcBits = 16;
 config.adcFullScalePeakCode = 2^(config.adcBits - 1);
 config.adcCodeFormat = 'signed';
 config.adcDataColumn = 4;
 config.headerModulePattern = '(?i)yb2208_test_module\[(\d+)\]';
+% Hardware module index is zero based in the Vivado ILA CSV header.
+% Keep this device-specific map in the AD2208 configuration so the shared
+% I/O layer does not reinterpret AD9245 X1G...X4G channels.
+config.moduleChannelMap = {'ADC1_JG15', 'ADC2_JG17', 'ADC3_JG19', ...
+    'ADC4', 'ADC5_JG22', 'ADC6_JG24', 'ADC7', 'ADC8'};
+config.jgChannelNumbers = [15, 17, 19, 22, 24];
+config.jgChannelNames = {'ADC1_JG15', 'ADC2_JG17', 'ADC3_JG19', ...
+    'ADC5_JG22', 'ADC6_JG24'};
 config.fitCycles = 20;
 config.minimumFitSamples = 1024;
 config.saveFigures = true;
@@ -46,6 +54,12 @@ switch config.analysisId
         config.clippingThreshold = 0.98;
         config.clippingFractionLimit = 0.01;
         config.plateauChangeThreshold = 0.01;
+        config.minimumSineFitR2 = 0.98;
+        config.excludeFrequencyMismatchFromPowerScale = true;
+        config.referenceImpedanceOhm = 50;
+        % Filename dBm values are converted to Vpp at the explicit 50-ohm
+        % reference. The formal fit is CodePp -> Vpp; dBm is traceability.
+        config.powerSetpointSource = 'dBm value parsed from AD2208 CSV filename';
     case 'inl_dnl'
         config.marginCode = 1000;
         config.minimumFitR2 = 0.999;

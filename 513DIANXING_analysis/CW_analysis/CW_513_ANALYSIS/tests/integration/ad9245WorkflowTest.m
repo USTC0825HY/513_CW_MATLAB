@@ -60,8 +60,13 @@ classdef ad9245WorkflowTest < matlab.unittest.TestCase
             results = adc_power_scale_analysis(testCase.DataFolders.power, ...
                 files, testCase.OutputFolders.power);
             testCase.verifyEqual(height(results), 4);
+            testCase.verifyTrue(all(isfinite(results.InputVoltageVpp)));
+            testCase.verifyTrue(all(isfinite(results.CalibrationSlopeVppPerCodePp)));
+            testCase.verifyGreaterThan(results.CalibrationSlopeVppPerCodePp(1), 0);
+            testCase.verifyTrue(all(contains(results.InputPowerDefinition, ...
+                'Vpp')));
             testCase.verifyTrue(ad9245WorkflowTest.hasSuccessRun( ...
-                testCase.OutputFolders.power, 'ADC_power_scale_summary.csv'));
+                testCase.OutputFolders.power, 'ADC_vpp_codepp_summary.csv'));
         end
 
         function runsInlDnlEntry(testCase)

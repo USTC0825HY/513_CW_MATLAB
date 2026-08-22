@@ -42,7 +42,7 @@ function records = processFileGroups(records, dataRoot, metricFolder, analysisId
 metricRoot = fullfile(dataRoot, metricFolder);
 if ~isfolder(metricRoot)
     records(end + 1, :) = {metricFolder, '', '未处理', ...
-        '指标目录不存在'}; %#ok<AGROW>
+        '指标目录不存在'};
     return;
 end
 
@@ -50,15 +50,17 @@ fileInfo = dir(fullfile(metricRoot, '**', '*.csv'));
 fileInfo = excludeResultFiles(fileInfo);
 if isempty(fileInfo)
     records(end + 1, :) = {metricFolder, '', '未处理', ...
-        '没有原始 CSV'}; %#ok<AGROW>
+        '没有原始 CSV'};
     return;
 end
 
 groupNames = strings(numel(fileInfo), 1);
 relativeNames = strings(numel(fileInfo), 1);
+analysisConfig = ad2208Config(analysisId);
 for index = 1:numel(fileInfo)
     absolutePath = fullfile(fileInfo(index).folder, fileInfo(index).name);
-    groupNames(index) = string(converter.io.extractChannel(absolutePath));
+    groupNames(index) = string(converter.io.detectChannel(absolutePath, ...
+        fileInfo(index).name, metricRoot, analysisConfig));
     relativeNames(index) = string(strrep( ...
         erase(absolutePath, [metricRoot filesep]), filesep, '/'));
 end

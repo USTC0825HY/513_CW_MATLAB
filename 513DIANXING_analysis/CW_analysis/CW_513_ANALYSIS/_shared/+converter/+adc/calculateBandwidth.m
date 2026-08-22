@@ -59,11 +59,6 @@ validForBandwidth = isfinite(codePp) & codePp > 0 & ...
 if isfield(config, 'rejectFrequencyMismatch') && config.rejectFrequencyMismatch
     validForBandwidth = validForBandwidth & ~frequencyMismatchFlag;
 end
-if nnz(validForBandwidth) < 2
-    error('converter:adc:InsufficientBandwidthPoints', ...
-        '有效频率点少于 2 个，无法计算带宽。');
-end
-
 if isfield(config, 'bandwidthFrequencySource') && ...
         strcmpi(config.bandwidthFrequencySource, 'file')
     validFrequencyHz = fileFrequencyHz(validForBandwidth);
@@ -71,19 +66,32 @@ else
     validFrequencyHz = frequencyHz(validForBandwidth);
 end
 validCodePp = codePp(validForBandwidth);
-if numel(validCodePp) < config.referencePointCount
-    error('converter:adc:InsufficientReferencePoints', ...
-        '有效频率点少于参考点数量 %d。', config.referencePointCount);
-end
-referenceValidIndices = 1:config.referencePointCount;
-referenceCodePp = median(validCodePp(referenceValidIndices));
+referencePointCountUsed = min(numel(validCodePp), config.referencePointCount);
+referenceValidIndices = 1:referencePointCountUsed;
 referencePoint = false(fileCount, 1);
 validIndices = find(validForBandwidth);
-referencePoint(validIndices(referenceValidIndices)) = true;
+if referencePointCountUsed > 0
+    referenceCodePp = median(validCodePp(referenceValidIndices));
+    referencePoint(validIndices(referenceValidIndices)) = true;
+else
+    referenceCodePp = NaN;
+end
 relativeDb = NaN(fileCount, 1);
-relativeDb(validForBandwidth) = 20 * log10(validCodePp / referenceCodePp);
-bandwidth3dBHz = converter.adc.findThreeDbCrossing( ...
-    validFrequencyHz, relativeDb(validForBandwidth));
+if ~isempty(validCodePp) && isfinite(referenceCodePp) && referenceCodePp > 0
+    relativeDb(validForBandwidth) = 20 * log10(validCodePp / referenceCodePp);
+end
+if numel(validCodePp) >= 2 && ...
+        referencePointCountUsed >= config.referencePointCount
+    bandwidth3dBHz = converter.adc.findThreeDbCrossing( ...
+        validFrequencyHz, relativeDb(validForBandwidth));
+    coverageStatus = "覆盖充分";
+else
+    bandwidth3dBHz = NaN;
+    coverageStatus = "覆盖不足";
+end
+% The numeric crossing is reported separately; without an acceptance limit,
+% the formal conclusion remains an auditable unknown state.
+conclusion = "暂不能判定";
 frequencyErrorHz = frequencyHz - fileFrequencyHz;
 frequencyErrorPercent = 100 * frequencyErrorHz ./ fileFrequencyHz;
 
@@ -91,12 +99,15 @@ results = table(string(fileNames(:)), fileFrequencyHz, frequencyHz, ...
     frequencyErrorHz, frequencyErrorPercent, frequencyMismatchFlag, ...
     clippingFlag, codePp, relativeDb, fitR2, fitResidualRmsCode, ...
     validForBandwidth, referencePoint, repmat(bandwidth3dBHz, fileCount, 1), ...
+    repmat(coverageStatus, fileCount, 1), repmat(conclusion, fileCount, 1), ...
     'VariableNames', {'FileName', 'FileFrequencyHz', 'FrequencyHz', ...
     'FrequencyErrorHz', 'FrequencyErrorPercent', 'FrequencyMismatchFlag', ...
     'ClippingFlag', 'CodePp', 'RelativeDb', 'FitR2', ...
     'FitResidualRmsCode', 'ValidForBandwidth', 'ReferencePoint', ...
-    'Bandwidth3dBHz'});
+    'Bandwidth3dBHz', 'CoverageStatus', 'Conclusion'});
 details = struct('bandwidth3dBHz', bandwidth3dBHz, ...
-    'referenceCodePp', referenceCodePp);
+    'referenceCodePp', referenceCodePp, ...
+    'coverageStatus', coverageStatus, 'conclusion', conclusion, ...
+    'validPointCount', nnz(validForBandwidth));
 end
 

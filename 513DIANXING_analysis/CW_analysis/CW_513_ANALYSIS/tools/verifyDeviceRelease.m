@@ -102,7 +102,7 @@ smokeCleanup = onCleanup(@() rmdir(smokeFolder, 's'));
 dataFolder = fullfile(smokeFolder, 'raw');
 outputFolder = fullfile(smokeFolder, 'results');
 mkdir(dataFolder);
-sampleRate = 25e6;
+sampleRate = 20e6;
 time = (0:4095)' / sampleRate;
 code = round(3500*sin(2*pi*1e6*time) + 20*sin(2*pi*2.2e6*time));
 fileName = 'X3G_1MHz.csv';

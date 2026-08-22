@@ -18,7 +18,7 @@ config.showFigures = false;
 
 switch config.analysisId
     case 'sfdr'
-        config.sampleRate = 25e6;
+        config.sampleRate = 20e6;
         config.nfft = 128 * 1024;
         config.dcSpan = 16;
         config.signalSpan = 16;
@@ -33,21 +33,25 @@ switch config.analysisId
         config.bandwidthFrequencySource = 'file';
         config.clippingMarginCode = 1;
     case 'isolation'
-        config.sampleRate = 25e6;
+        config.sampleRate = 20e6;
         config.isolationFrequencyHz = 1e6;
         config.frequencyMismatchTolerance = 0.02;
         config.drivenChannel = 'X3G';
         config.minimumIsolationDb = 40;
     case 'power_scale'
-        config.sampleRate = 25e6;
+        config.sampleRate = 20e6;
         config.testFrequencyHz = 1e6;
         config.frequencyMismatchTolerance = 0.02;
         config.powerRangeDbm = [-10, 6];
         config.clippingThreshold = 0.98;
         config.clippingFractionLimit = 0.01;
         config.plateauChangeThreshold = 0.01;
+        config.referenceImpedanceOhm = 50;
+        % Filename dBm values are converted to Vpp at 50 ohm before the
+        % formal CodePp -> Vpp fit. dBm remains traceability metadata.
+        config.powerSetpointSource = 'dBm value parsed from AD9245 CSV filename';
     case 'inl_dnl'
-        config.sampleRate = 25e6;
+        config.sampleRate = 20e6;
         config.marginCode = 1000;
         config.minimumFitR2 = 0.99;
     otherwise

@@ -11,7 +11,7 @@ try
 rows = repmat(localEmptyRow(), numel(files), 1);
 for k = 1:numel(files)
     path = fullfile(files(k).folder, files(k).name);
-    code = localCodeFromName(files(k).name, config.dacCodeBits);
+    codeInfo = localCodeFromName(files(k).name, config);
     capture = converter.io.loadPicoMat(path, localVariable(config, k), ...
         config.hardwareGain, true);
     fit = converter.dac.fitTone(capture.voltage, capture.sampleRateHz, ...
@@ -20,8 +20,10 @@ for k = 1:numel(files)
     rows(k).input_path = string(path);
     rows(k).source_sha256 = string(converter.runtime.sha256File(path));
     rows(k).variable = string(capture.variableName);
-    rows(k).signed_code = code;
-    rows(k).code_vpp = 2 * abs(code);
+    rows(k).raw_code = codeInfo.rawCode;
+    rows(k).signed_code = codeInfo.signedCode;
+    rows(k).code_vpp = codeInfo.codeVpp;
+    rows(k).code_vpp_definition = string(codeInfo.codeVppDefinition);
     rows(k).sample_rate_hz = capture.sampleRateHz;
     rows(k).duration_s = capture.sampleCount / capture.sampleRateHz;
     rows(k).output_vpp_v = fit.vppV;
@@ -108,13 +110,64 @@ else
 end
 end
 
-function code = localCodeFromName(fileName, bits)
-token = regexp(fileName, 'code_(-?\d+)', 'tokens', 'once');
-if isempty(token), error('converter:dac:CodeMissing', ...
-        '文件名必须包含code_整数：%s', fileName); end
-code = str2double(token{1});
-if abs(code) > 2^(bits-1), error('converter:dac:CodeInvalid', ...
-        '码值超出配置位数：%s', fileName); end
+function codeInfo = localCodeFromName(fileName, config)
+bits = config.dacCodeBits;
+formatName = 'signed_decimal';
+if isfield(config, 'codeNameFormat') && ~isempty(config.codeNameFormat)
+    formatName = char(config.codeNameFormat);
+end
+switch lower(formatName)
+    case 'hex_unsigned'
+        token = regexp(fileName, '(?i)(?:code|coade)_([0-9a-f]+)', ...
+            'tokens', 'once');
+        if isempty(token)
+            error('converter:dac:CodeMissing', ...
+                '文件名必须包含CODE_或COADE_十六进制码值：%s', fileName);
+        end
+        rawCode = hex2dec(token{1});
+        fullScale = 2^bits;
+        if rawCode >= fullScale
+            error('converter:dac:CodeInvalid', ...
+                '十六进制码值超出配置位数：%s', fileName);
+        end
+        if rawCode >= 2^(bits - 1)
+            signedCode = rawCode - fullScale;
+        else
+            signedCode = rawCode;
+        end
+    case 'signed_decimal'
+        token = regexp(fileName, '(?i)code_(-?\d+)', 'tokens', 'once');
+        if isempty(token)
+            error('converter:dac:CodeMissing', ...
+                '文件名必须包含code_有符号十进制整数：%s', fileName);
+        end
+        signedCode = str2double(token{1});
+        if abs(signedCode) > 2^(bits - 1)
+            error('converter:dac:CodeInvalid', ...
+                '码值超出配置位数：%s', fileName);
+        end
+        fullScale = 2^bits;
+        rawCode = mod(signedCode, fullScale);
+    otherwise
+        error('converter:dac:CodeFormatInvalid', ...
+            '不支持的DAC码值文件名格式：%s', formatName);
+end
+
+definition = 'twice_abs_signed_code';
+if isfield(config, 'codeVppDefinition') && ~isempty(config.codeVppDefinition)
+    definition = char(config.codeVppDefinition);
+end
+switch lower(definition)
+    case 'twice_abs_signed_code'
+        codeVpp = 2 * abs(signedCode);
+    case 'raw_unsigned_code'
+        codeVpp = rawCode;
+    otherwise
+        error('converter:dac:CodeVppDefinitionInvalid', ...
+            '不支持的DAC CodeVpp定义：%s', definition);
+end
+codeInfo = struct('rawCode', rawCode, 'signedCode', signedCode, ...
+    'codeVpp', codeVpp, 'codeVppDefinition', definition);
 end
 
 function value = localR2(observed, residual)
@@ -124,7 +177,8 @@ end
 
 function row = localEmptyRow()
 row = struct('input_file', "", 'input_path', "", 'source_sha256', "", ...
-    'variable', "", 'signed_code', NaN, 'code_vpp', NaN, ...
+    'variable', "", 'raw_code', NaN, 'signed_code', NaN, 'code_vpp', NaN, ...
+    'code_vpp_definition', "", ...
     'sample_rate_hz', NaN, 'duration_s', NaN, 'output_vpp_v', NaN, ...
     'fit_r_squared', NaN, 'fit_residual_rms_v', NaN, ...
     'included_in_fit', false, 'exclusion_reason', "");
