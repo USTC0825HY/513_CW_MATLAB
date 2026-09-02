@@ -118,7 +118,10 @@ if isfield(config, 'codeNameFormat') && ~isempty(config.codeNameFormat)
 end
 switch lower(formatName)
     case 'hex_unsigned'
-        token = regexp(fileName, '(?i)(?:code|coade)_([0-9a-f]+)', ...
+        % Accept both CODE_1000 and the compact capture names used by
+        % DA766, e.g. CODE1000 and CODE1000-0002.  The optional numeric
+        % suffix is a capture discriminator, not part of the DAC code.
+        token = regexp(fileName, '(?i)(?:code|coade)[_-]?([0-9a-f]+)(?:-\d+)?\.mat$', ...
             'tokens', 'once');
         if isempty(token)
             error('converter:dac:CodeMissing', ...

@@ -114,6 +114,60 @@ classdef adcCoreTest < matlab.unittest.TestCase
                 {code}, {'sparse.csv'}, 'X3G', config);
             testCase.verifyLessThan(results.CoverageRatio, 0.01);
         end
+
+        function combinesIndependentInlRecords(testCase)
+            config = adcCoreTest.inlConfig();
+            firstCode = adcCoreTest.sineCode(6000, 1e6, ...
+                config.sampleRate, 8192);
+            secondCode = adcCoreTest.sineCode(6500, 1.1e6, ...
+                config.sampleRate, 8192) + 200;
+
+            [results, details] = converter.adc.calculateInlDnl( ...
+                {firstCode; secondCode}, {'first.csv'; 'second.csv'}, ...
+                'X3G', config);
+
+            testCase.verifyEqual(results.ValidCaptureCount, 2);
+            testCase.verifyEqual(height(details.captureTable), 2);
+            testCase.verifyNotEqual(details.captureTable.AmplitudeCode(1), ...
+                details.captureTable.AmplitudeCode(2));
+            testCase.verifyFalse(isempty(details.curveTable));
+        end
+
+        function excludesLowQualityInlRecord(testCase)
+            config = adcCoreTest.inlConfig();
+            config.minimumValidCaptureFraction = 0.5;
+            goodCode = adcCoreTest.sineCode(6000, 1e6, ...
+                config.sampleRate, 8192);
+            time = (0:8191)' / config.sampleRate;
+            poorCode = goodCode + 1500 * sign(sin(2*pi*2e6*time));
+
+            [results, details] = converter.adc.calculateInlDnl( ...
+                {goodCode; poorCode}, {'good.csv'; 'poor.csv'}, ...
+                'X3G', config);
+
+            testCase.verifyEqual(results.ValidCaptureCount, 1);
+            testCase.verifyTrue(details.captureTable.UsedForInlDnl(1));
+            testCase.verifyFalse(details.captureTable.UsedForInlDnl(2));
+            testCase.verifyTrue(contains(details.captureTable.Status(2), ...
+                "FitR2BelowMinimum"));
+            testCase.verifyFalse(isempty(details.curveTable));
+        end
+
+        function withholdsCurveBelowCaptureFraction(testCase)
+            config = adcCoreTest.inlConfig();
+            goodCode = adcCoreTest.sineCode(6000, 1e6, ...
+                config.sampleRate, 8192);
+            time = (0:8191)' / config.sampleRate;
+            poorCode = goodCode + 1500 * sign(sin(2*pi*2e6*time));
+
+            [results, details] = converter.adc.calculateInlDnl( ...
+                {goodCode; poorCode}, {'good.csv'; 'poor.csv'}, ...
+                'X3G', config);
+
+            testCase.verifyEqual(results.Status, ...
+                "CaptureQualityBelowMinimum");
+            testCase.verifyTrue(isempty(details.curveTable));
+        end
     end
 
     methods (Static, Access = private)
@@ -146,7 +200,15 @@ classdef adcCoreTest < matlab.unittest.TestCase
 
         function config = inlConfig()
             config = struct('sampleRate', 25e6, 'adcBits', 14, ...
-                'marginCode', 1000, 'minimumFitR2', 0.99);
+                'marginCode', 1000, 'minimumFitR2', 0.99, ...
+                'frequencyRefinementCycles', 20, ...
+                'frequencyRefinementMinimumSamples', 1024, ...
+                'minimumValidCaptureFraction', 1.0, ...
+                'glitchSigmaMultiplier', 10, ...
+                'glitchMinimumThresholdCode', 128, ...
+                'maximumGlitchFraction', 1.0, ...
+                'clippingMarginCode', 1, ...
+                'recordsAreSampleContiguous', false);
         end
 
         function code = sineCode(amplitude, frequencyHz, sampleRate, count)

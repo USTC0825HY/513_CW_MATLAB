@@ -74,7 +74,7 @@ fileId = fopen(filePath, 'r');
 if fileId < 0
     error('converter:io:CannotOpenCsv', '无法打开 CSV：%s', filePath);
 end
-cleanupObject = onCleanup(@() fclose(fileId)); %#ok<NASGU,ASGLU>
+cleanupObject = onCleanup(@() fclose(fileId));
 if isempty(cleanupObject)
     error('converter:io:CleanupInitFailed', '无法建立 CSV 文件清理器。');
 end
@@ -99,7 +99,7 @@ fileId = fopen(filePath, 'r');
 if fileId < 0
     error('converter:io:CannotOpenCsv', '无法打开 CSV：%s', filePath);
 end
-cleanupObject = onCleanup(@() fclose(fileId)); %#ok<NASGU,ASGLU>
+cleanupObject = onCleanup(@() fclose(fileId));
 if isempty(cleanupObject)
     error('converter:io:CleanupInitFailed', '无法建立 CSV 文件清理器。');
 end

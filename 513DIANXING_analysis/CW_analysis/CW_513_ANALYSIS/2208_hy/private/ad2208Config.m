@@ -50,7 +50,12 @@ switch config.analysisId
     case 'power_scale'
         config.testFrequencyHz = 15e6;
         config.frequencyMismatchTolerance = 0.02;
-        config.powerRangeDbm = [-10, 6];
+        % The sweep files cover -10 to +8 dBm.  The shared calibration
+        % routine automatically reduces the upper bound to the last
+        % contiguous non-clipped point when this option is enabled.
+        config.powerRangeDbm = [-10, 8];
+        config.autoSelectPowerRangeFromUnclipped = true;
+        config.powerScalePlotMode = 'inverse';
         config.clippingThreshold = 0.98;
         config.clippingFractionLimit = 0.01;
         config.plateauChangeThreshold = 0.01;
@@ -73,6 +78,18 @@ switch config.analysisId
         % Each CSV is an independently triggered ILA record. Do not infer
         % sample-to-sample phase continuity from file-name order.
         config.recordsAreSampleContiguous = false;
+    case 'input_noise'
+        config.version = '1.5.0';
+        config.sampleRate = 100e6;
+        config.noiseBandHz = [10e6, 25e6];
+        config.noiseLimitNvPerSqrtHz = 300;
+        config.welchSegmentCount = 100;
+        config.welchOverlapRatio = 0.5;
+        config.welchNfft = 2048;
+        config.inputTermination = '50 ohm to ground; see YB2208 test instruction T07R001';
+        config.referencePlane = 'AD2208 external board input';
+        config.formalConditionSource = 'YB2208_test_instruction_hy T07R001';
+        config.calibrationSource = 'CW_513_ANALYSIS_AD2208_AD9245_刻度参数_20260822.xlsx';
     otherwise
         error('ad2208:UnknownAnalysis', ...
             '不支持的 AD2208 分析类型：%s。', analysisId);

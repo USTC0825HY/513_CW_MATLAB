@@ -10,14 +10,27 @@ fitCodePpRange = (fitVppRange - details.coefficient(2)) / ...
 fitCodePp = linspace(fitCodePpRange(1), fitCodePpRange(2), 100);
 fitVpp = polyval(details.coefficient, fitCodePp);
 
-subplot(2, 1, 1);
-plotForwardPanel(results, fitCodePp, fitVpp, ...
-    fitCodePpRange);
-title(sprintf('%s ADC CodePp-Vpp 响应：斜率 %.9g Vpp/CodePp，R^2 %.5f', ...
-    char(details.channelName), details.coefficient(1), details.calibrationR2));
+% AD2208 report figures use the inverse panel only.  This keeps clipped
+% captures out of the figure and matches the requested report layout while
+% retaining the two-panel plot as the default for other devices.
+plotMode = 'both';
+if isfield(config, 'powerScalePlotMode') && ~isempty(config.powerScalePlotMode)
+    plotMode = lower(char(config.powerScalePlotMode));
+end
+if strcmp(plotMode, 'inverse')
+    set(figureHandle, 'Position', [100 100 1400 800]);
+    plotInversePanel(results, fitVpp, fitCodePp, details);
+else
+    subplot(2, 1, 1);
+    plotForwardPanel(results, fitCodePp, fitVpp, ...
+        fitCodePpRange);
+    title(sprintf('%s ADC CodePp-Vpp 响应：斜率 %.9g Vpp/CodePp，R^2 %.5f', ...
+        char(details.channelName), details.coefficient(1), details.calibrationR2), ...
+        'Interpreter', 'none');
 
-subplot(2, 1, 2);
-plotInversePanel(results, fitVpp, fitCodePp, details);
+    subplot(2, 1, 2);
+    plotInversePanel(results, fitVpp, fitCodePp, details);
+end
 
 if config.saveFigures
     converter.report.saveFigure(figureHandle, ...
@@ -65,27 +78,20 @@ end
 
 function plotInversePanel(results, fitVpp, fitCodePp, details)
 included = results.CalibrationIncluded;
-hMeasured = plot(results.CodePp, results.InputVoltageVpp, 'bo', ...
+% Only calibrationIncluded points are valid calibration evidence.  In
+% particular, do not draw excluded/clipped captures as red crosses: showing
+% them makes the report look as if they were part of the calibration set.
+hMeasured = plot(results.CodePp(included), results.InputVoltageVpp(included), 'bo', ...
     'LineWidth', 1.2, 'MarkerFaceColor', 'b');
 hold on;
-hExcluded = [];
-if any(~included)
-    hExcluded = plot(results.CodePp(~included), ...
-        results.InputVoltageVpp(~included), 'rx', ...
-        'LineWidth', 1.8, 'MarkerSize', 10);
-end
 hFit = plot(fitCodePp, fitVpp, 'g-', 'LineWidth', 1.2);
 hold off;
 grid on;
-xlabel('拟合 Code_{pp} (LSB)');
-ylabel('输入电压 V_{pp} (V)');
-title(sprintf('V_{pp} → Code_{pp}：%s', ...
-    details.inverseFormulaVppToCodePp));
+xlabel('拟合 CodePp (LSB)', 'Interpreter', 'none');
+ylabel('输入电压 Vpp (V)', 'Interpreter', 'none');
+title(sprintf('%s  Vpp → CodePp：%s', char(details.channelName), ...
+    details.inverseFormulaVppToCodePp), 'Interpreter', 'none');
 handles = [hMeasured hFit];
-labels = {'测量值', 'V_{pp}→Code_{pp} 标定'};
-if ~isempty(hExcluded)
-    handles = [hMeasured hExcluded hFit];
-    labels = {'测量值', '未纳入标定', 'V_{pp}→Code_{pp} 标定'};
-end
+labels = {'测量值', 'Vpp→CodePp 标定'};
 legend(handles, labels, 'Location', 'best');
 end

@@ -8,6 +8,7 @@ requiredFields = {'sampleRate', 'adcBits', 'minimumFitR2', ...
 converter.runtime.validateConfig(config, requiredFields);
 fileCount = numel(fileNames);
 frequencyHz = NaN(fileCount, 1);
+fitFrequencyHz = NaN(fileCount, 1);
 codePp = NaN(fileCount, 1);
 fitR2 = NaN(fileCount, 1);
 fitResidualRmsCode = NaN(fileCount, 1);
@@ -34,7 +35,14 @@ for fileIndex = 1:fileCount
     end
     fitConfig = config;
     fitConfig.fitMode = 'known';
-    fitConfig.knownFrequencyHz = frequencyHz(fileIndex);
+    if isfield(config, 'fitFrequencySource') && ...
+            strcmpi(config.fitFrequencySource, 'file') && ...
+            isfinite(fileFrequencyHz(fileIndex))
+        fitFrequencyHz(fileIndex) = fileFrequencyHz(fileIndex);
+    else
+        fitFrequencyHz(fileIndex) = frequencyHz(fileIndex);
+    end
+    fitConfig.knownFrequencyHz = fitFrequencyHz(fileIndex);
     metrics = converter.adc.analyzeDynamicMetrics(adcCode, fitConfig);
     codePp(fileIndex) = metrics.fit.codePp;
     fitR2(fileIndex) = metrics.fit.r2;
@@ -46,6 +54,7 @@ end
 
 [fileFrequencyHz, sortIndex] = sort(fileFrequencyHz(:));
 frequencyHz = frequencyHz(sortIndex);
+fitFrequencyHz = fitFrequencyHz(sortIndex);
 fileNames = fileNames(sortIndex);
 codePp = codePp(sortIndex);
 fitR2 = fitR2(sortIndex);
@@ -84,7 +93,11 @@ if numel(validCodePp) >= 2 && ...
         referencePointCountUsed >= config.referencePointCount
     bandwidth3dBHz = converter.adc.findThreeDbCrossing( ...
         validFrequencyHz, relativeDb(validForBandwidth));
-    coverageStatus = "覆盖充分";
+    if isfinite(bandwidth3dBHz)
+        coverageStatus = "覆盖充分";
+    else
+        coverageStatus = "覆盖不足";
+    end
 else
     bandwidth3dBHz = NaN;
     coverageStatus = "覆盖不足";
@@ -96,11 +109,13 @@ frequencyErrorHz = frequencyHz - fileFrequencyHz;
 frequencyErrorPercent = 100 * frequencyErrorHz ./ fileFrequencyHz;
 
 results = table(string(fileNames(:)), fileFrequencyHz, frequencyHz, ...
+    fitFrequencyHz, ...
     frequencyErrorHz, frequencyErrorPercent, frequencyMismatchFlag, ...
     clippingFlag, codePp, relativeDb, fitR2, fitResidualRmsCode, ...
     validForBandwidth, referencePoint, repmat(bandwidth3dBHz, fileCount, 1), ...
     repmat(coverageStatus, fileCount, 1), repmat(conclusion, fileCount, 1), ...
     'VariableNames', {'FileName', 'FileFrequencyHz', 'FrequencyHz', ...
+    'FitFrequencyHz', ...
     'FrequencyErrorHz', 'FrequencyErrorPercent', 'FrequencyMismatchFlag', ...
     'ClippingFlag', 'CodePp', 'RelativeDb', 'FitR2', ...
     'FitResidualRmsCode', 'ValidForBandwidth', 'ReferencePoint', ...

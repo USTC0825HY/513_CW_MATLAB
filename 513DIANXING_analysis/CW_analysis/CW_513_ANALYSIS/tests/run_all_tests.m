@@ -6,6 +6,7 @@ repositoryRoot = fileparts(testsFolder);
 addpath(fullfile(repositoryRoot, '_shared'));
 addpath(fullfile(repositoryRoot, '9245_hy'));
 addpath(fullfile(repositoryRoot, '2208_hy'));
+addpath(fullfile(repositoryRoot, '677_hy'));
 addpath(fullfile(repositoryRoot, '9726_hy'));
 addpath(fullfile(repositoryRoot, '766_hy'));
 % Keep the AD9245 entry first for its existing integration tests; the

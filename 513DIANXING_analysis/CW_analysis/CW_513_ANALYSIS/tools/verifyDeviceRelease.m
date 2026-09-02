@@ -37,7 +37,7 @@ if isempty(resolvedCore) || ~startsWithIgnoreCase(resolvedCore, releaseFolder)
         '公共内核未从独立包解析：%s', resolvedCore);
 end
 
-runStaticChecks(releaseFolder);
+runStaticChecks(releaseFolder, spec);
 verifyBaseMatlabDependencies(releaseFolder, spec);
 runSyntheticSmokeTest(spec, releaseFolder);
 passed = true;
@@ -59,10 +59,12 @@ for pathIndex = 1:numel(allPaths)
 end
 end
 
-function runStaticChecks(releaseFolder)
-files = dir(fullfile(releaseFolder, '**', '*.m'));
-for fileIndex = 1:numel(files)
-    filePath = fullfile(files(fileIndex).folder, files(fileIndex).name);
+function runStaticChecks(releaseFolder, spec)
+entryPaths = cellfun(@(name) fullfile(releaseFolder, name), ...
+    spec.entryFiles, 'UniformOutput', false);
+requiredFiles = matlab.codetools.requiredFilesAndProducts(entryPaths);
+for fileIndex = 1:numel(requiredFiles)
+    filePath = requiredFiles{fileIndex};
     messages = checkcode(filePath, '-id');
     if ~isempty(messages)
         error('converter:build:StaticCheckFailed', ...
@@ -94,6 +96,10 @@ end
 function runSyntheticSmokeTest(spec, releaseFolder)
 if startsWithIgnoreCase(spec.deviceId, 'DA')
     runDacSyntheticSmokeTest(spec, releaseFolder);
+    return;
+end
+if strcmpi(spec.deviceId, 'AD677')
+    runAd677SyntheticSmokeTest(releaseFolder);
     return;
 end
 smokeFolder = [tempname '_ad9245_release_smoke'];
@@ -129,11 +135,67 @@ end
 clear smokeCleanup;
 end
 
+function runAd677SyntheticSmokeTest(releaseFolder)
+smokeFolder = [tempname '_ad677_release_smoke'];
+mkdir(smokeFolder);
+smokeCleanup = onCleanup(@() rmdir(smokeFolder, 's'));
+bandwidthFolder = fullfile(smokeFolder, 'bandwidth');
+powerFolder = fullfile(smokeFolder, 'power');
+outputFolder = fullfile(smokeFolder, 'result');
+mkdir(bandwidthFolder); mkdir(powerFolder);
+sampleRate = 100e6;
+time = (0:131071)' / sampleRate;
+writeAd677Csv(bandwidthFolder, 'ad677_ch01_100Hz_sweep.csv', ...
+    round(4000*sin(2*pi*100*time)), 1);
+writeAd677Csv(bandwidthFolder, 'ad677_ch01_1kHz_sweep.csv', ...
+    round(4000*sin(2*pi*1e3*time)), 1);
+writeAd677Csv(bandwidthFolder, 'ad677_ch01_30kHz_sweep.csv', ...
+    round(4000*sin(2*pi*30e3*time)), 1);
+writeAd677Csv(powerFolder, 'ad677_ch01_1kHz_0.25Vpp_sweep.csv', ...
+    round(1000*sin(2*pi*1e3*time)), 1);
+writeAd677Csv(powerFolder, 'ad677_ch01_1kHz_1.5Vpp_sweep.csv', ...
+    round(5000*sin(2*pi*1e3*time)), 1);
+writeAd677Csv(powerFolder, 'ad677_ch01_1kHz_2.25Vpp_sweep.csv', ...
+    round(7500*sin(2*pi*1e3*time)), 1);
+writeAd677Csv(powerFolder, 'ad677_ch01_1kHz_2.5Vpp_sweep.csv', ...
+    round(8500*sin(2*pi*1e3*time)), 1);
+addpath(releaseFolder);
+addpath(fullfile(releaseFolder, 'internal'));
+bandwidthResult = adc_bandwidth_analysis(bandwidthFolder, [], ...
+    fullfile(outputFolder, 'bandwidth'));
+powerResult = adc_power_scale_analysis(powerFolder, [], ...
+    fullfile(outputFolder, 'power'));
+if height(bandwidthResult) ~= 3 || height(powerResult) ~= 4 || ...
+        isempty(dir(fullfile(outputFolder, '**', 'STATUS_SUCCESS.txt')))
+    error('converter:build:SmokeTestFailed', ...
+        'AD677 独立包合成数据冒烟测试失败。');
+end
+clear smokeCleanup;
+end
+
+function writeAd677Csv(folder, fileName, code, channel)
+fileId = fopen(fullfile(folder, fileName), 'w');
+if fileId < 0
+    error('converter:build:CannotWriteSmokeData', ...
+        '无法生成 AD677 冒烟测试数据。');
+end
+cleanupObject = onCleanup(@() fclose(fileId));
+fprintf(fileId, ['Sample in Buffer,Sample in Window,TRIGGER,' ...
+    'u_ad677_to_b9726/u_ad677_%d/adc_data[15:0],' ...
+    'u_ad677_to_b9726/u_ad677_%d/adc_data_vld\n'], channel, channel);
+sample = (0:numel(code)-1)';
+trigger = zeros(size(code)); trigger(1) = 1;
+valid = ones(size(code));
+fprintf(fileId, '%d,%d,%d,%d,%d\n', ...
+    [sample, sample, trigger, code(:), valid].');
+assert(~isempty(cleanupObject));
+end
+
 function runDacSyntheticSmokeTest(~, releaseFolder)
 smokeFolder = [tempname '_dac_release_smoke'];
 mkdir(smokeFolder);
-smokeCleanup = onCleanup(@() rmdir(smokeFolder, 's')); %#ok<NASGU>
-dataFolder = fullfile(smokeFolder, 'raw'); outputFolder = fullfile(smokeFolder, 'results'); %#ok<NASGU>
+smokeCleanup = onCleanup(@() rmdir(smokeFolder, 's'));
+dataFolder = fullfile(smokeFolder, 'raw'); outputFolder = fullfile(smokeFolder, 'results');
 mkdir(dataFolder); mkdir(outputFolder);
 sampleRate = 250e3; time = (0:4095)' / sampleRate;
 voltage = 0.5 * sin(2*pi*1e3*time);
@@ -141,21 +203,23 @@ Tinterval = 1 / sampleRate; A = voltage;
 save(fullfile(dataFolder, '1kHz_code_10000.mat'), 'A', 'Tinterval');
 save(fullfile(dataFolder, '1kHz_code_20000.mat'), 'A', 'Tinterval');
 originalPath = path;
-pathCleanup = onCleanup(@() path(originalPath)); %#ok<NASGU>
+pathCleanup = onCleanup(@() path(originalPath));
 addpath(releaseFolder);
 addpath(fullfile(releaseFolder, 'internal'));
 entryName = 'dac_scale_analysis';
 if ~isfile(fullfile(releaseFolder, [entryName '.m']))
     error('converter:build:DacSmokeMissing', 'DA刻度入口缺失。');
 end
-result = feval(entryName, dataFolder, {}, outputFolder); %#ok<NASGU>
+dac_scale_analysis(dataFolder, {}, outputFolder);
 if isempty(dir(fullfile(outputFolder, 'run_*', 'STATUS_SUCCESS.txt')))
     error('converter:build:SmokeTestFailed', 'DA独立包合成数据冒烟测试失败。');
 end
 noiseOverride = struct('targetResolutionHz', 10, ...
     'minimumAsdSegmentCount', 1, 'formalEnabled', false, 'asdOnly', true);
-noiseResult = feval('dac_noise_analysis', dataFolder, ...
-    {'1kHz_code_10000.mat'}, outputFolder, noiseOverride); %#ok<NASGU>
+dac_noise_analysis(dataFolder, {'1kHz_code_10000.mat'}, ...
+    outputFolder, noiseOverride);
+assert(~isempty(smokeCleanup));
+assert(~isempty(pathCleanup));
 end
 
 function spec = inferSpec(releaseFolder)

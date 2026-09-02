@@ -93,19 +93,22 @@ else
 end
 converter.report.writeTable(spectrum, spectrumFile);
 plotFile = fullfile(folder, [config.deviceId '_' safeStem '_ASD']);
-figureHandle = figure('Visible', 'off', 'Color', 'w');
-loglog(frequencyHz(2:end), asd(2:end) * 1e6, 'LineWidth', 1.0); grid on; hold on;
-plot(xlim, [1 1] * config.asdLimit_uVPerSqrtHz, 'r--', ...
-    'DisplayName', sprintf('%.4g uV/sqrtHz limit', ...
-    config.asdLimit_uVPerSqrtHz));
-plot(actualCheckHz, asdValue, 'ko', 'MarkerFaceColor', 'k');
-xlabel('Frequency (Hz)'); ylabel('ASD (uV/sqrtHz)');
-title(sprintf('%s | %s | DAC ASD', config.deviceId, stem), ...
-    'Interpreter', 'none');
-text(0.02, 0.05, sprintf('ASD @ %.4g Hz = %.4f uV/sqrtHz', ...
-    actualCheckHz, asdValue), 'Units', 'normalized', ...
-    'BackgroundColor', 'white', 'EdgeColor', [0.5 0.5 0.5]);
-converter.report.saveFigure(figureHandle, plotFile, 180); close(figureHandle);
+plotConfig = struct();
+plotConfig.styleProfile = 'da9726_legacy_visual_adapter';
+plotConfig.showLegend = false;
+plotConfig.titleText = sprintf('%s | %s | DAC output ASD', config.deviceId, stem);
+plotConfig.yLabel = 'ASD (uV/sqrtHz)';
+plotConfig.lineLabel = 'ASD';
+plotConfig.limitValue = config.asdLimit_uVPerSqrtHz;
+plotConfig.limitLabel = sprintf('%.4g uV/sqrtHz limit', ...
+    config.asdLimit_uVPerSqrtHz);
+plotConfig.checkFrequencyHz = actualCheckHz;
+plotConfig.checkValue = asdValue;
+plotConfig.checkLabel = '实测 1 Hz';
+plotConfig.annotationText = sprintf('ASD @ %.4g Hz = %.4f uV/sqrtHz', ...
+    actualCheckHz, asdValue);
+converter.report.plotSpectrum(frequencyHz(2:end), asd(2:end) * 1e6, ...
+    plotFile, plotConfig);
 end
 
 function row = localRow(path, name, capture, setup, checkHz, relativeError, ...

@@ -40,6 +40,27 @@ classdef dacCoreTest < matlab.unittest.TestCase
                 'STATUS_SUCCESS.txt')));
         end
 
+        function hexUnsignedCodeNamesAreSignExtended(testCase)
+            [folder, files] = makeHexToneFiles(testCase, 250e3);
+            config = struct('deviceId', 'DA766', 'analysisId', 'scale', ...
+                'version', 'test', 'dataFolder', folder, ...
+                'outputFolder', fullfile(folder, 'results'), 'filePattern', '*.mat', ...
+                'inputFiles', {files}, 'dataVariables', {{}}, ...
+                'hardwareGain', 1, 'removeMean', true, 'sampleRate', 250e3, ...
+                'adcBits', 16, 'adcCodeFormat', 'voltage', 'dacCodeBits', 16, ...
+                'codeNameFormat', 'hex_unsigned', ...
+                'codeVppDefinition', 'twice_abs_signed_code', ...
+                'toneFrequencyHz', 1e3, 'minimumFitR2', 0.9, ...
+                'minimumCodeVpp', 1, 'maximumCodeVpp', 2^17);
+            result = converter.dac.runScale(config);
+            [~, order] = sort(result.measurements.raw_code);
+            testCase.verifyEqual(result.measurements.raw_code(order)', [4096, 32768]);
+            testCase.verifyEqual(result.measurements.signed_code(order)', ...
+                [4096, -32768]);
+            testCase.verifyEqual(result.measurements.code_vpp(order)', ...
+                [8192, 65536]);
+        end
+
         function isolationWithoutManifestIsUncertain(testCase)
             folder = [tempname '_cw513_dac_isolation']; mkdir(folder);
             cleanup = onCleanup(@() rmdir(folder, 's')); %#ok<NASGU>
@@ -78,6 +99,21 @@ classdef dacCoreTest < matlab.unittest.TestCase
             testCase.verifyFalse(~isempty(strfind(lower(header), 'psd'))); %#ok<STREMP>
         end
     end
+end
+
+function [folder, files] = makeHexToneFiles(testCase, sampleRate)
+folder = [tempname '_cw513_dac_hex_scale']; mkdir(folder);
+testCase.addTeardown(@() rmdir(folder, 's'));
+time = (0:4095)' / sampleRate;
+rawCodes = [hex2dec('1000'), hex2dec('8000')];
+signedCodes = [4096, -32768];
+files = cell(numel(rawCodes), 1);
+for k = 1:numel(rawCodes)
+    A = (signedCodes(k) / 32768) * sin(2*pi*1e3*time);
+    Tinterval = 1 / sampleRate;
+    files{k} = sprintf('capture_CODE%04X.mat', rawCodes(k));
+    save(fullfile(folder, files{k}), 'A', 'Tinterval');
+end
 end
 
 function [folder, files] = makeToneFiles(testCase, sampleRate, codes)

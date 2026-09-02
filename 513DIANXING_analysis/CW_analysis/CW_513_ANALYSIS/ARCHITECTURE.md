@@ -10,7 +10,7 @@
                               `-> converter.runtime
 ```
 
-四个器件目录是用户层，只负责选择分析项目和固定参数；`_shared` 是唯一公共内核。器件入口不得调用 `laser_analysis`、`01_workflows`或历史脚本。纯计算函数不得弹窗；报告层不得重新定义指标公式。
+五个器件目录是用户层，只负责选择分析项目和固定参数；`_shared` 是唯一公共内核。AD677 仅注册输入频率和输入功率入口。器件入口不得调用 `laser_analysis`、`01_workflows`或历史脚本。纯计算函数不得弹窗；报告层不得重新定义指标公式。
 
 ## 源码与交付包
 
@@ -29,3 +29,8 @@
 ## 源码边界
 
 `legacy` 和 `Matlab_AND_ExampleData_lyp` 仅作历史证据，不得加入运行路径。仓库之外的 `MATLAB_Scripts/GS_Data_Analysis` 也是历史参考，不是正式算法来源。正式ADC算法位于 `_shared/+converter/+adc`，DA刻度、噪声和隔离度位于 `_shared/+converter/+dac`。
+
+`9245_hy/adc_input_noise_analysis.m` 是 AD9245 专用的薄入口：它只固化 X1G–X4G、
+FPGA `G=128` 和 DA9726 JG18 刻度来源；PSD/ASD 与输入等效换算由
+`noise_chain_hy/adc_input_equiv_noise_analysis.m` 和 `_shared/+converter` 执行。
+该入口不依赖 `laser_analysis/01_workflows/s09_*` 的运行时路径。
