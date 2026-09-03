@@ -11,6 +11,7 @@
   建立并导出 `CodePp → Vpp` 刻度
 - `adc_isolation_analysis.m`：通道隔离度
 - `adc_inl_dnl_analysis.m`：正弦码密度 INL/DNL
+- `adc_input_noise_analysis.m`：直连 ILA 输入等效噪声；同时导出 Welch 噪声底与全记录窄带尖峰筛查结果
 - `run_ad2208_batch.m`：按 AD2208 数据树自动分组批处理
 - `ad2208_build_input_coverage.m`：逐文件生成输入覆盖与 SHA-256 清单
 - `audit_ad2208_results.m`：校验最新结果包及其输入哈希
@@ -68,3 +69,22 @@ adc_inl_dnl_analysis(dataFolder, [], outputFolder, true);
 ```
 
 通道映射依据现场说明：ADC1/JG15、ADC2/JG17、ADC3/JG19、ADC5/JG22、ADC6/JG24。模块索引由 CSV 表头识别，输出通道名称统一为 `ADCx_JGxx`。
+
+## 高频 ILA 输入等效噪声
+
+`adc_input_noise_analysis.m` 的默认输入为
+`06_Noise/01_HighFrequency_ILA` 中的 JG15、JG17 与 JG22 原始 ILA CSV；
+ADC6/JG24 沿用已有 1 Hz PICO 总链路结果，不混入此 ILA 流程。每个通道均由
+显式的 1 MHz `Vpp = k×CodePp+b` 刻度斜率换算为输入等效电压。
+
+结果包同时保留两种谱估计，不能互相替代：
+
+- `*_input_equiv_ASD.png` 使用 Welch 法，默认 NFFT=2048，频率分辨率为
+  48.828125 kHz；用于 10～25 MHz 的噪声底中位数、P95 和限值统计。
+- `*_input_equiv_ASD_full_record.png` 与 `*_full_PSD_ASD.csv` 使用全记录
+  Hann 周期图；对 131072 点、100 MSPS 采集，频率分辨率为 762.939453 Hz；
+  用于检出窄带尖峰。
+
+`AD2208_full_record_ASD_summary.csv` 单独列出全记录 10～25 MHz 最大 ASD 及其
+频率，避免把窄带尖峰误当作 Welch 噪声底。正式判定需同时满足 Welch P95 与
+全记录尖峰筛查，且原始 CSV 保持只读。
