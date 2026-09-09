@@ -32,10 +32,33 @@ converter.runtime.writeRunManifest(runFolder, dataFolder, fileNames);
 diary(runContext.logPath);
 runContext.diaryCleanup = onCleanup(@() diary('off'));
 
-fprintf('器件：%s；分析：%s；采样率：%.9g Hz；ADC：%d bit %s\n', ...
-    config.deviceId, config.analysisId, config.sampleRate, ...
-    config.adcBits, config.adcCodeFormat);
+if strncmpi(config.deviceId, 'DA', 2)
+    % DA analyses consume voltage waveforms captured by PicoScope.  Report
+    % the DAC code width and the captured quantity separately.
+    fprintf(['器件：%s；分析：%s；采样率：%.9g Hz；DAC码宽：%d bit；' ...
+        '采集波形：电压（PicoScope MAT）\n'], ...
+        config.deviceId, config.analysisId, config.sampleRate, ...
+        localDacCodeBits(config));
+else
+    fprintf('器件：%s；分析：%s；采样率：%.9g Hz；ADC：%d bit %s\n', ...
+        config.deviceId, config.analysisId, config.sampleRate, ...
+        config.adcBits, config.adcCodeFormat);
+end
 fprintf('本次结果目录：%s\n', runFolder);
+end
+
+function bits = localDacCodeBits(config)
+% Accept older caller-owned configurations while preferring DAC fields.
+if isfield(config, 'dacCodeBits')
+    bits = config.dacCodeBits;
+elseif isfield(config, 'dacBits')
+    bits = config.dacBits;
+elseif isfield(config, 'adcBits')
+    bits = config.adcBits;
+else
+    error('converter:runtime:DacCodeBitsMissing', ...
+        'DA分析配置缺少dacCodeBits或dacBits。');
+end
 end
 
 function writeRunInfo(runContext, config, dataFolder)

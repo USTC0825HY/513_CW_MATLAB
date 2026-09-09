@@ -69,7 +69,7 @@ switch config.analysisId
         % reference. The formal fit is CodePp -> Vpp; dBm is traceability.
         config.powerSetpointSource = 'dBm value parsed from AD2208 CSV filename';
     case 'inl_dnl'
-        config.marginCode = 1000;
+        config.marginCode = 0;
         config.minimumFitR2 = 0.999;
         config.frequencyRefinementCycles = 200;
         config.frequencyRefinementMinimumSamples = 20000;

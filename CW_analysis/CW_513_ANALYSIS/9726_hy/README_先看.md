@@ -28,7 +28,7 @@ dataRoot = 'F:/01_Laser/0_20260727_513test/CW_Data/513_CW_DATA';
 
 | 分析项目 | 运行脚本 | 选择的数据（dataRoot 下） | 多选规则 |
 |---|---|---|---|
-| 正弦输出电压与码幅刻度 | `dac_scale_analysis` | `DA9726/sin_scale/DAC1_JG18` 下同接口不同码值的 MAT | 支持多选，至少两点有效才能拟合刻度 |
+| 正弦输出电压与码幅刻度 | `dac_scale_analysis` | `DA9726/sin_scale/DAC1_JG18` 下 `CODE/COADE` 十六进制码值 MAT | 支持多选，当前目录的9个原始MAT可一起选择；至少两点有效才能拟合刻度 |
 | 输出噪声 | `dac_noise_analysis` | `DA9726/03_Noise` 下本次 MAT | 支持多选，逐文件计算 |
 | 通道隔离度 | `dac_isolation_analysis` | `DA9726/05_Isolation` 下同驱动条件的参考与受扰 MAT | 交互一次一对；显式配对清单可多行 |
 
@@ -51,14 +51,17 @@ r = dac_noise_analysis(d, files, out, settings);
 | `dataVariables` | 空时要求MAT在A/B/C/D中只有一个波形变量；多个变量时必须明确选择，如 `{'A'}`；一项可共用，也可逐文件给一项 |
 | 时基和单位 | MAT必须有Tinterval或fs，Tinterval优先；波形单位为V。缺时基不会从文件名补猜 |
 | `hardwareGain` | 1。经过已确认40 dB电压放大且尚未补偿时填100；已经补偿过保持1 |
-| `toneFrequencyHz` | 通用刻度1000 Hz，按本次已确认正弦频率修改 |
-| `codeNameFormat` | 通用刻度按signed_decimal，如code_30000；已确认16位十六进制时设置hex_unsigned，支持CODE/COADE |
-| 刻度筛选 | R²≥0.98，CodePp范围512～58982.4；CodePp=2×abs(signedCode) |
+| `toneFrequencyHz` | DA9726刻度当前固定1001000 Hz，对应DAC1_JG18这批采集 |
+| `codeNameFormat` | DA9726刻度当前为hex_unsigned，读取CODE/COADE后的16位十六进制码；允许后接JG18、CH1、采样率等信息 |
+| `codeVppDefinition` | 当前为raw_unsigned_code，横轴直接使用0x0000～0xFFFF无符号码值；signed_code只用于追溯 |
+| 刻度筛选 | R²≥0.98，码值范围512～58982.4；0xFFFF超过当前拟合上限，因此保留测量但不进入直线拟合 |
 | 噪声 | Hann、0.2 Hz目标分辨率、50%重叠，1 Hz读数至少4段，频点相对误差≤25% |
 | 噪声输出/比较 | ASD-only，75 µV/√Hz；配置中的积分频带/120 µVrms本次模式不启用 |
 | 正式判定 | `formalEnabled=false`，需求、负载和参考面尚未完全确认 |
 
 刻度先看 `dac_scale_measurements.csv` 的 `output_vpp_v`，再看 `dac_scale_summary.csv` 和拟合PNG。这是正弦峰峰电压，不是独立DC输出电压。噪声看 `dac_noise_summary.csv` 的 `asd_at_1hz_uV_per_sqrtHz`，单位已是µV/√Hz，同时查看实际分辨率、段数和coverage。
+
+当前DAC1_JG18刻度文件名如 `COADE_E000_JG18_CH1_39_1MSPS_10usdiv.mat`。直接运行 `dac_scale_analysis`，进入 `sin_scale/DAC1_JG18` 并选择这批9个原始MAT即可。不要把文件名改成十进制；程序按十六进制读取，例如 `E000=57344`、`FFFF=65535`。MAT中的实际采样率仍从 `Tinterval` 读取；当前数据约为39.062499 MSPS。
 
 ## 隔离度：参考文件与受扰文件要成对
 

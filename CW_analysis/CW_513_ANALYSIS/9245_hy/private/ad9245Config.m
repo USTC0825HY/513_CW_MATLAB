@@ -70,7 +70,7 @@ switch config.analysisId
     case 'inl_dnl'
         config.version = '1.1.0';
         config.sampleRate = ilaCaptureSampleRateHz;
-        config.marginCode = 1000;
+        config.marginCode = 0;
         config.minimumFitR2 = 0.99;
         config.frequencyRefinementCycles = 200;
         config.frequencyRefinementMinimumSamples = 20000;

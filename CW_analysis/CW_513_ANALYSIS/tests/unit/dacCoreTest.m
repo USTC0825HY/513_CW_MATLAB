@@ -61,6 +61,25 @@ classdef dacCoreTest < matlab.unittest.TestCase
                 [8192, 65536]);
         end
 
+        function hexCodeNamesAllowAcquisitionMetadata(testCase)
+            [folder, files] = makeHexMetadataToneFiles(testCase, 250e3);
+            config = struct('deviceId', 'DA9726', 'analysisId', 'scale', ...
+                'version', 'test', 'dataFolder', folder, ...
+                'outputFolder', fullfile(folder, 'results'), 'filePattern', '*.mat', ...
+                'inputFiles', {files}, 'dataVariables', {{}}, ...
+                'hardwareGain', 1, 'removeMean', true, 'sampleRate', 250e3, ...
+                'adcBits', 16, 'adcCodeFormat', 'voltage', 'dacCodeBits', 16, ...
+                'codeNameFormat', 'hex_unsigned', ...
+                'codeVppDefinition', 'raw_unsigned_code', ...
+                'toneFrequencyHz', 1e3, 'minimumFitR2', 0.9, ...
+                'minimumCodeVpp', 1, 'maximumCodeVpp', 2^16);
+            result = converter.dac.runScale(config);
+            [~, order] = sort(result.measurements.raw_code);
+            testCase.verifyEqual(result.measurements.raw_code(order)', [4096, 57344]);
+            testCase.verifyEqual(result.measurements.signed_code(order)', [4096, -8192]);
+            testCase.verifyEqual(result.measurements.code_vpp(order)', [4096, 57344]);
+        end
+
         function isolationWithoutManifestIsUncertain(testCase)
             folder = [tempname '_cw513_dac_isolation']; mkdir(folder);
             cleanup = onCleanup(@() rmdir(folder, 's')); %#ok<NASGU>
@@ -99,6 +118,19 @@ classdef dacCoreTest < matlab.unittest.TestCase
             testCase.verifyFalse(~isempty(strfind(lower(header), 'psd'))); %#ok<STREMP>
         end
     end
+end
+
+function [folder, files] = makeHexMetadataToneFiles(testCase, sampleRate)
+folder = [tempname '_cw513_dac_hex_metadata']; mkdir(folder);
+testCase.addTeardown(@() rmdir(folder, 's'));
+time = (0:4095)' / sampleRate;
+A = 0.25 * sin(2*pi*1e3*time);
+Tinterval = 1 / sampleRate;
+files = {'capture_CODE_1000_JG18_CH1.mat'; ...
+    'capture_COADE_E000_JG18_CH1.mat'};
+save(fullfile(folder, files{1}), 'A', 'Tinterval');
+A = 0.75 * sin(2*pi*1e3*time);
+save(fullfile(folder, files{2}), 'A', 'Tinterval');
 end
 
 function [folder, files] = makeHexToneFiles(testCase, sampleRate)

@@ -28,8 +28,8 @@ dataRoot = 'F:/01_Laser/0_20260727_513test/CW_Data/513_CW_DATA';
 
 | 分析项目 | 运行脚本 | 选择的数据（dataRoot 下） | 多选规则 |
 |---|---|---|---|
-| 正弦输出电压与码幅刻度 | `dac_scale_analysis` | `DA766/06_scale` 下同接口不同码值的 MAT | 支持多选，至少两点有效才能拟合刻度 |
-| 当前06_scale的十六进制刻度 | `dac_scale_hex_analysis` | `DA766/06_scale` 下同接口CODE/COADE MAT | 支持多选，只取你选中的文件 |
+| 有符号十进制刻度（旧格式） | `dac_scale_analysis` | 文件名明确写成 `code_1000`、`code_-1000` 的MAT | 支持多选；当前X7的CODE/COADE数据不要用这个入口 |
+| 当前06_scale十六进制刻度 | `dac_scale_hex_analysis` | `DA766/06_scale` 下同接口CODE/COADE MAT，包括单独选择的历史 `_CH2` 批次 | 支持多选；标准A批次和CH2/B批次不能在同一次运行中混选 |
 | 输出噪声 | `dac_noise_analysis` | `DA766/03_DCNoise` 下本次 MAT | 支持多选，逐文件计算 |
 | 通道隔离度 | `dac_isolation_analysis` | `DA766/05_Isolation` 下同驱动条件的参考与受扰 MAT | 交互一次一对；显式配对清单可多行 |
 
@@ -63,11 +63,15 @@ r = dac_noise_analysis(d, files, out, settings);
 
 ## 当前十六进制刻度专用入口
 
-运行 `dac_scale_hex_analysis`，在选择框进入 `06_scale/X7`、X9、X12G、X11-5等本次接口目录，勾选要处理的CODE/COADE MAT。不会自动纳入目录中其它记录；不适配的历史_CH2文件应留在原处、不要选中。
+运行 `dac_scale_hex_analysis`，在选择框进入 `06_scale/X7`、X9、X12G、X11-5等本次接口目录，勾选要处理的CODE/COADE MAT。不会自动纳入目录中其它记录。
+
+X7有两批不同采集条件的数据：`X7-CODE*.mat` 使用Pico变量A、约0.995 MSPS；`X7_CODE*_CH2.mat` 使用变量B、约9.766 MSPS。两批信号频率均按1525 Hz拟合。程序现在可以分别处理它们，但一次只能选择其中一批；混选会明确报错，避免把不同采集条件放进同一条刻度拟合。
+
+如果误用 `dac_scale_analysis` 选择这些十六进制文件，程序会提示改用 `dac_scale_hex_analysis`，并在创建结果目录前停止。原始MAT无需改名。
 
 函数签名为 `(dataFolder,selectedFiles,outputFolder)`，没有第四参数。省略数据目录可直接选择MAT；省略输出使用默认results规则。
 
-该专用入口保留1525 Hz、16bit补码、CodePp=2×abs(signedCode)、增益1、R²≥0.98、CodePp范围512～65536（纳入0x7FFF）。首个所选MAT提供配置中的采样率记录，内核逐文件读取实际时基。其它频率、增益或通道条件应使用通用刻度入口并明确参数。
+该专用入口保留1525 Hz、16bit补码、CodePp=2×abs(signedCode)、增益1、R²≥0.98、CodePp范围512～65536（纳入0x7FFF）。文件名允许在十六进制码值后带 `_CH2` 等采集信息。首个所选MAT提供配置中的采样率记录，内核逐文件读取实际时基。其它频率、增益或通道条件应使用通用刻度入口并明确参数。
 
 ## 隔离度：参考文件与受扰文件要成对
 

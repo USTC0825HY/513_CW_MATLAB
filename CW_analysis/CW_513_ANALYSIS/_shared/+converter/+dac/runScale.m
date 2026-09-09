@@ -117,14 +117,16 @@ if isfield(config, 'codeNameFormat') && ~isempty(config.codeNameFormat)
 end
 switch lower(formatName)
     case 'hex_unsigned'
-        % Accept both CODE_1000 and the compact capture names used by
-        % DA766, e.g. CODE1000 and CODE1000-0002.  The optional numeric
-        % suffix is a capture discriminator, not part of the DAC code.
-        token = regexp(fileName, '(?i)(?:code|coade)[_-]?([0-9a-f]+)(?:-\d+)?\.mat$', ...
+        % Read the first hexadecimal token immediately after CODE/COADE.
+        % Acquisition metadata may follow it, for example _JG18_CH1 or
+        % _CH2.  Requiring a separator (or the extension) after the token
+        % prevents a partial match such as reading CODE7FFF as decimal 7.
+        token = regexp(fileName, ...
+            '(?i)(?:code|coade)[_-]?([0-9a-f]+)(?=[_-]|\.mat$)', ...
             'tokens', 'once');
         if isempty(token)
             error('converter:dac:CodeMissing', ...
-                '文件名必须包含CODE_或COADE_十六进制码值：%s', fileName);
+                '文件名必须包含CODE/COADE十六进制码值：%s', fileName);
         end
         rawCode = hex2dec(token{1});
         fullScale = 2^bits;

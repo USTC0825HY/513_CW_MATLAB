@@ -22,7 +22,7 @@ if nargin < 3, outputFolder = []; end
 bootstrapRuntime();
 if isempty(selectedFiles)
     [selectedFiles, dataFolder] = converter.io.selectMatFiles(dataFolder, [], ...
-        '选择本次 DA766 十六进制刻度 MAT（可多选；不要选历史 CH2）');
+        '选择本次 DA766 十六进制刻度 MAT（可多选；标准批次和 CH2 批次不要混选）');
 end
 if isempty(selectedFiles)
     result = struct([]);
@@ -31,8 +31,10 @@ end
 if ischar(selectedFiles) || isstring(selectedFiles)
     selectedFiles = cellstr(selectedFiles);
 end
+localValidateCaptureSet(selectedFiles);
 
 configOverride = struct( ...
+    'version', '0.1.1', ...
     'codeNameFormat', 'hex_unsigned', ...
     'codeVppDefinition', 'twice_abs_signed_code', ...
     'codeConversionRule', ...
@@ -57,6 +59,16 @@ configOverride.sampleRateSource = ...
     'first selected MAT Tinterval; per-file sample_rate_hz retained in table';
 
 result = dac_scale_analysis(dataFolder, selectedFiles, outputFolder, configOverride);
+end
+
+function localValidateCaptureSet(selectedFiles)
+names = string(selectedFiles(:));
+isCh2 = ~cellfun('isempty', regexpi(cellstr(names), '_CH2\.mat$'));
+if any(isCh2) && any(~isCh2)
+    error('cw513:MixedScaleCaptureSets', ...
+        ['DA766 标准 A 通道文件与历史 CH2/B 通道文件不能在同一次刻度中混选。' ...
+         '请只选择其中一批。']);
+end
 end
 
 function filePath = localFirstFile(dataFolder, selectedFile)

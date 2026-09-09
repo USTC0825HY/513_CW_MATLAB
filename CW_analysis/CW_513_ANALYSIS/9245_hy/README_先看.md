@@ -62,7 +62,7 @@ PICO噪声入口读取MAT中的时基，与这里的ILA采样率无关。
 | 带宽 | 正弦拟合R²≥0.99；最低频连续3个有效点作参考；频差容差2% |
 | 刻度 | 1 kHz，−10～+6 dBm；已确认50 Ω条件才按50 Ω换算 |
 | 隔离度 | 10 kHz，配置默认驱动 X3G；比较值40 dB |
-| INL/DNL | R²≥0.99，两端1000码余量，有效记录比例100%；默认各记录独立触发 |
+| INL/DNL | R²≥0.99，marginCode=0，不额外裁剪正弦两端；有效记录比例100%；默认各记录独立触发 |
 
 刻度拟合为 `Vpp=a*CodePp+b`，同时估计99%满量程对应的临界输入。98%近轨筛选与99%目标是不同设置；外推结果仍需补扫，不能当作实测削顶点。输入设定值可由 `runOptions.powerSetpoints` 的 table 提供，至少含 `FileName` 及 `InputVoltageVpp` 或 `InputPowerDbm`；可以同时记录 `ReferenceImpedanceOhm`、`InputPowerSource`、`InputPowerDefinition`。
 
