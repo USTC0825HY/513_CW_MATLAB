@@ -6,7 +6,7 @@
 `laser_analysis/01_workflows` 的运行时路径。
 
 算法沿用历史 `s09_analyze_ad_input_equiv_noise_new_flow.m` 中已经审核过的
-ADC-FPGA-DAC 输入等效换算关系，现使用本库入口、刻度工作簿和
+ADC-FPGA-DAC 输入等效换算关系，现使用本库入口、刻度配置或显式指定的工作簿，以及
 结果包格式。历史脚本仅作为兼容/方法参考，不是本入口的执行依赖。
 
 `S_in(f)=S_PICO(f)*(k_ADC/(abs(G_FPGA)*k_DAC))^2`；默认不扣除 PICO/DAC

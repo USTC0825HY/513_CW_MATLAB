@@ -59,11 +59,10 @@ if numel(unique(lower(string({entries.matFile})))) ~= numel(entries)
     error('converter:io:DuplicateInput', '同一 MAT 不能重复声明为不同接口。');
 end
 runConfig = struct('analysisId', 'ad9245_input_equiv_noise_1hz', ...
-    'version', '1.3.0', 'baselineMode', 'none', 'fpgaGain', 128, ...
+    'version', '1.4.0', 'baselineMode', 'none', 'fpgaGain', 128, ...
     'asdCheckHz', 1, 'referencePlane', 'AD9245 external board input', 'plotDpi', 180);
 runConfig.welch = struct('targetResolutionHz', 0.2, 'overlapRatio', 0.5, 'windowType', 'hann');
-runConfig.calibrationWorkbook = fullfile(campaign, ...
-    'CW_513_ANALYSIS_AD2208_AD9245_刻度参数_20260822.xlsx');
+runConfig.calibrationWorkbook = which('converter.calibration.reportCalibration');
 % Preserve the independently pinned AD9245 coefficient.
 runConfig.kDacVPerCodePp = 1.014514e-4;
 runConfig.dacCalibrationSource = ...
@@ -83,17 +82,13 @@ if isempty(outputFolder) && isfield(runConfig, 'outputRoot')
 end
 runConfig.outputRoot = converter.io.resolveOutputBase(dataFolder, outputFolder);
 validateattributes(runConfig.fpgaGain, {'numeric'}, {'scalar','real','finite','nonzero'});
-if ~isfile(runConfig.calibrationWorkbook)
-    error('ad9245:CalibrationWorkbookMissing', 'ADC 刻度工作簿不存在：%s', runConfig.calibrationWorkbook);
-end
-cells = readcell(runConfig.calibrationWorkbook, 'Sheet', '刻度参数');
+rows = converter.calibration.loadAdcCalibration(runConfig.calibrationWorkbook);
 for k = 1:numel(entries)
-    match = strcmp(string(cells(3:end,1)), 'AD9245') & ...
-        strcmp(string(cells(3:end,2)), string(entries(k).interface));
+    match = strcmp({rows.device},'AD9245') & strcmp({rows.interface},entries(k).interface);
     if nnz(match) ~= 1
-        error('cw513:AdcCalibrationAmbiguous', 'AD9245/%s 刻度必须唯一匹配。', entries(k).interface);
+        error('cw513:AdcCalibrationAmbiguous','AD9245/%s 刻度必须唯一匹配。',entries(k).interface);
     end
-    validateattributes(cells{find(match,1)+2,4}, {'numeric'}, {'scalar','real','finite','positive'});
+    validateattributes(rows(match).slope,{'numeric'},{'scalar','real','finite','positive'});
 end
 noiseChainFolder = fullfile(fileparts(fileparts(mfilename('fullpath'))), 'noise_chain_hy');
 addpath(noiseChainFolder, '-begin');

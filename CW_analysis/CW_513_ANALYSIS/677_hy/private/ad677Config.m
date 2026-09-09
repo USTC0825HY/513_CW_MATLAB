@@ -3,6 +3,7 @@ function config = ad677Config(analysisId)
 
 config = struct();
 config.deviceId = 'AD677';
+config.reportCalibration = converter.calibration.reportCalibration('AD677');
 config.analysisId = lower(char(analysisId));
 config.version = '0.1.0';
 config.releaseReady = true;

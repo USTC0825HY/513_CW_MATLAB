@@ -43,3 +43,7 @@ result = adc_power_scale_analysis(csvFolder, csvFiles, resultFolder);
 切换到本目录前使用restoredefaultpath、clear functions，并用which核对同名函数。
 保留private及相邻_shared；原始数据只读。上述文件选择规则适用于两个单项入口，
 677原有批处理和审计脚本未作修改。
+
+## 报告刻度配置
+
+本器件的报告刻度由 `private` 配置中的 `reportCalibration` 字段加载，统一保存在 `_shared/+converter/+calibration/reportCalibration.m`。完整数值、单位和缺失项见 [CALIBRATION.md](../CALIBRATION.md)。刻度分析入口仍根据所选数据重新拟合，不会用报告数值替换新测量结果。

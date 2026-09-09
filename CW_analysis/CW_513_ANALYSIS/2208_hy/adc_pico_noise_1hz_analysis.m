@@ -56,6 +56,9 @@ if ~isfield(runOptions, 'interface') || ...
         ~any(strcmp(string(runOptions.interface), allowedInterfaces))
     error('ad2208:PicoInterfaceRequired', 'runOptions.interface 必须明确指定有效 AD2208 接口。');
 end
+originalPath = path;
+pathCleanup = onCleanup(@() path(originalPath));
+bootstrapRuntime();
 cfg = localConfig(campaign, runOptions);
 cfg = localValidateCalibration(cfg, runOptions.interface);
 if strlength(outputFolder) == 0
@@ -65,9 +68,6 @@ cfg.outputRoot = char(outputFolder);
 cfg.entries = struct('device', 'AD2208', 'interface', char(runOptions.interface), ...
     'matFile', capturePath);
 cfg.entryScript = mfilename('fullpath');
-originalPath = path;
-pathCleanup = onCleanup(@() path(originalPath));
-bootstrapRuntime();
 cfg.entryScriptSha256 = converter.runtime.sha256File([cfg.entryScript '.m']);
 formalRoot = fileparts(fileparts(mfilename('fullpath')));
 cfg.coreScript = fullfile(formalRoot, 'noise_chain_hy', 'adc_input_equiv_noise_analysis.m');
@@ -82,12 +82,11 @@ disp(result.summary(:, {'interface','sample_rate_hz','duration_s', ...
     'asd_check_actual_hz','input_asd_at_check_n_v_per_sqrt_hz','formal_state'}));
 end
 
-function cfg = localConfig(campaign, options)
-cfg = struct('analysisId', 'ad2208_pico_noise_1hz', 'version', '1.1.0', ...
+function cfg = localConfig(~, options)
+cfg = struct('analysisId', 'ad2208_pico_noise_1hz', 'version', '1.2.0', ...
     'baselineMode', 'none', 'fpgaGain', 128, 'asdCheckHz', 1, ...
     'referencePlane', 'AD2208 external board input', 'plotDpi', 180, ...
-    'calibrationWorkbook', fullfile(campaign, ...
-    'CW_513_ANALYSIS_AD2208_AD9245_刻度参数_20260822.xlsx'));
+    'calibrationWorkbook', which('converter.calibration.reportCalibration'));
 % User-pinned DA9726 JG18 slope. Do not locate or read DAC calibration CSVs.
 cfg.kDacVPerCodePp = 1.01451391294771e-4;
 cfg.dacCalibrationSource = 'Fixed configuration: DA9726 JG18; user-pinned k_DAC = 1.01451391294771e-4 V/CodePp';
@@ -124,17 +123,12 @@ end
 
 function cfg = localValidateCalibration(cfg, interfaceName)
 % Validate selected ADC calibration before the core creates a result directory.
-if ~isfile(cfg.calibrationWorkbook)
-    error('cw513:CalibrationMissing', '刻度工作簿不存在：%s', cfg.calibrationWorkbook);
-end
-cells = readcell(cfg.calibrationWorkbook, 'Sheet', '刻度参数');
-match = strcmp(string(cells(3:end,1)), 'AD2208') & ...
-    strcmp(string(cells(3:end,2)), string(interfaceName));
+rows = converter.calibration.loadAdcCalibration(cfg.calibrationWorkbook);
+match = strcmp({rows.device},'AD2208') & strcmp({rows.interface},char(interfaceName));
 if nnz(match) ~= 1
-    error('cw513:AdcCalibrationAmbiguous', 'AD2208/%s 刻度必须唯一匹配。', interfaceName);
+    error('cw513:AdcCalibrationAmbiguous','AD2208/%s 刻度必须唯一匹配。',interfaceName);
 end
-slope = cells{find(match, 1) + 2, 4};
-validateattributes(slope, {'numeric'}, {'real','scalar','finite','positive'});
+validateattributes(rows(match).slope,{'numeric'},{'real','scalar','finite','positive'});
 end
 
 function localWriteEntryEvidence(result)

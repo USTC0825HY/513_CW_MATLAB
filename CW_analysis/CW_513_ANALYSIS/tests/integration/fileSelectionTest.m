@@ -254,7 +254,7 @@ classdef fileSelectionTest < matlab.unittest.TestCase
             fileSelectionTest.csv(fullfile(folder,'X3G_1MHz.csv'),'sample,ad9245_test_module[2]',[(0:8191)' code]);
             time = (0:8191)'/100e6; code = round(2000*sin(2*pi*1e6*time));
             fileSelectionTest.csv(fullfile(folder,'JG15.csv'),'s,w,t,yb2208_test_module[0]',[(0:8191)' zeros(8192,2) code]);
-            fileSelectionTest.csv(fullfile(folder,'misleading_JG15.csv'),'s,w,t,yb2208_test_module[5]',[(0:8191)' zeros(8192,2) code]);
+            fileSelectionTest.csv(fullfile(folder,'misleading_JG15.csv'),'s,w,t,yb2208_test_module[3]',[(0:8191)' zeros(8192,2) code]);
         end
         function csv(file,header,data)
             f = fopen(file,'w'); cleanup = onCleanup(@() fclose(f));

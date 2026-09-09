@@ -111,19 +111,21 @@ config.welchNfft = 131072;
 
 目标频带为10～25 MHz，比较值为300 nV/√Hz，判据不变。单段噪声估计没有分段平均的平滑效果，不能直接与旧平均结果混作同一处理条件。参考面、接地和尖峰判定仍须核对。
 
-刻度在入口的 `localCalibrationRows`，去均值后仅用斜率：
+刻度来自随代码发布的 `converter.calibration.reportCalibration('AD2208')`，由 `private/ad2208Config.m` 的 `reportCalibration` 字段加载。采用20260903报告“AD2208 刻度”表中的新结果，不使用噪声章节引用的旧系数。去均值后仅用斜率：
 
 | 接口 | 斜率 V/CodePp | 截距 Vpp |
 |---|---:|---:|
-| ADC1_JG15 | 2.34852372320206e-5 | 7.77305829419062e-4 |
-| ADC2_JG17 | 4.43108812426092e-5 | 7.10079007621424e-4 |
-| ADC5_JG22 | 2.37640311177720e-5 | 7.05278915906142e-4 |
+| ADC1_JG15 | 2.347136e-5 | 3.274615e-4 |
+| ADC2_JG17 | 4.438060e-5 | -4.978057e-5 |
+| ADC3_JG19 | 2.376230e-5 | 7.470679e-4 |
+| ADC5_JG22 | 2.378017e-5 | 3.932618e-4 |
+| ADC6_JG24 | 1.936920e-5 | 1.126594e-3 |
 
 主要结果为 `AD2208_input_noise_summary.csv`、`AD2208_full_record_ASD_summary.csv`、接口谱CSV、PNG/FIG、刻度溯源和参数文件。当前 ILA 核心没有单独结果MAT；保留返回变量和整个运行目录。旧参数CSV中有部分固定文本，查看时需与实际 summary 和运行配置核对。
 
 ## PICO 1 Hz 噪声：选一份 MAT，再选接口
 
-运行 `adc_pico_noise_1hz_analysis`，选择一份PICO MAT，再明确ADC输入接口。一次单选是为防止同接口命名的结果相互覆盖。接口可选 JG15、JG17、JG19、JG22、JG24 对应的完整 ADC 名称，ADC工作簿必须唯一匹配。
+运行 `adc_pico_noise_1hz_analysis`，选择一份PICO MAT，再明确ADC输入接口。一次单选是为防止同接口命名的结果相互覆盖。接口可选 JG15、JG17、JG19、JG22、JG24 对应的完整 ADC 名称，刻度配置必须唯一匹配。
 
 ```matlab
 d = fullfile(dataRoot,'AD2208','06_Noise','02_1Hz_PICO','ADC6_JG24','raw');
@@ -134,7 +136,7 @@ r = adc_pico_noise_1hz_analysis(d, ...
 
 函数签名是 `(d,selectedFiles,out,runOptions)`。显式文件必须填写 `runOptions.interface`，缺少接口会报错而不是弹窗。默认PICO变量A、模拟增益1、去均值；采样率读MAT的Tinterval或fs；FPGA增益128；1 Hz读数；Hann-Welch目标0.2 Hz、50%重叠。这里保留PICO的分段设置，ILA的单段变更不影响PICO。
 
-参数在该入口的 `localConfig`；本次可覆盖 `fpgaGain/asdCheckHz/referencePlane/plotDpi/calibrationWorkbook` 和 `welch` 子字段。ADC刻度继续读取数据根中的工作簿。DA9726 JG18斜率固定为 1.01451391294771e-4 V/CodePp，不寻找、不读取DAC刻度CSV；`dacSummaryPath` 已停用。
+参数在该入口的 `localConfig`；本次可覆盖 `fpgaGain/asdCheckHz/referencePlane/plotDpi/calibrationWorkbook` 和 `welch` 子字段。ADC刻度默认读取上述代码配置，不需要另传工作簿；仅在显式提供 `calibrationWorkbook` 时读取指定旧工作簿，用于复现旧结果。DA9726 JG18斜率固定为 1.01451391294771e-4 V/CodePp，不寻找、不读取DAC刻度CSV；`dacSummaryPath` 已停用。
 
 默认结果在所选目录内部 `results/run_时间_ad2208_pico_noise_1hz`；返回 `r.runFolder`。看 `input_equiv_noise_summary.csv` 的 `input_asd_at_check_n_v_per_sqrt_hz`（nV/√Hz，除1000为µV/√Hz），同时看formal_state和note。当前整条链未扣除PICO/DAC本底，不能据此声称ADC本征噪声合格。
 
@@ -143,3 +145,7 @@ r = adc_pico_noise_1hz_analysis(d, ...
 先查看 summary CSV 中的数值、状态和说明，再查看 PNG。运行参数记录在 `analysis_parameters.csv`、`run_config.mat` 或结果 MAT 中；输入文件见 `run_manifest.csv` / `source_manifest.csv`。
 
 程序运行成功不代表器件指标合格。SFDR 定义、带宽混叠、隔离度拟合质量和频率检查、噪声参考面等仍需核对；文件选择功能的测试不能替代这些检查。
+
+## 报告刻度配置
+
+本器件的报告刻度由 `private` 配置中的 `reportCalibration` 字段加载，统一保存在 `_shared/+converter/+calibration/reportCalibration.m`。完整数值、单位和缺失项见 [CALIBRATION.md](../CALIBRATION.md)。刻度分析入口仍根据所选数据重新拟合，不会用报告数值替换新测量结果。

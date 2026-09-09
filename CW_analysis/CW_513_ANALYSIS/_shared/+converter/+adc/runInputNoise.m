@@ -287,6 +287,10 @@ t = table(channels, freq, slope, intercept, fitR2, reference, ...
     'VariableNames', {'Channel', 'CalibrationFrequencyHz', ...
     'SlopeVPerCode', 'InterceptV', 'FitR2', 'ReferencePlane'});
 converter.report.writeTable(t, fullfile(runFolder, 'calibration_provenance.csv'));
+if isfield(calibration,'sourceDocument')
+    converter.report.writeTable(struct2table(calibration), ...
+        fullfile(runFolder,'report_calibration_rows.csv'));
+end
 end
 
 function writeExcludedInputNote(runFolder)

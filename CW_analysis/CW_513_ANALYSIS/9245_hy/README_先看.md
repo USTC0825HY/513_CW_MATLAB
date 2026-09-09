@@ -114,7 +114,7 @@ r = adc_input_noise_analysis(d, [], options);
 
 也可以使用 `options.selectedFiles` 和对应的 `options.interfaces`，二者一一对应。仅给目录、未提供entries/files时会弹文件选择框。错误接口、重复接口、缺失文件或ADC刻度会报错；显式输入错误不会转入弹窗。
 
-默认PICO A、模拟增益1、去均值；采样率从MAT读取；FPGA增益128；1 Hz读数；Hann、0.2 Hz目标分辨率、50%重叠。参数在本噪声入口中；通过 `runOptions.fpgaGain`、`calibrationWorkbook`、`referencePlane`、`asdCheckHz`、`plotDpi` 等覆盖；`welch` 可只给需要改的子字段。默认ADC工作簿在dataRoot，显式工作簿可位于其它目录，不再要求输入目录上方必须找到它。
+默认PICO A、模拟增益1、去均值；采样率从MAT读取；FPGA增益128；1 Hz读数；Hann、0.2 Hz目标分辨率、50%重叠。参数在本噪声入口中；通过 `runOptions.fpgaGain`、`calibrationWorkbook`、`referencePlane`、`asdCheckHz`、`plotDpi` 等覆盖；`welch` 可只给需要改的子字段。ADC刻度默认使用随代码发布的20260903报告新刻度：X1G=6.705657e-5、X2G=6.643794e-5、X3G=6.718326e-5、X4G=6.695195e-5 V/CodePp。无需另传工作簿；显式提供 `calibrationWorkbook` 时才使用指定工作簿，以复现旧结果。报告噪声章节引用的旧系数不再作为默认值。
 
 DA9726 JG18固定系数为1.014514e-4 V/CodePp，默认不读DAC刻度CSV。2208入口使用不同的固定系数，两者不要混用。当前总链路换算仍不扣PICO/DAC本底。
 
@@ -125,3 +125,7 @@ DA9726 JG18固定系数为1.014514e-4 V/CodePp，默认不读DAC刻度CSV。2208
 先查看 summary CSV 中的数值、状态和说明，再查看 PNG。运行参数记录在 `analysis_parameters.csv`、`run_config.mat` 或结果 MAT 中；输入文件见 `run_manifest.csv` / `source_manifest.csv`。
 
 程序运行成功不代表器件指标合格。SFDR 定义、带宽混叠、隔离度拟合质量和频率检查、噪声参考面等仍需核对；文件选择功能的测试不能替代这些检查。
+
+## 报告刻度配置
+
+本器件的报告刻度由 `private` 配置中的 `reportCalibration` 字段加载，统一保存在 `_shared/+converter/+calibration/reportCalibration.m`。完整数值、单位和缺失项见 [CALIBRATION.md](../CALIBRATION.md)。刻度分析入口仍根据所选数据重新拟合，不会用报告数值替换新测量结果。

@@ -2,6 +2,7 @@ function config = da766Config(analysisId)
 %DA766CONFIG Fixed DA766 CW_513_ANALYSIS configuration.
 config = struct();
 config.deviceId = 'DA766';
+config.reportCalibration = converter.calibration.reportCalibration('DA766');
 config.analysisId = lower(char(analysisId));
 config.version = '0.1.0';
 config.releaseReady = true;

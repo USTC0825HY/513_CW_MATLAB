@@ -3,6 +3,7 @@ function config = ad2208Config(analysisId)
 
 config = struct();
 config.deviceId = 'AD2208';
+config.reportCalibration = converter.calibration.reportCalibration('AD2208');
 config.analysisId = lower(char(analysisId));
 config.version = '1.4.0';
 config.releaseReady = true;
@@ -81,7 +82,7 @@ switch config.analysisId
         % sample-to-sample phase continuity from file-name order.
         config.recordsAreSampleContiguous = false;
     case 'input_noise'
-        config.version = '1.5.0';
+        config.version = '1.6.0';
         config.sampleRate = 100e6;
         config.noiseBandHz = [10e6, 25e6];
         config.noiseLimitNvPerSqrtHz = 300;
@@ -93,7 +94,8 @@ switch config.analysisId
         config.inputTermination = '50 ohm to ground; see YB2208 test instruction T07R001';
         config.referencePlane = 'AD2208 external board input';
         config.formalConditionSource = 'YB2208_test_instruction_hy T07R001';
-        config.calibrationSource = 'CW_513_ANALYSIS_AD2208_AD9245_刻度参数_20260822.xlsx';
+        config.calibrationSource = which('converter.calibration.reportCalibration');
+        config.calibrationSourceSha256 = converter.runtime.sha256File(config.calibrationSource);
     otherwise
         error('ad2208:UnknownAnalysis', ...
             '不支持的 AD2208 分析类型：%s。', analysisId);

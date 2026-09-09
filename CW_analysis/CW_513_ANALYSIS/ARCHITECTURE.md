@@ -43,7 +43,7 @@ MAT 的选择、接口校验和刻度来源设置，调用现有 `noise_chain_hy
 不复制噪声公式。PICO 内核仅加入相邻 `_shared`，不再递归加入所有器件目录。
 新入口返回时恢复调用前 MATLAB 路径，记录入口/内核哈希及刻度来源。
 AD2208 PICO入口的DA9726斜率固定为1.01451391294771e-4 V/CodePp；
-仅ADC刻度继续读工作簿，不查找或读取DA9726刻度CSV。
+ADC刻度默认来自 `_shared/+converter/+calibration/reportCalibration.m`，显式指定工作簿时才读取外部文件；不查找或读取DA9726刻度CSV。
 
 ## 文件选择与参数传递
 

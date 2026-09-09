@@ -31,29 +31,7 @@ end
 channels = converter.io.resolveAdcChannels(config, dataFolder, selectedFiles, interactive);
 if isempty(channels), results = struct([]); return; end
 config.inputChannels = cellstr(channels);
-calibration = localCalibrationRows();
+calibration = config.reportCalibration;
 results = converter.adc.runInputNoise(config, dataFolder, selectedFiles, ...
     outputFolder, calibration);
-end
-
-function calibration = localCalibrationRows()
-% The report-approved 1 MHz rows are intentionally explicit. JG17/JG22
-% also have 15 MHz rows in the workbook; those are recorded as alternatives
-% in the evidence notes but are not silently substituted here.
-calibration = struct();
-calibration(1).channel = 'ADC1_JG15';
-calibration(1).slopeVPerCode = 2.34852372320206e-05;
-calibration(1).interceptV = 7.77305829419062e-04;
-calibration(1).fitR2 = 0.999993770969417;
-calibration(1).calibrationFrequencyHz = 1e6;
-calibration(2).channel = 'ADC2_JG17';
-calibration(2).slopeVPerCode = 4.43108812426092e-05;
-calibration(2).interceptV = 7.10079007621424e-04;
-calibration(2).fitR2 = 0.999993018442261;
-calibration(2).calibrationFrequencyHz = 1e6;
-calibration(3).channel = 'ADC5_JG22';
-calibration(3).slopeVPerCode = 2.37640311177720e-05;
-calibration(3).interceptV = 7.05278915906142e-04;
-calibration(3).fitR2 = 0.999993734053730;
-calibration(3).calibrationFrequencyHz = 1e6;
 end

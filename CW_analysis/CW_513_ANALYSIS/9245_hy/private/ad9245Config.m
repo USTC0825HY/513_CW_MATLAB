@@ -3,6 +3,7 @@ function config = ad9245Config(analysisId)
 
 config = struct();
 config.deviceId = 'AD9245';
+config.reportCalibration = converter.calibration.reportCalibration('AD9245');
 config.analysisId = lower(analysisId);
 config.version = '1.1.0';
 config.releaseReady = true;

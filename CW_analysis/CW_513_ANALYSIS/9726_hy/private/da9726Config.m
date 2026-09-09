@@ -2,6 +2,7 @@ function config = da9726Config(analysisId)
 %DA9726CONFIG Fixed DA9726 CW_513_ANALYSIS configuration.
 config = struct();
 config.deviceId = 'DA9726';
+config.reportCalibration = converter.calibration.reportCalibration('DA9726');
 config.analysisId = lower(char(analysisId));
 config.version = '0.1.0';
 config.releaseReady = true;

@@ -42,3 +42,7 @@ AD9245旧ILA数据为25 MHz，后续计划改用20 MHz采集。当前MATLAB默�
 - 架构规则：`ARCHITECTURE.md`
 - 指标定义：`METRICS.md`
 - 历史代码：legacy（已归档至 F:\01_Laser\research_assets\CW_513_ANALYSIS_archive\20260908\legacy），不得加入运行路径
+
+## 刻度配置
+
+20260903报告中的20条刻度已随代码发布，见 [CALIBRATION.md](CALIBRATION.md)。AD2208 ILA及2208/9245 PICO噪声默认使用报告中的新ADC刻度，不再依赖外部ADC刻度工作簿；旧工作簿只能通过参数显式指定。报告文件和私人维护文件不需要复制到新电脑。
