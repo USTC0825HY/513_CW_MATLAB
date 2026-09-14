@@ -1,184 +1,103 @@
 function result = adc_input_noise_analysis(dataFolder, outputFolder, runOptions)
-%ADC_INPUT_NOISE_ANALYSIS Analyze AD9245 1 Hz input-equivalent noise.
-%   RESULT = ADC_INPUT_NOISE_ANALYSIS() first opens a folder chooser for
-%   the AD9245 noise-data root, then lets the user choose one or more
-%   X1G-X4G G=128 MAT captures. The selected captures are acquired through
-%   AD9245 -> FPGA (G=128) -> JG18 DAC -> PICO.
-%   Existing AD9245 CodePp-to-Vpp and JG18 Vpp/CodePp calibrations are
-%   referenced directly; this entry never performs a new calibration.
-%
-%   DATAFOLDER suppresses the interactive chooser and processes the four
-%   standard X1G-X4G paths below that folder. OUTPUTFOLDER defaults to its
-%   results child. RUNOPTIONS may override fields in the fixed run config,
-%   for example to process a copied capture set or choose another output.
-
+%ADC_INPUT_NOISE_ANALYSIS Select AD9245 PICO MAT captures for 1 Hz chain noise.
+%   Empty entries/files opens a MAT chooser; select each ADC interface explicitly.
+%   Explicit RUNOPTIONS.entries (device/interface/matFile) suppresses all UI.
+%   Alternatively use RUNOPTIONS.selectedFiles and RUNOPTIONS.interfaces.
+%   One capture per interface prevents overwriting interface-named core outputs.
+if nargin < 1, dataFolder = []; end
+if nargin < 2, outputFolder = []; end
+if nargin < 3 || isempty(runOptions), runOptions = struct(); end
+validateattributes(runOptions, {'struct'}, {'scalar'});
+originalPath = path;
+pathCleanup = onCleanup(@() path(originalPath));
 bootstrapRuntime();
-defaultDataFolder = fullfile('F:', filesep, '01_Laser', ...
-    '0_20260727_513test', 'CW_Data', '513_CW_DATA', 'AD9245', ...
-    '01_noise');
-selectedEntries = struct('device', {}, 'interface', {}, 'matFile', {});
-if nargin < 1 || isempty(dataFolder)
-    [dataFolder, selectedEntries, wasCancelled] = ...
-        localSelectG128Captures(defaultDataFolder);
-    if wasCancelled
-        result = struct([]);
-        return;
+campaign = fullfile('F:', filesep, '01_Laser', '0_20260727_513test', ...
+    'CW_Data', '513_CW_DATA');
+if isempty(dataFolder), dataFolder = fullfile(campaign, 'AD9245', '01_noise'); end
+result = struct([]);
+entries = struct('device', {}, 'interface', {}, 'matFile', {});
+if isfield(runOptions, 'entries') && ~isempty(runOptions.entries)
+    entries = runOptions.entries;
+elseif isfield(runOptions, 'selectedFiles') && ~isempty(runOptions.selectedFiles)
+    [files, dataFolder] = converter.io.selectMatFiles(dataFolder, runOptions.selectedFiles);
+    if ~isfield(runOptions, 'interfaces') || numel(string(runOptions.interfaces)) ~= numel(files)
+        error('ad9245:NoiseInterfaceRequired', 'interfaces 必须与 selectedFiles 逐一对应。');
+    end
+    names = string(runOptions.interfaces);
+    for k = 1:numel(files)
+        entries(k) = localEntry(names(k), converter.io.resolveInputPath(dataFolder, files{k}));
+    end
+else
+    [files, dataFolder] = converter.io.selectMatFiles(dataFolder, [], ...
+        '选择本次 AD9245 PICO MAT（A通道；每接口一份）');
+    if isempty(files), return; end
+    for k = 1:numel(files)
+        [index, accepted] = listdlg('ListString', {'X1G','X2G','X3G','X4G'}, ...
+            'SelectionMode', 'single', 'PromptString', ['明确 ADC 输入接口：' files{k}]);
+        if ~accepted, return; end
+        allowed = {'X1G','X2G','X3G','X4G'};
+        entries(k) = localEntry(allowed{index}, converter.io.resolveInputPath(dataFolder, files{k}));
     end
 end
-if nargin < 2 || isempty(outputFolder)
-    outputFolder = fullfile(dataFolder, 'results');
+if ~isstruct(entries) || isempty(entries) || ...
+        ~all(isfield(entries, {'device','interface','matFile'}))
+    error('ad9245:NoiseEntriesRequired', 'entries 必须明确 device、interface 和 matFile。');
 end
-if nargin < 3 || isempty(runOptions)
-    runOptions = struct();
+for k = 1:numel(entries)
+    if ~isequal(string(entries(k).device), "AD9245") || ...
+            ~isscalar(string(entries(k).interface)) || ...
+            ~any(strcmp(string(entries(k).interface), {'X1G','X2G','X3G','X4G'}))
+        error('ad9245:NoiseInterfaceRequired', '必须明确 AD9245 的 X1G-X4G 接口。');
+    end
+    entries(k).matFile = converter.io.resolveInputPath(dataFolder, entries(k).matFile);
+    converter.io.selectMatFiles(dataFolder, {entries(k).matFile});
 end
-if ~isstruct(runOptions) || ~isscalar(runOptions)
-    error('ad9245:InvalidNoiseOptions', ...
-        'RUNOPTIONS 必须是标量 struct。');
+if numel(unique(string({entries.interface}))) ~= numel(entries)
+    error('ad9245:DuplicateInterfaceSelection', '每接口只能选择一份 MAT；同接口多记录请分别运行。');
 end
-
-runConfig = localDefaultRunConfig(dataFolder, outputFolder);
-if ~isempty(selectedEntries)
-    runConfig.entries = selectedEntries;
+if numel(unique(lower(string({entries.matFile})))) ~= numel(entries)
+    error('converter:io:DuplicateInput', '同一 MAT 不能重复声明为不同接口。');
 end
-runConfig = localMergeRunOptions(runConfig, runOptions);
-noiseChainFolder = fullfile(fileparts(fileparts(mfilename('fullpath'))), ...
-    'noise_chain_hy');
-if ~isfile(fullfile(noiseChainFolder, 'adc_input_equiv_noise_analysis.m'))
-    error('ad9245:NoiseCoreMissing', ...
-        '未找到当前库的 ADC 输入等效噪声内核：%s', noiseChainFolder);
+runConfig = struct('analysisId', 'ad9245_input_equiv_noise_1hz', ...
+    'version', '1.4.0', 'baselineMode', 'none', 'fpgaGain', 128, ...
+    'asdCheckHz', 1, 'referencePlane', 'AD9245 external board input', 'plotDpi', 180);
+runConfig.welch = struct('targetResolutionHz', 0.2, 'overlapRatio', 0.5, 'windowType', 'hann');
+runConfig.calibrationWorkbook = which('converter.calibration.reportCalibration');
+% Preserve the independently pinned AD9245 coefficient.
+runConfig.kDacVPerCodePp = 1.014514e-4;
+runConfig.dacCalibrationSource = ...
+    'Fixed configuration: DA9726 DAC1_JG18; k_DAC = 1.014514e-4 V/CodePp (user-specified)';
+names = fieldnames(runOptions);
+for k = 1:numel(names)
+    if ismember(names{k}, {'entries','selectedFiles','interfaces'}), continue; end
+    if strcmp(names{k}, 'welch')
+        runConfig.welch = converter.runtime.mergeConfig(runConfig.welch, runOptions.welch);
+    else
+        runConfig.(names{k}) = runOptions.(names{k});
+    end
 end
+runConfig.entries = entries;
+if isempty(outputFolder) && isfield(runConfig, 'outputRoot')
+    outputFolder = runConfig.outputRoot;
+end
+runConfig.outputRoot = converter.io.resolveOutputBase(dataFolder, outputFolder);
+validateattributes(runConfig.fpgaGain, {'numeric'}, {'scalar','real','finite','nonzero'});
+rows = converter.calibration.loadAdcCalibration(runConfig.calibrationWorkbook);
+for k = 1:numel(entries)
+    match = strcmp({rows.device},'AD9245') & strcmp({rows.interface},entries(k).interface);
+    if nnz(match) ~= 1
+        error('cw513:AdcCalibrationAmbiguous','AD9245/%s 刻度必须唯一匹配。',entries(k).interface);
+    end
+    validateattributes(rows(match).slope,{'numeric'},{'scalar','real','finite','positive'});
+end
+noiseChainFolder = fullfile(fileparts(fileparts(mfilename('fullpath'))), 'noise_chain_hy');
 addpath(noiseChainFolder, '-begin');
 result = adc_input_equiv_noise_analysis(runConfig);
-localDisplay1HzAsd(result.summary);
-end
-
-function config = localDefaultRunConfig(dataFolder, outputFolder)
-dataRoot = localFindCampaignDataRoot(dataFolder);
-config = struct();
-config.analysisId = 'ad9245_input_equiv_noise_1hz';
-config.version = '1.2.0';
-config.outputRoot = outputFolder;
-config.baselineMode = 'none';
-config.fpgaGain = 128;
-config.asdCheckHz = 1;
-config.referencePlane = 'AD9245 external board input';
-config.plotDpi = 180;
-config.welch = struct('targetResolutionHz', 0.2, 'overlapRatio', 0.5, ...
-    'windowType', 'hann');
-
-% The workbook contains the reviewed 2026-08-22 AD9245 X1G-X4G fit rows.
-% k_DAC is the user-specified JG18 scale for this analysis. It is deliberately
-% fixed here so the run does not depend on a separately located CSV summary.
-config.calibrationWorkbook = fullfile(dataRoot, ...
-    'CW_513_ANALYSIS_AD2208_AD9245_刻度参数_20260822.xlsx');
-config.kDacVPerCodePp = 1.014514e-4;
-config.dacCalibrationSource = [ ...
-    'Fixed configuration: DA9726 DAC1_JG18; ' ...
-    'k_DAC = 1.014514e-4 V/CodePp (user-specified)'];
-config.entries = [ ...
-    localEntry('X1G', fullfile(dataFolder, 'X1G', 'X1G_G128_CH1_100KSPS.mat')); ...
-    localEntry('X2G', fullfile(dataFolder, 'X2G', 'X2G_100KSPS_CH1_G128.mat')); ...
-    localEntry('X3G', fullfile(dataFolder, 'X3G', 'X3G_100KSPS_CH1_G128.mat')); ...
-    localEntry('X4G', fullfile(dataFolder, 'X4G', 'X4G_100KSPS_CH1_G128.mat'))];
-end
-
-function dataRoot = localFindCampaignDataRoot(startFolder)
-%LOCATECAMPAIGNDATAROOT Find the parent containing the reviewed AD9245 fit.
-workbookName = 'CW_513_ANALYSIS_AD2208_AD9245_刻度参数_20260822.xlsx';
-dataRoot = char(startFolder);
-while true
-    if isfile(fullfile(dataRoot, workbookName))
-        return;
-    end
-    parentFolder = fileparts(dataRoot);
-    if strcmp(parentFolder, dataRoot)
-        break;
-    end
-    dataRoot = parentFolder;
-end
-error('ad9245:CalibrationWorkbookMissing', ...
-    ['从所选数据目录向上未找到 AD9245 刻度工作簿 %s。' newline ...
-    '请选取 513_CW_DATA\AD9245\01_noise 或其子目录。'], workbookName);
+fprintf('\nAD9245 输入等效 ASD @ 1 Hz（实际 bin）\n');
+disp(result.summary(:, {'interface','sample_rate_hz','duration_s', ...
+    'asd_check_actual_hz','input_asd_at_check_n_v_per_sqrt_hz','formal_state'}));
 end
 
 function entry = localEntry(interfaceName, matFile)
-entry = struct('device', 'AD9245', 'interface', interfaceName, ...
-    'matFile', matFile);
-end
-
-function localDisplay1HzAsd(summary)
-%LOCALDISPLAY1HZASD Print the requested-bin ASD in the MATLAB command window.
-columns = {'interface', 'sample_rate_hz', 'duration_s', ...
-    'frequency_resolution_hz', 'asd_check_actual_hz', ...
-    'input_asd_at_check_n_v_per_sqrt_hz', 'formal_state', 'note'};
-fprintf('\nAD9245 输入等效 ASD @ 1 Hz（实际 bin）\n');
-disp(summary(:, columns));
-end
-
-function [dataFolder, entries, wasCancelled] = localSelectG128Captures(defaultDataFolder)
-%LOCALSELECTG128CAPTURES Interactively choose AD9245 G=128 MAT captures.
-dataFolder = uigetdir(defaultDataFolder, ...
-    '选择 AD9245 1 Hz 噪声数据根目录（含 X1G-X4G 子目录）');
-entries = struct('device', {}, 'interface', {}, 'matFile', {});
-wasCancelled = isequal(dataFolder, 0);
-if wasCancelled
-    dataFolder = defaultDataFolder;
-    return;
-end
-dataFolder = char(dataFolder);
-
-matFiles = dir(fullfile(dataFolder, '**', '*.mat'));
-paths = strings(0, 1);
-interfaces = strings(0, 1);
-labels = strings(0, 1);
-for index = 1:numel(matFiles)
-    matPath = fullfile(matFiles(index).folder, matFiles(index).name);
-    interfaceToken = regexp(matPath, '(?i)(?<![A-Z0-9])(X[1-4]G)(?![A-Z0-9])', ...
-        'tokens', 'once');
-    if isempty(interfaceToken) || ~contains(upper(string(matPath)), "G128")
-        continue;
-    end
-
-    interfaceName = upper(string(interfaceToken{1}));
-    relativePath = erase(string(matPath), string([dataFolder filesep]));
-    paths(end + 1, 1) = string(matPath); %#ok<AGROW>
-    interfaces(end + 1, 1) = interfaceName; %#ok<AGROW>
-    labels(end + 1, 1) = interfaceName + " | " + relativePath; %#ok<AGROW>
-end
-if isempty(paths)
-    error('ad9245:NoG128Captures', ...
-        '目录中未找到名称或路径含 X1G-X4G 且标记 G128 的 MAT 文件：%s', ...
-        dataFolder);
-end
-
-[labels, order] = sort(labels);
-paths = paths(order);
-interfaces = interfaces(order);
-[selection, wasSelected] = listdlg( ...
-    'PromptString', '选择要处理的 AD9245 G=128 MAT 数据：', ...
-    'SelectionMode', 'multiple', ...
-    'ListString', cellstr(labels), ...
-    'ListSize', [760, 280], ...
-    'Name', 'AD9245 1 Hz 输入等效噪声');
-wasCancelled = ~wasSelected || isempty(selection);
-if wasCancelled
-    return;
-end
-
-selectedInterfaces = interfaces(selection);
-if numel(unique(selectedInterfaces)) ~= numel(selectedInterfaces)
-    error('ad9245:DuplicateInterfaceSelection', ...
-        '每个接口只能选择一个 MAT 文件；请重新运行并为每个 X?G 只选择一项。');
-end
-for index = 1:numel(selection)
-    entries(end + 1, 1) = localEntry(char(selectedInterfaces(index)), ...
-        char(paths(selection(index)))); %#ok<AGROW>
-end
-end
-
-function config = localMergeRunOptions(config, options)
-names = fieldnames(options);
-for index = 1:numel(names)
-    config.(names{index}) = options.(names{index});
-end
+entry = struct('device', 'AD9245', 'interface', char(interfaceName), 'matFile', char(matFile));
 end

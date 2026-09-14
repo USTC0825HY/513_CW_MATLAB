@@ -3,6 +3,7 @@ function config = ad9245Config(analysisId)
 
 config = struct();
 config.deviceId = 'AD9245';
+config.reportCalibration = converter.calibration.reportCalibration('AD9245');
 config.analysisId = lower(analysisId);
 config.version = '1.1.0';
 config.releaseReady = true;
@@ -52,6 +53,7 @@ switch config.analysisId
         config.drivenChannel = 'X3G';
         config.minimumIsolationDb = 40;
     case 'power_scale'
+        config.version = '1.2.0';
         config.sampleRate = ilaCaptureSampleRateHz;
         % The current AD9245 power-scale captures are 1 kHz sweeps.
         config.testFrequencyHz = 1e3;
@@ -59,6 +61,7 @@ switch config.analysisId
         config.powerRangeDbm = [-10, 6];
         config.clippingThreshold = 0.98;
         config.clippingFractionLimit = 0.01;
+        config.criticalInputThresholdFraction = 0.99;
         config.plateauChangeThreshold = 0.01;
         config.referenceImpedanceOhm = 50;
         % Filename dBm values are converted to Vpp at 50 ohm before the
@@ -67,7 +70,7 @@ switch config.analysisId
     case 'inl_dnl'
         config.version = '1.1.0';
         config.sampleRate = ilaCaptureSampleRateHz;
-        config.marginCode = 1000;
+        config.marginCode = 0;
         config.minimumFitR2 = 0.99;
         config.frequencyRefinementCycles = 200;
         config.frequencyRefinementMinimumSamples = 20000;

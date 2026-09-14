@@ -10,6 +10,11 @@ if nargin < 3, outputFolder = []; end
 if nargin < 4 || isempty(runOptions), runOptions = struct(); end
 [dataFolder, selectedFiles, outputFolder] = ad677ResolveInputs( ...
     dataFolder, selectedFiles, outputFolder);
+if isempty(selectedFiles)
+    fprintf('未选择文件，AD677 刻度分析已取消。\n');
+    results = table;
+    return;
+end
 if ~isfield(runOptions, 'powerSetpoints') || ...
         isempty(runOptions.powerSetpoints)
     runOptions.powerSetpoints = ad677PowerSetpoints( ...

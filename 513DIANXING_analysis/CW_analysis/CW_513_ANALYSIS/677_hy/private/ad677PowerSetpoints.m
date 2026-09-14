@@ -65,6 +65,8 @@ end
 end
 
 function index = findAttempt(attempts, fileName)
+[~, selectedStem, selectedExt] = fileparts(fileName);
+fileName = string(selectedStem) + string(selectedExt);
 index = [];
 for attemptIndex = 1:numel(attempts)
     [~, manifestName, extension] = fileparts(attempts(attemptIndex).raw_path);

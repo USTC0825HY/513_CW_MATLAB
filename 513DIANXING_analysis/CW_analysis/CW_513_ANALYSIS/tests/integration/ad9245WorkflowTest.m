@@ -67,6 +67,8 @@ classdef ad9245WorkflowTest < matlab.unittest.TestCase
                 'Vpp')));
             testCase.verifyTrue(ad9245WorkflowTest.hasSuccessRun( ...
                 testCase.OutputFolders.power, 'ADC_vpp_codepp_summary.csv'));
+            testCase.verifyTrue(ad9245WorkflowTest.hasSuccessRun( ...
+                testCase.OutputFolders.power, 'ADC_critical_input_estimate.csv'));
         end
 
         function runsInlDnlEntry(testCase)

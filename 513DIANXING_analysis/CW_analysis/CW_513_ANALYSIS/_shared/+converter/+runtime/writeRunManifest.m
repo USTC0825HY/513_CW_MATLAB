@@ -7,8 +7,7 @@ modifiedAt = cell(fileCount, 1);
 sha256 = cell(fileCount, 1);
 for fileIndex = 1:fileCount
     fileName = char(fileNames{fileIndex});
-    if isfile(fileName), filePath = fileName;
-    else, filePath = fullfile(dataFolder, fileName); end
+    filePath = converter.io.resolveInputPath(dataFolder, fileName);
     info = dir(filePath);
     fileSizeBytes(fileIndex) = info.bytes;
     % Keep datestr because the delivered program must run on MATLAB R2018.

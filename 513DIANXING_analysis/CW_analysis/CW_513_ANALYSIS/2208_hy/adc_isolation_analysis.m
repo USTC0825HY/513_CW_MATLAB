@@ -7,7 +7,7 @@ if nargin < 2, selectedFiles = []; end
 if nargin < 3, outputFolder = []; end
 config = ad2208Config('isolation');
 if nargin >= 4 && ~isempty(configOverride)
-    config = configOverride;
+    config = converter.runtime.mergeConfig(config, configOverride);
 end
 results = converter.adc.runIsolation(config, ...
     dataFolder, selectedFiles, outputFolder);

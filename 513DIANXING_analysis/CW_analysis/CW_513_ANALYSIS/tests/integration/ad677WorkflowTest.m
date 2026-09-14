@@ -5,6 +5,8 @@ classdef ad677WorkflowTest < matlab.unittest.TestCase
         WorkFolder
         BandwidthFolder
         PowerFolder
+        NoiseFolder
+        PicoFolder
         RepositoryRoot
     end
 
@@ -19,24 +21,37 @@ classdef ad677WorkflowTest < matlab.unittest.TestCase
             testCase.WorkFolder = string(tempname);
             testCase.BandwidthFolder = fullfile(testCase.WorkFolder, 'bandwidth');
             testCase.PowerFolder = fullfile(testCase.WorkFolder, 'power');
+            testCase.NoiseFolder = fullfile(testCase.WorkFolder, 'noise');
+            testCase.PicoFolder = fullfile(testCase.WorkFolder, 'pico');
             mkdir(testCase.BandwidthFolder);
             mkdir(testCase.PowerFolder);
+            mkdir(testCase.NoiseFolder);
+            mkdir(testCase.PicoFolder);
             testCase.addTeardown(@() rmdir(testCase.WorkFolder, 's'));
             ad677WorkflowTest.buildBandwidthData(testCase.BandwidthFolder);
             ad677WorkflowTest.buildPowerData(testCase.PowerFolder);
+            ad677WorkflowTest.buildNoiseData(testCase.NoiseFolder);
+            ad677WorkflowTest.buildPicoData(testCase.PicoFolder);
         end
     end
 
     methods (Test)
-        function testDefaultFolderPowerCall(testCase)
-            results = adc_power_scale_analysis(testCase.PowerFolder);
+        function testExplicitFilesDefaultOutputPowerCall(testCase)
+            files = {'ad677_ch01_error_input_vpp_1kHz_0.25Vpp_sweep.csv', ...
+                'ad677_ch01_error_input_vpp_1kHz_1.5Vpp_sweep.csv', ...
+                'ad677_ch01_error_input_vpp_1kHz_2.25Vpp_sweep.csv', ...
+                'ad677_ch01_error_input_vpp_1kHz_2.5Vpp_sweep.csv'};
+            results = adc_power_scale_analysis(testCase.PowerFolder, files);
             testCase.verifyEqual(results.InputVoltageVpp, ...
                 [0.25; 1.5; 2.25; 2.5], AbsTol=1e-12);
             testCase.verifyEqual(unique(results.Channel), "677_1");
             testCase.verifyGreaterThan(results.CalibrationR2(1), 0.999);
             testCase.verifyEqual(unique(results.Conclusion), "暂不能判定");
             testCase.verifyTrue(ad677WorkflowTest.hasSuccessfulRun( ...
-                fullfile(testCase.PowerFolder, 'result')));
+                fullfile(testCase.PowerFolder, 'results')));
+            criticalFiles = dir(fullfile(testCase.PowerFolder, 'results', ...
+                'run_*', 'ADC_critical_input_estimate.csv'));
+            testCase.verifyNotEmpty(criticalFiles);
         end
 
         function testExplicitBandwidthCall(testCase)
@@ -63,6 +78,46 @@ classdef ad677WorkflowTest < matlab.unittest.TestCase
             testCase.verifyTrue(all(startsWith(allFiles, ...
                 string(testCase.RepositoryRoot), 'IgnoreCase', true)));
         end
+
+        function testIlaUsesFixedScaleAndReportsValidRate(testCase)
+            outputFolder = fullfile(testCase.WorkFolder, 'ila_result');
+            result = adc_ila_noise_analysis(testCase.NoiseFolder, ...
+                {'ad677_noise_ch1.csv'}, outputFolder);
+            row = result.summary(1, :);
+            testCase.verifyEqual(row.SampleCount, 131072);
+            testCase.verifyEqual(row.SampleRateHz, 100e6, AbsTol=1e-6);
+            testCase.verifyEqual(row.CalibrationSlopeVPerCode, ...
+                1.536050e-4, AbsTol=1e-15);
+            testCase.verifyEqual(row.ValidPulseCount, 1024);
+            testCase.verifyEqual(row.EffectiveUpdateRateHz, ...
+                781250, AbsTol=1e-9);
+            testCase.verifyTrue(row.IncludesHeldSamples);
+            testCase.verifyEqual(string(row.FormalStatus), "暂不能判定");
+        end
+
+        function testPicoUsesFixedAdcAndJg18Scales(testCase)
+            outputFolder = fullfile(testCase.WorkFolder, 'pico_result');
+            options = struct('interface', '677_2');
+            result = adc_pico_noise_1hz_analysis(testCase.PicoFolder, ...
+                'long_noise.mat', outputFolder, options);
+            row = result.summary(1, :);
+            testCase.verifyEqual(row.k_adc_v_per_code, ...
+                1.695154e-4, AbsTol=1e-15);
+            testCase.verifyEqual(row.k_dac_v_per_code, ...
+                1.01451391294771e-4, AbsTol=1e-18);
+            testCase.verifyEqual(row.fpga_gain, 128);
+            testCase.verifyEqual(row.asd_check_actual_hz, 1, AbsTol=1e-12);
+            testCase.verifyEqual(row.formal_state, "暂不能判定");
+        end
+
+        function testPicoRejectsShortRecordBeforeOutput(testCase)
+            outputFolder = fullfile(testCase.WorkFolder, 'short_result');
+            options = struct('interface', '677_1');
+            testCase.verifyError(@() adc_pico_noise_1hz_analysis( ...
+                testCase.PicoFolder, 'short_noise.mat', outputFolder, options), ...
+                'ad677:PicoFrequencyCoverage');
+            testCase.verifyFalse(isfolder(outputFolder));
+        end
     end
 
     methods (Static, Access=private)
@@ -87,6 +142,28 @@ classdef ad677WorkflowTest < matlab.unittest.TestCase
             end
         end
 
+
+        function buildNoiseData(folder)
+            sampleCount = 131072;
+            sample = (0:sampleCount-1)';
+            updateIndex = floor(sample / 128);
+            code = mod(37 * updateIndex, 41) - 20;
+            valid = double(mod(sample, 128) == 0);
+            trigger = zeros(sampleCount, 1); trigger(1) = 1;
+            data = [sample, sample, trigger, code, valid];
+            ad677WorkflowTest.writeRawCsv(folder, 'ad677_noise_ch1.csv', data, 1);
+        end
+
+        function buildPicoData(folder)
+            sampleRate = 20;
+            time = (0:199)' / sampleRate;
+            A = 2e-3 * sin(2*pi*time) + 2e-4 * cos(2*pi*3*time); %#ok<NASGU>
+            Tinterval = 1 / sampleRate; %#ok<NASGU>
+            save(fullfile(folder, 'long_noise.mat'), 'A', 'Tinterval');
+            A = A(1:20); %#ok<NASGU>
+            save(fullfile(folder, 'short_noise.mat'), 'A', 'Tinterval');
+        end
+
         function code = sineCode(amplitude, frequencyHz)
             sampleRate = 100e6;
             time = (0:131071)' / sampleRate;
@@ -105,6 +182,17 @@ classdef ad677WorkflowTest < matlab.unittest.TestCase
             valid = ones(size(code));
             fprintf(fileId, '%d,%d,%d,%d,%d\n', ...
                 [sample, sample, trigger, code, valid].');
+            assert(~isempty(cleanup));
+        end
+
+
+        function writeRawCsv(folder, name, data, channel)
+            fileId = fopen(fullfile(folder, name), 'w');
+            cleanup = onCleanup(@() fclose(fileId));
+            fprintf(fileId, ['Sample in Buffer,Sample in Window,TRIGGER,' ...
+                'u_ad677_to_b9726/u_ad677_%d/adc_data[15:0],' ...
+                'u_ad677_to_b9726/u_ad677_%d/adc_data_vld\n'], channel, channel);
+            fprintf(fileId, '%d,%d,%d,%d,%d\n', data.');
             assert(~isempty(cleanup));
         end
 

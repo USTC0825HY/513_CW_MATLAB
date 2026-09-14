@@ -14,12 +14,12 @@ runContext = converter.runtime.createRun( ...
 try
     adcCodeList = cell(numel(fileNames), 1);
     for fileIndex = 1:numel(fileNames)
-        filePath = fullfile(dataFolder, fileNames{fileIndex});
+        filePath = converter.io.resolveInputPath(dataFolder, fileNames{fileIndex});
         adcCodeList{fileIndex} = converter.io.readAdcCsv(filePath, config);
         fprintf('INL/DNL 读取：%d/%d  %s\n', ...
             fileIndex, numel(fileNames), fileNames{fileIndex});
     end
-    firstPath = fullfile(dataFolder, fileNames{1});
+    firstPath = converter.io.resolveInputPath(dataFolder, fileNames{1});
     channelName = converter.io.extractChannel(firstPath, config);
     if isempty(channelName)
         channelName = 'Unknown';
@@ -83,7 +83,7 @@ fileCount = numel(fileNames);
 modifiedAt = strings(fileCount, 1);
 modifiedDatenum = NaN(fileCount, 1);
 for fileIndex = 1:fileCount
-    fileInfo = dir(fullfile(dataFolder, fileNames{fileIndex}));
+    fileInfo = dir(converter.io.resolveInputPath(dataFolder, fileNames{fileIndex}));
     if isempty(fileInfo)
         continue;
     end

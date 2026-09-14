@@ -9,28 +9,32 @@ function result = dac_scale_hex_analysis(dataFolder, selectedFiles, outputFolder
 %   original DA766 entry point keeps its existing defaults.
 
 if nargin < 1 || isempty(dataFolder)
-    error('cw513:DataFolderRequired', '必须提供DA766刻度数据目录。');
+    dataFolder = fullfile('F:', filesep, '01_Laser', ...
+        '0_20260727_513test', 'CW_Data', '513_CW_DATA', 'DA766', '06_scale');
 end
 dataFolder = char(dataFolder);
 if ~isfolder(dataFolder)
     error('cw513:DataFolderMissing', 'DA766刻度数据目录不存在：%s', dataFolder);
 end
 if nargin < 2, selectedFiles = {}; end
-if nargin < 3 || isempty(outputFolder), outputFolder = ''; end
+if nargin < 3, outputFolder = []; end
 
 bootstrapRuntime();
 if isempty(selectedFiles)
-    selectedFiles = localSelectStandardFiles(dataFolder);
+    [selectedFiles, dataFolder] = converter.io.selectMatFiles(dataFolder, [], ...
+        '选择本次 DA766 十六进制刻度 MAT（可多选；标准批次和 CH2 批次不要混选）');
 end
 if isempty(selectedFiles)
-    error('cw513:NoScaleFiles', '目录中没有可用于DA766十六进制刻度的MAT文件：%s', ...
-        dataFolder);
+    result = struct([]);
+    return;
 end
 if ischar(selectedFiles) || isstring(selectedFiles)
     selectedFiles = cellstr(selectedFiles);
 end
+localValidateCaptureSet(selectedFiles);
 
 configOverride = struct( ...
+    'version', '0.1.1', ...
     'codeNameFormat', 'hex_unsigned', ...
     'codeVppDefinition', 'twice_abs_signed_code', ...
     'codeConversionRule', ...
@@ -57,20 +61,14 @@ configOverride.sampleRateSource = ...
 result = dac_scale_analysis(dataFolder, selectedFiles, outputFolder, configOverride);
 end
 
-function files = localSelectStandardFiles(dataFolder)
-items = dir(fullfile(dataFolder, '*.mat'));
-if isempty(items), files = {}; return; end
-names = {};
-codes = [];
-for k = 1:numel(items)
-    [isCode, rawCode] = localParseCode(items(k).name);
-    if isCode
-        names{end + 1, 1} = items(k).name; %#ok<AGROW>
-        codes(end + 1, 1) = rawCode; %#ok<AGROW>
-    end
+function localValidateCaptureSet(selectedFiles)
+names = string(selectedFiles(:));
+isCh2 = ~cellfun('isempty', regexpi(cellstr(names), '_CH2\.mat$'));
+if any(isCh2) && any(~isCh2)
+    error('cw513:MixedScaleCaptureSets', ...
+        ['DA766 标准 A 通道文件与历史 CH2/B 通道文件不能在同一次刻度中混选。' ...
+         '请只选择其中一批。']);
 end
-[~, order] = sort(codes);
-files = names(order);
 end
 
 function filePath = localFirstFile(dataFolder, selectedFile)
@@ -82,17 +80,4 @@ end
 if ~isfile(filePath)
     error('cw513:ScaleFileMissing', '选定的DA766刻度文件不存在：%s', filePath);
 end
-end
-
-function [isCode, rawCode] = localParseCode(fileName)
-isCode = false;
-rawCode = NaN;
-if ~isempty(regexpi(fileName, '_CH2\.mat$', 'once'))
-    return;
-end
-token = regexp(fileName, '(?i)(?:code|coade)[-_]?([0-9a-f]+)(?:-\d+)?\.mat$', ...
-    'tokens', 'once');
-if isempty(token), return; end
-rawCode = hex2dec(token{1});
-isCode = isfinite(rawCode) && rawCode < 2^16;
 end

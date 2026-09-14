@@ -24,7 +24,7 @@ try
     for fileIndex = 1:fileCount
         fileName = fileNames{fileIndex};
         adcCode = converter.io.readAdcCsv( ...
-            fullfile(dataFolder, fileName), config);
+            converter.io.resolveInputPath(dataFolder, fileName), config);
         metrics = converter.adc.analyzeDynamicMetrics(adcCode, fitConfig);
         fundamentalFrequencyHz(fileIndex) = metrics.spectrum.fundamentalFrequencyHz;
         codePp(fileIndex) = metrics.fit.codePp;

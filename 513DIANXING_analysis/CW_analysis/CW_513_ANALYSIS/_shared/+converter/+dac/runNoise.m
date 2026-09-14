@@ -4,7 +4,7 @@ converter.runtime.validateConfig(config, ...
     {'deviceId', 'analysisId', 'version', 'dataFolder', 'outputFolder'});
 files = localFiles(config);
 if isempty(files), error('converter:dac:NoInputFiles', '没有找到噪声MAT文件。'); end
-fileNames = {files.name};
+fileNames = arrayfun(@(f) fullfile(f.folder, f.name), files, 'UniformOutput', false);
 runContext = converter.runtime.createRun(config, config.dataFolder, ...
     fileNames, config.outputFolder);
 try
@@ -155,8 +155,7 @@ function files = localFiles(config)
 if isfield(config, 'inputFiles') && ~isempty(config.inputFiles)
     names = cellstr(config.inputFiles); files = struct([]);
     for k = 1:numel(names)
-        if isfile(names{k}), item = dir(names{k});
-        else, item = dir(fullfile(config.dataFolder, names{k})); end
+        item = dir(converter.io.resolveInputPath(config.dataFolder, names{k}));
         if isempty(item), error('converter:dac:InputMissing', '输入文件不存在：%s', names{k}); end
         files = [files; item]; %#ok<AGROW>
     end

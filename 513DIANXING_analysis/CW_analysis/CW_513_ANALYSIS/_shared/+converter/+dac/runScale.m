@@ -4,7 +4,7 @@ converter.runtime.validateConfig(config, ...
     {'deviceId', 'analysisId', 'version', 'dataFolder', 'outputFolder'});
 files = localFiles(config);
 if isempty(files), error('converter:dac:NoInputFiles', '没有找到刻度MAT文件。'); end
-fileNames = {files.name};
+fileNames = arrayfun(@(f) fullfile(f.folder, f.name), files, 'UniformOutput', false);
 runContext = converter.runtime.createRun(config, config.dataFolder, ...
     fileNames, config.outputFolder);
 try
@@ -91,8 +91,7 @@ function files = localFiles(config)
 if isfield(config, 'inputFiles') && ~isempty(config.inputFiles)
     names = cellstr(config.inputFiles); files = struct([]);
     for k = 1:numel(names)
-        if isfile(names{k}), item = dir(names{k});
-        else, item = dir(fullfile(config.dataFolder, names{k})); end
+        item = dir(converter.io.resolveInputPath(config.dataFolder, names{k}));
         if isempty(item), error('converter:dac:InputMissing', ...
                 '输入文件不存在：%s', names{k}); end
         files = [files; item]; %#ok<AGROW>
@@ -118,14 +117,16 @@ if isfield(config, 'codeNameFormat') && ~isempty(config.codeNameFormat)
 end
 switch lower(formatName)
     case 'hex_unsigned'
-        % Accept both CODE_1000 and the compact capture names used by
-        % DA766, e.g. CODE1000 and CODE1000-0002.  The optional numeric
-        % suffix is a capture discriminator, not part of the DAC code.
-        token = regexp(fileName, '(?i)(?:code|coade)[_-]?([0-9a-f]+)(?:-\d+)?\.mat$', ...
+        % Read the first hexadecimal token immediately after CODE/COADE.
+        % Acquisition metadata may follow it, for example _JG18_CH1 or
+        % _CH2.  Requiring a separator (or the extension) after the token
+        % prevents a partial match such as reading CODE7FFF as decimal 7.
+        token = regexp(fileName, ...
+            '(?i)(?:code|coade)[_-]?([0-9a-f]+)(?=[_-]|\.mat$)', ...
             'tokens', 'once');
         if isempty(token)
             error('converter:dac:CodeMissing', ...
-                '文件名必须包含CODE_或COADE_十六进制码值：%s', fileName);
+                '文件名必须包含CODE/COADE十六进制码值：%s', fileName);
         end
         rawCode = hex2dec(token{1});
         fullScale = 2^bits;

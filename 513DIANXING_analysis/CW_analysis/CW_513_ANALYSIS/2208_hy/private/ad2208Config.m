@@ -3,6 +3,7 @@ function config = ad2208Config(analysisId)
 
 config = struct();
 config.deviceId = 'AD2208';
+config.reportCalibration = converter.calibration.reportCalibration('AD2208');
 config.analysisId = lower(char(analysisId));
 config.version = '1.4.0';
 config.releaseReady = true;
@@ -45,10 +46,11 @@ switch config.analysisId
     case 'isolation'
         config.isolationFrequencyHz = 1e6;
         config.frequencyMismatchTolerance = 0.02;
-        config.drivenChannel = 'ADC1_JG15';
+        config.drivenChannel = 'ADC2_JG17';
         config.minimumIsolationDb = 40;
     case 'power_scale'
-        config.testFrequencyHz = 15e6;
+        config.version = '1.4.1';
+        config.testFrequencyHz = 1e6;
         config.frequencyMismatchTolerance = 0.02;
         % The sweep files cover -10 to +8 dBm.  The shared calibration
         % routine automatically reduces the upper bound to the last
@@ -58,6 +60,7 @@ switch config.analysisId
         config.powerScalePlotMode = 'inverse';
         config.clippingThreshold = 0.98;
         config.clippingFractionLimit = 0.01;
+        config.criticalInputThresholdFraction = 0.99;
         config.plateauChangeThreshold = 0.01;
         config.minimumSineFitR2 = 0.98;
         config.excludeFrequencyMismatchFromPowerScale = true;
@@ -66,7 +69,7 @@ switch config.analysisId
         % reference. The formal fit is CodePp -> Vpp; dBm is traceability.
         config.powerSetpointSource = 'dBm value parsed from AD2208 CSV filename';
     case 'inl_dnl'
-        config.marginCode = 1000;
+        config.marginCode = 0;
         config.minimumFitR2 = 0.999;
         config.frequencyRefinementCycles = 200;
         config.frequencyRefinementMinimumSamples = 20000;
@@ -79,17 +82,20 @@ switch config.analysisId
         % sample-to-sample phase continuity from file-name order.
         config.recordsAreSampleContiguous = false;
     case 'input_noise'
-        config.version = '1.5.0';
+        config.version = '1.6.0';
         config.sampleRate = 100e6;
         config.noiseBandHz = [10e6, 25e6];
         config.noiseLimitNvPerSqrtHz = 300;
-        config.welchSegmentCount = 100;
-        config.welchOverlapRatio = 0.5;
-        config.welchNfft = 2048;
+        % User-fixed settings for 131072-sample ILA captures: one full
+        % record, no segment averaging; frequency-bin spacing 762.939 Hz.
+        config.welchSegmentCount = 1;
+        config.welchOverlapRatio = 0;
+        config.welchNfft = 131072;
         config.inputTermination = '50 ohm to ground; see YB2208 test instruction T07R001';
         config.referencePlane = 'AD2208 external board input';
         config.formalConditionSource = 'YB2208_test_instruction_hy T07R001';
-        config.calibrationSource = 'CW_513_ANALYSIS_AD2208_AD9245_刻度参数_20260822.xlsx';
+        config.calibrationSource = which('converter.calibration.reportCalibration');
+        config.calibrationSourceSha256 = converter.runtime.sha256File(config.calibrationSource);
     otherwise
         error('ad2208:UnknownAnalysis', ...
             '不支持的 AD2208 分析类型：%s。', analysisId);

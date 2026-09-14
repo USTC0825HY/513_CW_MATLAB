@@ -50,7 +50,7 @@ for fileIndex = 1:numel(fileNames)
     fprintf('[%d/%d] 正在读取：%s\n', ...
         fileIndex, numel(fileNames), fileNames{fileIndex});
     adcCodeList{fileIndex} = converter.io.readAdcCsv( ...
-        fullfile(dataFolder, fileNames{fileIndex}), config);
+        converter.io.resolveInputPath(dataFolder, fileNames{fileIndex}), config);
 end
 end
 

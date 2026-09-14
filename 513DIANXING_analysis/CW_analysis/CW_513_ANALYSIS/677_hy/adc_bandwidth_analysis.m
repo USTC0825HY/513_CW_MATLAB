@@ -11,6 +11,11 @@ if nargin < 3, outputFolder = []; end
 if nargin < 4, runOptions = []; end
 [dataFolder, selectedFiles, outputFolder] = ad677ResolveInputs( ...
     dataFolder, selectedFiles, outputFolder);
+if isempty(selectedFiles)
+    fprintf('未选择文件，AD677 带宽分析已取消。\n');
+    results = table;
+    return;
+end
 [config, ~] = converter.runtime.applyRunOptions( ...
     ad677Config('bandwidth'), runOptions);
 results = converter.adc.runBandwidth(config, dataFolder, ...

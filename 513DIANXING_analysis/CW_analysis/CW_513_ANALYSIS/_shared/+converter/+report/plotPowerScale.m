@@ -10,7 +10,7 @@ fitCodePpRange = (fitVppRange - details.coefficient(2)) / ...
 fitCodePp = linspace(fitCodePpRange(1), fitCodePpRange(2), 100);
 fitVpp = polyval(details.coefficient, fitCodePp);
 
-% AD2208 report figures use the inverse panel only.  This keeps clipped
+% Inverse-only report figures keep clipped
 % captures out of the figure and matches the requested report layout while
 % retaining the two-panel plot as the default for other devices.
 plotMode = 'both';
@@ -23,7 +23,7 @@ if strcmp(plotMode, 'inverse')
 else
     subplot(2, 1, 1);
     plotForwardPanel(results, fitCodePp, fitVpp, ...
-        fitCodePpRange);
+        fitCodePpRange, details);
     title(sprintf('%s ADC CodePp-Vpp 响应：斜率 %.9g Vpp/CodePp，R^2 %.5f', ...
         char(details.channelName), details.coefficient(1), details.calibrationR2), ...
         'Interpreter', 'none');
@@ -41,7 +41,7 @@ end
 if ~config.showFigures, close(figureHandle); end
 end
 
-function plotForwardPanel(results, fitCodePp, fitVpp, calibrationCodePpRange)
+function plotForwardPanel(results, fitCodePp, fitVpp, calibrationCodePpRange, details)
 measuredValue = results.InputVoltageVpp;
 hMeasured = plot(results.CodePp, measuredValue, 'bo-', ...
     'LineWidth', 1.2, 'MarkerFaceColor', 'b');
@@ -53,6 +53,7 @@ if any(~results.CalibrationIncluded)
         'LineWidth', 1.8, 'MarkerSize', 10);
 end
 hFit = plot(fitCodePp, fitVpp, 'g-', 'LineWidth', 1.2);
+[criticalHandles, criticalLabels] = addCriticalInputEstimate(details);
 currentYLim = ylim;
 plot([calibrationCodePpRange(1) calibrationCodePpRange(1)], currentYLim, ...
     '--k', 'HandleVisibility', 'off');
@@ -73,6 +74,8 @@ handles(end+1) = hFit;
 labels{end+1} = 'CodePp-Vpp 线性标定';
 handles(end+1) = hRange;
 labels{end+1} = '标定范围';
+handles = [handles criticalHandles];
+labels = [labels criticalLabels];
 legend(handles, labels, 'Location', 'best');
 end
 
@@ -85,13 +88,71 @@ hMeasured = plot(results.CodePp(included), results.InputVoltageVpp(included), 'b
     'LineWidth', 1.2, 'MarkerFaceColor', 'b');
 hold on;
 hFit = plot(fitCodePp, fitVpp, 'g-', 'LineWidth', 1.2);
+[criticalHandles, criticalLabels] = addCriticalInputEstimate(details);
 hold off;
 grid on;
 xlabel('拟合 CodePp (LSB)', 'Interpreter', 'none');
 ylabel('输入电压 Vpp (V)', 'Interpreter', 'none');
 title(sprintf('%s  Vpp → CodePp：%s', char(details.channelName), ...
     details.inverseFormulaVppToCodePp), 'Interpreter', 'none');
-handles = [hMeasured hFit];
-labels = {'测量值', 'Vpp→CodePp 标定'};
+handles = [hMeasured hFit criticalHandles];
+labels = [{'测量值', 'Vpp→CodePp 标定'} criticalLabels];
 legend(handles, labels, 'Location', 'best');
+end
+
+function [handles, labels] = addCriticalInputEstimate(details)
+%ADDCRITICALINPUTESTIMATE Mark the 99% point with axis guide lines.
+
+handles = [];
+labels = {};
+if ~isfield(details, 'criticalInput') || ~details.criticalInput.available
+    return;
+end
+
+critical = details.criticalInput;
+criticalColor = [1 0 0];
+
+markerLabel = buildCriticalLegendLabel(critical);
+hCritical = plot(critical.criticalCodePp, critical.criticalInputVpp, 'x', ...
+    'Color', criticalColor, 'MarkerSize', 11, 'LineWidth', 2.2);
+
+expandAxesForCritical(critical.criticalCodePp, critical.criticalInputVpp);
+currentXLim = xlim;
+currentYLim = ylim;
+plot([critical.criticalCodePp critical.criticalCodePp], ...
+    [currentYLim(1) critical.criticalInputVpp], '--', ...
+    'Color', [0.4 0.4 0.4], 'HandleVisibility', 'off');
+plot([currentXLim(1) critical.criticalCodePp], ...
+    [critical.criticalInputVpp critical.criticalInputVpp], '--', ...
+    'Color', [0.4 0.4 0.4], 'HandleVisibility', 'off');
+
+handles = hCritical;
+labels = {markerLabel};
+end
+
+function expandAxesForCritical(criticalCodePp, criticalInputVpp)
+currentXLim = xlim;
+currentYLim = ylim;
+if criticalCodePp >= currentXLim(2)
+    currentXLim(2) = criticalCodePp + ...
+        0.06 * max(criticalCodePp - currentXLim(1), eps);
+end
+if criticalInputVpp >= currentYLim(2)
+    currentYLim(2) = criticalInputVpp + ...
+        0.08 * max(criticalInputVpp - currentYLim(1), eps);
+end
+xlim(currentXLim);
+ylim(currentYLim);
+end
+
+function label = buildCriticalLegendLabel(critical)
+%BUILDCRITICALLEGENDLABEL Put the full-scale voltage/power in the legend.
+
+if isfinite(critical.criticalInputDbm)
+    valueText = sprintf('%+.3f dBm / %.3f Vpp', ...
+        critical.criticalInputDbm, critical.criticalInputVpp);
+else
+    valueText = sprintf('%.3f Vpp', critical.criticalInputVpp);
+end
+label = sprintf('99%% 临界满量程：%s', valueText);
 end

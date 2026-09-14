@@ -108,12 +108,7 @@ names = unique(names, 'stable');
 end
 
 function filePath = localPath(dataFolder, fileName)
-fileName = char(fileName);
-if isfile(fileName)
-    filePath = fileName;
-else
-    filePath = fullfile(dataFolder, fileName);
-end
+filePath = converter.io.resolveInputPath(dataFolder, fileName);
 end
 
 function judgment = localLowerLimit(value, limit, enabled)
