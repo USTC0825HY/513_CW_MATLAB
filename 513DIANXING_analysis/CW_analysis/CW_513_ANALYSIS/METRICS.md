@@ -4,15 +4,15 @@
 
 ## AD9245 ILA采样率与分析配置
 
-AD9245旧ILA数据为25 MHz（40 ns），后续计划改为20 MHz（50 ns）。只有实际用20 MHz采集的新数据才按20 MHz分析，旧数据仍用25 MHz，不要在同一次运行中混用两种时基的文件。
+AD9245旧ILA数据为25 MHz（40 ns），ADC转换时钟为20 MHz（50 ns）。SFDR单独对旧25 MHz数据执行固定步长抽样：每5个ILA点保留1个，按5 MHz序列加周期Hann窗后计算。带宽、隔离度、功率刻度和INL/DNL不使用这条抽样规则。
 
-当前MATLAB的 `9245_hy/private/ad9245Config.m` 仍设置 `ilaCaptureSampleRateHz=25e6`，SFDR、带宽、隔离度、功率刻度和INL/DNL的 `config.sampleRate` 均取这个值。`adcConversionClockHz=20e6` 表示ADC转换时钟，不能代替旧CSV的ILA时基。本次只修正文档，脚本默认值未改，也未核验后续FPGA时钟修改是否已完成。
+当前 `9245_hy/private/ad9245Config.m` 设置 `ilaCaptureSampleRateHz=25e6`。SFDR配置另记录步长5、分析采样率5 MHz和“旧25 MHz ILA数据抽样估算”；输出保留源/分析样点数与两种采样率。20 MHz同步新数据必须使用步长1和20 MHz分析采样率。
 
 处理新数据前，按实际采集设置调整分析参数，不能仅凭日期或文件名认定采样率。下表仅适用于AD9245 ILA分析，不是其他器件的通用配置。参数设置方式见 `9245_hy/README_先看.md`。
 
 | 项目 | ILA采样率（按实际数据选择） | 当前其他默认条件 | 输出 |
 |---|---:|---|---|
-| SFDR | 旧数据25 MHz；后续20 MHz数据用20 MHz | 128k FFT；DC 16 点；基波 16 点；谐波 8 点；最高 8 次 | SFDR、SNR、SINAD、THD、ENOB、Code P-P |
+| SFDR | 旧25 MHz ILA每5点保留1点后按5 MHz分析；同步20 MHz数据不抽样 | 周期Hann窗；NFFT上限128k；DC 16点；基波16点；谐波8点；最高8次 | SFDR、SNR、SINAD、THD、ENOB、Code P-P；旧数据标记为抽样估算，频谱上限2.5 MHz |
 | 带宽 | 旧数据25 MHz；后续20 MHz数据用20 MHz | 拟合 R²≥0.99；最低频连续 3 点为参考；对数频率域插值 | 相对幅度与 −3 dB 带宽 |
 | 隔离度 | 旧数据25 MHz；后续20 MHz数据用20 MHz | 10 kHz；驱动通道 X3G；最低隔离 40 dB | 各通道幅度与隔离度 |
 | 功率标定 | 旧数据25 MHz；后续20 MHz数据用20 MHz | 1 kHz；−10 至 6 dBm；削顶筛选阈值98%且近轨占比上限1%；临界输入目标为正/负轨先达到99%满量程 | 功率—码幅关系、削顶和平台判定、99%临界输入夹逼拟合或范围外外推状态 |

@@ -14,6 +14,8 @@
 
 三个 ADC 功率刻度入口共同通过 `converter.adc.estimateCriticalInput` 估计正、负轨首先达到99%数字满量程时的输入。该函数只使用刻度计算中已选入的 `CalibrationIncluded` 点；报告层只显示其结果，不重新拟合。
 
+AD9245 SFDR对旧25 MHz ILA记录采用器件配置驱动的固定步长抽样，每5点保留1点，按5 MHz序列执行现有周期Hann FFT。抽样仅在9245 SFDR配置启用；公共内核校验分析采样率等于源采样率除以步长，并在结果表记录抽样模式和用途。20 MHz同步采集使用步长1。
+
 ## 源码与交付包
 
 源码运行时，`private/bootstrapRuntime.m` 优先加载器件包内的 `internal/+converter`，否则加载相邻的 `_shared`。构建后，公共内核被复制到交付包的 `internal/+converter`，因此交付包离开仓库仍能运行。`_release` 是生成物，不进入 Git。

@@ -29,7 +29,17 @@ config.sampleRateSource = 'AD9245 ILA capture clock clk_25m_cp';
 
 switch config.analysisId
     case 'sfdr'
+        config.version = '1.2.0';
         config.sampleRate = ilaCaptureSampleRateHz;
+        % Legacy 25 MHz ILA captures observe the 20 MHz ADC register with
+        % held codes. Keep one fixed-phase ILA row out of every five. The
+        % resulting sequence advances by four ADC conversions per point
+        % and is uniformly interpreted at 5 MHz.
+        config.sfdrSampleStride = 5;
+        config.sfdrAnalysisSampleRateHz = ...
+            ilaCaptureSampleRateHz / config.sfdrSampleStride;
+        config.sfdrSamplingMode = 'legacy_25mhz_ila_keep_one_of_five';
+        config.sfdrResultUse = '旧25 MHz ILA数据抽样估算';
         config.nfft = 128 * 1024;
         config.dcSpan = 16;
         config.signalSpan = 16;
