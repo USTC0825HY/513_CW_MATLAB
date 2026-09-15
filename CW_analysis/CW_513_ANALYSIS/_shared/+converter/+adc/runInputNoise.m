@@ -27,7 +27,7 @@ config.inputChannels = cellstr(channels);
 runContext = converter.runtime.createRun(config, dataFolder, files, outputFolder);
 try
     writeAnalysisParameters(runContext.folder, config);
-    writeCalibrationProvenance(runContext.folder, calibration);
+    writeCalibrationProvenance(runContext.folder, calibration, config.referencePlane);
     writeExcludedInputNote(runContext.folder);
 
     summary = table();
@@ -38,12 +38,13 @@ try
         summary = [summary; one.summary]; %#ok<AGROW>
     end
 
+    deviceStem = safeStem(config.deviceId);
     converter.report.writeTable(summary, fullfile(runContext.folder, ...
-        'AD2208_input_noise_summary.csv'));
-    writeFullRecordAsdSummary(runContext.folder, summary);
+        [deviceStem '_input_noise_summary.csv']));
+    writeFullRecordAsdSummary(runContext.folder, summary, deviceStem);
     writeReadme(runContext.folder, config, files);
     converter.runtime.finishRun(runContext, true, ...
-        'AD2208 direct ILA input-equivalent noise completed');
+        sprintf('%s direct ILA input-equivalent noise completed', config.deviceId));
     results = struct('runFolder', runContext.folder, 'summary', summary, ...
         'status', 'success');
 catch analysisError
@@ -81,6 +82,7 @@ end
 codeNoise = signedCode - mean(signedCode);
 inputNoiseV = codeNoise * cal.slopeVPerCode;
 n = numel(inputNoiseV);
+validStats = readValidStatistics(filePath, config, n);
 if config.welchSegmentCount == 1 && n ~= config.welchNfft
     error('converter:adc:FixedNoiseRecordLength', ...
         ['固定整段噪声设置要求 %d 个有效点，实际 %d 点。' ...
@@ -101,7 +103,8 @@ band = config.noiseBandHz;
 bandMask = frequencyHz >= band(1) & frequencyHz <= band(2);
 spurMask = fullFrequency >= band(1) & fullFrequency <= band(2);
 if ~any(bandMask) || ~any(spurMask)
-    error('converter:adc:BandUnavailable', '%s 没有覆盖 10～25 MHz。', filePath);
+    error('converter:adc:BandUnavailable', ...
+        '%s 没有覆盖配置频带 %.12g～%.12g Hz。', filePath, band(1), band(2));
 end
 
 bandAsd = asdNvPerSqrtHz(bandMask);
@@ -112,11 +115,19 @@ spurFreqs = fullFrequency(spurMask);
 bandMedian = median(bandAsd);
 bandMean = mean(bandAsd);
 bandP95 = prctile(bandAsd, 95);
-belowPct = mean(bandAsd <= config.noiseLimitNvPerSqrtHz) * 100;
+limitDefined = isfinite(config.noiseLimitNvPerSqrtHz) && ...
+    config.noiseLimitNvPerSqrtHz > 0;
+if limitDefined
+    belowPct = mean(bandAsd <= config.noiseLimitNvPerSqrtHz) * 100;
+else
+    belowPct = NaN;
+end
 
 % Use a conservative band rule: the floor's 95th percentile and the
 % independent full-record spur screen must both meet the limit.
-if bandP95 <= config.noiseLimitNvPerSqrtHz && spurMax <= config.noiseLimitNvPerSqrtHz
+if ~localFormalEnabled(config) || ~limitDefined
+    formalStatus = '暂不能判定';
+elseif bandP95 <= config.noiseLimitNvPerSqrtHz && spurMax <= config.noiseLimitNvPerSqrtHz
     formalStatus = '满足';
 elseif bandP95 > config.noiseLimitNvPerSqrtHz || spurMax > config.noiseLimitNvPerSqrtHz
     formalStatus = '不满足';
@@ -141,8 +152,9 @@ fullRecordPlotConfig.annotationText = sprintf('Full-record periodogram, delta f 
     fullRecordResolutionHz);
 fullRecordPlotConfig.checkFrequencyHz = spurFreqs(spurIndex);
 fullRecordPlotConfig.checkValue = spurMax;
-fullRecordPlotConfig.checkValueLabel = sprintf('10-25 MHz maximum: %.2f nV/sqrtHz @ %.6f MHz', ...
-    spurMax, spurFreqs(spurIndex) / 1e6);
+fullRecordPlotConfig.checkValueLabel = sprintf( ...
+    'Configured-band maximum: %.2f nV/sqrtHz @ %.6g Hz', ...
+    spurMax, spurFreqs(spurIndex));
 converter.report.plotSpectrum(fullFrequency, fullAsd, ...
     fullfile(runFolder, [safeName '_input_equiv_ASD_full_record']), fullRecordPlotConfig);
 plotConfig = localPlotConfig(channel, config, false);
@@ -153,6 +165,8 @@ plotCodePreview(signedCode, inputNoiseV, channel, config, ...
 
 durationS = n / config.sampleRate;
 summary = table({channel}, {filePath}, {sourceSha256}, n, config.sampleRate, durationS, ...
+    validStats.validPulseCount, validStats.effectiveUpdateRateHz, ...
+    validStats.includesHeldSamples, ...
     config.sampleRate / 2, windowLength, overlapSamples, config.welchNfft, ...
     config.sampleRate / config.welchNfft, fullRecordResolutionHz, ...
     cal.slopeVPerCode, cal.interceptV, cal.fitR2, band(1), band(2), ...
@@ -160,7 +174,8 @@ summary = table({channel}, {filePath}, {sourceSha256}, n, config.sampleRate, dur
     belowPct, spurMax, spurFreqs(spurIndex), config.noiseLimitNvPerSqrtHz, ...
     {formalStatus}, {statusNote(config)}, ...
     'VariableNames', {'Channel', 'InputFile', 'SourceSHA256', 'SampleCount', 'SampleRateHz', ...
-    'DurationS', 'NyquistHz', 'WelchWindowLength', 'WelchOverlapSamples', ...
+    'DurationS', 'ValidPulseCount', 'EffectiveUpdateRateHz', ...
+    'IncludesHeldSamples', 'NyquistHz', 'WelchWindowLength', 'WelchOverlapSamples', ...
     'WelchNfft', 'WelchResolutionHz', 'FullRecordResolutionHz', ...
     'CalibrationSlopeVPerCode', 'CalibrationInterceptV', 'CalibrationFitR2', ...
     'BandStartHz', 'BandEndHz', 'BandBinCount', 'BandAsdMedianNvPerSqrtHz', ...
@@ -172,20 +187,48 @@ summary = table({channel}, {filePath}, {sourceSha256}, n, config.sampleRate, dur
 result.summary = summary;
 end
 
-function writeFullRecordAsdSummary(runFolder, summary)
+function writeFullRecordAsdSummary(runFolder, summary, deviceStem)
 % Write the narrow-spur screening results separately so they cannot be
 % confused with the lower-resolution Welch noise-floor statistics.
 columns = {'Channel', 'FullRecordResolutionHz', 'BandStartHz', 'BandEndHz', ...
     'FullRecordSpurMaxNvPerSqrtHz', 'FullRecordSpurMaxFrequencyHz', ...
     'AsdLimitNvPerSqrtHz', 'FormalStatus'};
 converter.report.writeTable(summary(:, columns), fullfile(runFolder, ...
-    'AD2208_full_record_ASD_summary.csv'));
+    [deviceStem '_full_record_ASD_summary.csv']));
 end
 
 function textValue = statusNote(config)
-textValue = sprintf(['10~25 MHz: 95th percentile and full-record spur screen; ' ...
-    'reference plane=%s; termination=%s'], config.referencePlane, ...
-    config.inputTermination);
+textValue = sprintf(['%.12g~%.12g Hz: 95th percentile and full-record spur screen; ' ...
+    'reference plane=%s; termination=%s'], config.noiseBandHz(1), ...
+    config.noiseBandHz(2), config.referencePlane, config.inputTermination);
+end
+
+function enabled = localFormalEnabled(config)
+enabled = ~isfield(config, 'formalEnabled') || logical(config.formalEnabled);
+end
+
+function stats = readValidStatistics(filePath, config, sampleCount)
+stats = struct('validPulseCount', NaN, 'effectiveUpdateRateHz', NaN, ...
+    'includesHeldSamples', isfield(config, 'samplesIncludeHold') && ...
+        logical(config.samplesIncludeHold));
+if ~isfield(config, 'validDataColumn') || isempty(config.validDataColumn)
+    return;
+end
+numericData = readmatrix(filePath);
+column = config.validDataColumn;
+if column < 1 || column > size(numericData, 2)
+    error('converter:adc:ValidColumnOutOfRange', ...
+        'adc_data_vld 列 %d 超出CSV范围：%s', column, filePath);
+end
+valid = numericData(:, column);
+valid = valid(isfinite(valid));
+if isempty(valid)
+    error('converter:adc:NoValidColumnData', ...
+        'adc_data_vld 列没有有限数值：%s', filePath);
+end
+stats.validPulseCount = nnz(valid ~= 0);
+stats.effectiveUpdateRateHz = stats.validPulseCount / ...
+    (sampleCount / config.sampleRate);
 end
 
 function plotConfig = localPlotConfig(channel, config, isAsd)
@@ -203,8 +246,8 @@ plotConfig.yLabel = ternary(isAsd, ...
 plotConfig.lineLabel = ternary(isAsd, 'ASD', 'PSD');
 plotConfig.limitValue = ternary(isAsd, config.noiseLimitNvPerSqrtHz, ...
     (config.noiseLimitNvPerSqrtHz * 1e-9)^2);
-% The red indicator line is intentionally drawn across the full plotted
-% frequency axis. The formal 10-25 MHz scope is shown only by black guides.
+% Draw any configured indicator across the full plotted frequency axis;
+% the analysis band itself is shown by the focus guides.
 plotConfig.limitX = [];
 plotConfig.focusBandHz = config.noiseBandHz;
 % Do not print the threshold value in the figure. The requirement remains
@@ -257,32 +300,40 @@ fprintf(fileId, 'sample_rate_hz,%.12g\n', config.sampleRate);
 fprintf(fileId, 'adc_bits,%d\n', config.adcBits);
 fprintf(fileId, 'adc_data_column,%d\n', config.adcDataColumn);
 fprintf(fileId, 'adc_code_format,%s\n', config.adcCodeFormat);
-fprintf(fileId, 'sample_count,131072\n');
-fprintf(fileId, 'duration_s,0.00131072\n');
-fprintf(fileId, 'nyquist_hz,50000000\n');
+fprintf(fileId, 'fixed_sample_count,%d\n', config.welchNfft);
+fprintf(fileId, 'fixed_duration_s,%.12g\n', config.welchNfft / config.sampleRate);
+fprintf(fileId, 'nyquist_hz,%.12g\n', config.sampleRate / 2);
 fprintf(fileId, 'welch_window,Hann/hanning\n');
 fprintf(fileId, 'welch_segment_count,%d\n', config.welchSegmentCount);
 fprintf(fileId, 'welch_overlap_ratio,%.12g\n', config.welchOverlapRatio);
 fprintf(fileId, 'welch_nfft,%d\n', config.welchNfft);
 fprintf(fileId, 'welch_resolution_hz,%.12g\n', config.sampleRate / config.welchNfft);
-fprintf(fileId, 'full_record_resolution_hz,%.12g\n', config.sampleRate / 131072);
-fprintf(fileId, 'formal_band_hz,[1e7 2.5e7]\n');
+fprintf(fileId, 'full_record_resolution_hz,%.12g\n', config.sampleRate / config.welchNfft);
+fprintf(fileId, 'analysis_band_hz,[%.12g %.12g]\n', ...
+    config.noiseBandHz(1), config.noiseBandHz(2));
 fprintf(fileId, 'asd_limit_nv_per_sqrt_hz,%.12g\n', config.noiseLimitNvPerSqrtHz);
 fprintf(fileId, 'input_termination,%s\n', config.inputTermination);
 fprintf(fileId, 'reference_plane,%s\n', config.referencePlane);
 fprintf(fileId, 'formal_condition_source,%s\n', config.formalConditionSource);
-fprintf(fileId, 'calibration_source,%s\n', config.calibrationSource);
+if isfield(config, 'calibrationSource')
+    fprintf(fileId, 'calibration_source,%s\n', config.calibrationSource);
+elseif isfield(config, 'noiseCalibrationSource')
+    fprintf(fileId, 'calibration_source,%s\n', config.noiseCalibrationSource);
+end
+if isfield(config, 'samplesIncludeHold')
+    fprintf(fileId, 'includes_held_samples,%d\n', logical(config.samplesIncludeHold));
+end
 fprintf(fileId, 'plot_style,da9726_legacy_visual_adapter\n');
 fprintf(fileId, 'plot_style_reference,shared MATLAB renderer; visual adapter only\n');
 end
 
-function writeCalibrationProvenance(runFolder, calibration)
+function writeCalibrationProvenance(runFolder, calibration, referencePlane)
 channels = {calibration.channel}.';
 slope = [calibration.slopeVPerCode].';
 intercept = [calibration.interceptV].';
 fitR2 = [calibration.fitR2].';
 freq = [calibration.calibrationFrequencyHz].';
-reference = repmat({'AD2208 external board input'}, numel(calibration), 1);
+reference = repmat({referencePlane}, numel(calibration), 1);
 t = table(channels, freq, slope, intercept, fitR2, reference, ...
     'VariableNames', {'Channel', 'CalibrationFrequencyHz', ...
     'SlopeVPerCode', 'InterceptV', 'FitR2', 'ReferencePlane'});
@@ -305,7 +356,7 @@ function writeReadme(runFolder, config, files)
 fileId = fopen(fullfile(runFolder, 'README.md'), 'w');
 if fileId < 0, error('converter:runtime:CannotWriteReadme', '无法写入结果说明。'); end
 cleanupObject = onCleanup(@() fclose(fileId)); %#ok<NASGU>
-fprintf(fileId, '# AD2208 direct ILA input-equivalent noise\n\n');
+fprintf(fileId, '# %s direct ILA input-equivalent noise\n\n', config.deviceId);
 fprintf(fileId, 'Processed files:\n');
 for k = 1:numel(files), fprintf(fileId, '- `%s`\n', files{k}); end
 fprintf(fileId, '\nReference plane: %s\n', config.referencePlane);
@@ -318,11 +369,22 @@ if config.welchSegmentCount == 1
         config.sampleRate/config.welchNfft);
 end
 fprintf(fileId, 'Termination: %s\n', config.inputTermination);
-fprintf(fileId, 'Formal band: 10-25 MHz; ASD limit: <=300 nV/sqrtHz.\n');
+fprintf(fileId, 'Analysis band: %.12g-%.12g Hz.\n', ...
+    config.noiseBandHz(1), config.noiseBandHz(2));
+if isfinite(config.noiseLimitNvPerSqrtHz)
+    fprintf(fileId, 'ASD limit: <=%.12g nV/sqrtHz.\n', config.noiseLimitNvPerSqrtHz);
+else
+    fprintf(fileId, 'No approved ASD limit is configured; status remains uncertain.\n');
+end
+if isfield(config, 'samplesIncludeHold') && config.samplesIncludeHold
+    fprintf(fileId, ['All ILA rows are analyzed at the capture clock, including held codes; ' ...
+        'adc_data_vld is reported only as update-rate evidence.\n']);
+end
 fprintf(fileId, ['Each channel exports a Welch ASD figure (*_input_equiv_ASD.png; ' ...
     'noise-floor view) and a full-record periodogram ASD figure ' ...
     '(*_input_equiv_ASD_full_record.png; narrow-spur view).\n']);
-fprintf(fileId, ['AD2208_full_record_ASD_summary.csv records the full-record ' ...
-    '10-25 MHz maximum and its frequency; do not substitute it for the Welch floor.\n']);
+fprintf(fileId, ['%s_full_record_ASD_summary.csv records the configured-band ' ...
+    'maximum and its frequency; do not substitute it for the Welch floor.\n'], ...
+    safeStem(config.deviceId));
 fprintf(fileId, 'Plot style: da9726_legacy_visual_adapter in the current shared MATLAB renderer; this is visual compatibility only, not the legacy numerical algorithm.\n');
 end

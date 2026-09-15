@@ -28,7 +28,9 @@ classdef fileSelectionTest < matlab.unittest.TestCase
             'device_766_hy_dac_noise_analysis', struct('folder','766_hy','name','dac_noise_analysis'), ...
             'device_766_hy_dac_isolation_analysis', struct('folder','766_hy','name','dac_isolation_analysis'), ...
             'device_677_hy_adc_bandwidth_analysis', struct('folder','677_hy','name','adc_bandwidth_analysis'), ...
-            'device_677_hy_adc_power_scale_analysis', struct('folder','677_hy','name','adc_power_scale_analysis'))
+            'device_677_hy_adc_power_scale_analysis', struct('folder','677_hy','name','adc_power_scale_analysis'), ...
+            'device_677_hy_adc_ila_noise_analysis', struct('folder','677_hy','name','adc_ila_noise_analysis'), ...
+            'device_677_hy_adc_pico_noise_1hz_analysis', struct('folder','677_hy','name','adc_pico_noise_1hz_analysis'))
         dacFolder = {'9726_hy','766_hy'}
     end
     methods (TestMethodSetup)
@@ -225,8 +227,13 @@ classdef fileSelectionTest < matlab.unittest.TestCase
                     call = @() adc_input_noise_analysis(t.Raw,out, ...
                         struct('selectedFiles',{{'absent.mat'}},'interfaces',{{'X1G'}}));
                 case 'adc_pico_noise_1hz_analysis'
-                    call = @() adc_pico_noise_1hz_analysis(t.Raw,'absent.mat',out,struct('interface','ADC6_JG24'));
-                    id = 'ad2208:PicoCaptureMissing';
+                    if strcmp(entry.folder, '677_hy')
+                        call = @() adc_pico_noise_1hz_analysis(t.Raw,'absent.mat',out,struct('interface','677_1'));
+                        id = 'ad677:PicoCaptureMissing';
+                    else
+                        call = @() adc_pico_noise_1hz_analysis(t.Raw,'absent.mat',out,struct('interface','ADC6_JG24'));
+                        id = 'ad2208:PicoCaptureMissing';
+                    end
                 case 'dac_isolation_analysis'
                     pair = fileSelectionTest.pair(t.Raw); pair.driven_file = 'absent.mat';
                     call = @() dac_isolation_analysis(t.Raw,pair,out);

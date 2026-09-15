@@ -28,7 +28,7 @@ for k = 1:numel(runConfig.entries)
     row.baseline_mode = string(runConfig.baselineMode);
     row.fpga_gain = runConfig.fpgaGain;
     row.reference_plane = string(runConfig.referencePlane);
-    row.calibration_workbook = string(runConfig.calibrationWorkbook);
+    row.calibration_workbook = string(calibration.workbookPath);
     row.dac_calibration_source = string(calibration.dacSummaryPath);
     row.k_dac_v_per_code = calibration.kDac;
     row.dac_intercept_v = calibration.dacIntercept;
@@ -92,8 +92,13 @@ for k = 1:numel(runConfig.entries)
         row.segment_asd_max_n_v_per_sqrt_hz = max(segmentAsd, [], 'omitnan');
         row.segment_asd_cv = std(segmentAsd, 'omitnan') / ...
             mean(segmentAsd, 'omitnan');
-        row.formal_state = "未测试";
-        row.note = "按校准斜率折算；未扣除 PICO/DAC 本底。";
+        if isfield(runConfig, 'formalEnabled') && ~runConfig.formalEnabled
+            row.formal_state = "暂不能判定";
+            row.note = "按固定斜率折算；未配置正式限值，且未扣除 PICO/DAC 本底。";
+        else
+            row.formal_state = "未测试";
+            row.note = "按校准斜率折算；未扣除 PICO/DAC 本底。";
+        end
 
         safeStem = regexprep(sprintf('%s_%s', char(entry.device), ...
             char(entry.interface)), '[^A-Za-z0-9_-]', '_');
@@ -123,9 +128,10 @@ for k = 1:numel(runConfig.entries)
         plotConfig.xLim = [0.1, max(frequencyHz(2:end))];
         plotConfig.yLabel = 'ADC input-equivalent ASD (µV/√Hz)';
         plotConfig.lineLabel = 'ASD';
-        plotConfig.limitValue = 10;
-        plotConfig.limitLabel = '10 µV/√Hz';
-        plotConfig.showLimitLabel = true;
+        plotLimit = localPlotLimit(runConfig);
+        plotConfig.limitValue = plotLimit;
+        plotConfig.limitLabel = '';
+        plotConfig.showLimitLabel = false;
         plotConfig.showLegend = false;
         plotConfig.checkFrequencyHz = actualHz;
         plotConfig.checkValue = asdInput_nV(idx) / 1e3;
@@ -143,8 +149,9 @@ for k = 1:numel(runConfig.entries)
             entry.device, entry.interface);
         plotConfig.yLabel = 'ADC input-equivalent PSD (V^2/Hz)';
         plotConfig.lineLabel = '输入等效 PSD';
-        plotConfig.limitValue = (10000e-9)^2;
-        plotConfig.limitLabel = '1 Hz ASD 限值对应 PSD';
+        plotLimit = localPlotLimit(runConfig);
+        plotConfig.limitValue = (plotLimit * 1e-6)^2;
+        plotConfig.limitLabel = '';
         plotConfig.checkFrequencyHz = actualHz;
         plotConfig.checkValue = psdInput(idx);
         plotConfig.checkLabel = '实测 1 Hz';
@@ -220,7 +227,14 @@ end
 end
 
 function calibration = localLoadCalibration(cfg)
-[adcRows, sourceType] = converter.calibration.loadAdcCalibration(cfg.calibrationWorkbook);
+if isfield(cfg, 'adcCalibrationRows') && ~isempty(cfg.adcCalibrationRows)
+    adcRows = cfg.adcCalibrationRows;
+    sourceType = 'device_configuration';
+    adcSource = char(string(cfg.adcCalibrationSource));
+else
+    [adcRows, sourceType] = converter.calibration.loadAdcCalibration(cfg.calibrationWorkbook);
+    adcSource = cfg.calibrationWorkbook;
+end
 if isfield(cfg, 'kDacVPerCodePp') && ~isempty(cfg.kDacVPerCodePp)
     % A task-specific entry may intentionally pin k_DAC when the requested
     % analysis must use a supplied value instead of locating a CSV summary.
@@ -260,8 +274,8 @@ else
     dacR2 = double(dacTable.fit_r_squared(1));
 end
 calibration = struct('adcRows', adcRows, 'sourceType', sourceType, ...
-    'workbookPath', cfg.calibrationWorkbook, ...
-    'workbookSha256', converter.runtime.sha256File(cfg.calibrationWorkbook), ...
+    'workbookPath', adcSource, ...
+    'workbookSha256', localSourceSha256(adcSource), ...
     'dacSummaryPath', dacSource, ...
     'dacSummarySha256', dacSourceSha256, ...
     'kDac', kDac, ...
@@ -269,12 +283,26 @@ calibration = struct('adcRows', adcRows, 'sourceType', sourceType, ...
     'dacR2', dacR2);
 end
 
+function sha256 = localSourceSha256(sourcePath)
+sha256 = '';
+if isfile(sourcePath)
+    sha256 = converter.runtime.sha256File(sourcePath);
+end
+end
+
+function value = localPlotLimit(cfg)
+value = 10;
+if isfield(cfg, 'plotLimitUvPerSqrtHz')
+    value = cfg.plotLimitUvPerSqrtHz;
+end
+end
+
 function row = localFindAdcCalibration(rows, device, interfaceName)
 mask = strcmp({rows.device}, device) & strcmp({rows.interface}, interfaceName);
 matches = rows(mask);
 if numel(matches) ~= 1
     error('cw513:AdcCalibrationAmbiguous', ...
-        '刻度工作簿中 %s/%s 匹配到 %d 行。', device, interfaceName, numel(matches));
+        'ADC刻度源中 %s/%s 匹配到 %d 行。', device, interfaceName, numel(matches));
 end
 row = matches(1);
 end
@@ -354,8 +382,8 @@ row = struct('device', "", 'interface', "", 'input_file', "", ...
     'band', "", 'analysis_band', "");
 end
 
-function manifest = localManifestSeed(cfg, calibration)
-manifest = localManifestRow(cfg.calibrationWorkbook, ...
+function manifest = localManifestSeed(~, calibration)
+manifest = localManifestRow(calibration.workbookPath, ...
     string(calibration.sourceType), calibration.workbookSha256);
 if strlength(string(calibration.dacSummarySha256)) > 0
     manifest(end + 1) = localManifestRow(calibration.dacSummaryPath, ...
@@ -382,7 +410,7 @@ value = [string(cfg.analysisId); string(cfg.version); ...
     "S_in=S_PICO*(k_ADC/(abs(G_FPGA)*k_DAC))^2"; string(cfg.baselineMode); ...
     string(cfg.fpgaGain); string(cfg.referencePlane); string(cfg.asdCheckHz); ...
     string(cfg.welch.targetResolutionHz); string(cfg.welch.overlapRatio); ...
-    string(cfg.calibrationWorkbook); string(calibration.workbookSha256); ...
+    string(calibration.workbookPath); string(calibration.workbookSha256); ...
     string(calibration.dacSummaryPath); string(calibration.dacSummarySha256); ...
     string(calibration.kDac); string(calibration.dacIntercept); ...
     string(calibration.dacR2)];
@@ -399,7 +427,7 @@ fprintf(fileId, '- 本次明确不扣除 PICO/DAC 本底；结果是总测量链
 fprintf(fileId, '- Welch：Hann 窗、50%% 重叠、目标分辨率约 %.6g Hz、去均值。\n', ...
     cfg.welch.targetResolutionHz);
 fprintf(fileId, '- AD 斜率/R² 来自 `%s`；DA JG18 斜率 %.12g Vpp/CodePp，R² %.12g，来源 `%s`。\n', ...
-    cfg.calibrationWorkbook, calibration.kDac, calibration.dacR2, calibration.dacSummaryPath);
+    calibration.workbookPath, calibration.kDac, calibration.dacR2, calibration.dacSummaryPath);
 fprintf(fileId, '\n## 数据完整性\n\n');
 for k = 1:height(summary)
     fprintf(fileId, '- %s/%s：%s。%s\n', summary.device(k), ...
@@ -418,7 +446,7 @@ fprintf(fileId, 'BaselineMode: %s\n', cfg.baselineMode);
 fclose(fileId);
 fileId = fopen(fullfile(folder, 'STATUS_SUCCESS.txt'), 'w');
 fprintf(fileId, 'CompletedAt: %s\nSuccessful captures: %d/%d\n', ...
-    datestr(now, 31), sum(summary.formal_state ~= "暂不能判定"), height(summary));
+    datestr(now, 31), sum(strlength(summary.spectrum_file) > 0), height(summary));
 fclose(fileId);
 end
 

@@ -3,8 +3,10 @@ function config = ad677Config(analysisId)
 
 config = struct();
 config.deviceId = 'AD677';
-config.reportCalibration = converter.calibration.reportCalibration('AD677');
 config.analysisId = lower(char(analysisId));
+if ~strcmp(config.analysisId, 'input_noise')
+    config.reportCalibration = converter.calibration.reportCalibration('AD677');
+end
 config.version = '0.1.0';
 config.releaseReady = true;
 config.formalEnabled = false;
@@ -64,8 +66,50 @@ switch config.analysisId
         config.powerSetpointSource = ...
             'run_manifest amplitude/source readback, validated against filename Vpp';
         config.scaleRequirement = 'not supplied';
+    case 'input_noise'
+        config.version = '0.3.0';
+        config.referencePlane = ...
+            'AD677 external board input; physical board/ADC-pin plane unverified';
+        config.sampleRate = 100e6;
+        config.noiseBandHz = [1, 10e3];
+        config.noiseLimitNvPerSqrtHz = NaN;
+        config.welchSegmentCount = 1;
+        config.welchOverlapRatio = 0;
+        config.welchNfft = 131072;
+        config.samplesIncludeHold = true;
+        config.inputTermination = 'not confirmed';
+        config.formalConditionSource = 'No approved AD677 noise limit supplied';
+        config.noiseCalibration = localNoiseCalibration();
+        config.noiseCalibrationSource = ...
+            'Fixed in 677_hy/private/ad677Config.m; noise uses slope only';
+        config.picoFpgaGain = 128;
+        config.picoAsdCheckHz = 1;
+        config.picoWelch = struct('targetResolutionHz', 0.2, ...
+            'overlapRatio', 0.5, 'windowType', 'hann');
+        config.picoDacCalibration = struct( ...
+            'device', 'DA9726', 'channel', 'DAC1_JG18', ...
+            'slopeVPerCode', 1.01451391294771e-4, ...
+            'unit', 'V/code', 'configurationStatus', 'fixed', ...
+            'source', ['Fixed DA9726 JG18 calibration; ' ...
+                'no DAC result CSV lookup']);
     otherwise
         error('ad677:UnknownAnalysis', ...
             '不支持的 AD677 分析类型：%s。', analysisId);
 end
+end
+
+function rows = localNoiseCalibration()
+% Noise conversion removes the mean, so amplitude-fit intercepts are unused.
+template = struct('device', 'AD677', 'channel', '', ...
+    'slopeVPerCode', NaN, 'interceptV', NaN, 'fitR2', NaN, ...
+    'calibrationFrequencyHz', NaN, 'pointCount', NaN, ...
+    'unit', 'V/code', 'configurationStatus', 'fixed', ...
+    'sourceDocument', 'User-fixed AD677 noise calibration', ...
+    'sourceSection', '677_hy/private/ad677Config.m', ...
+    'definition', 'InputNoiseV=(Code-mean(Code))*slopeVPerCode');
+rows = repmat(template, 2, 1);
+rows(1).channel = '677_1';
+rows(1).slopeVPerCode = 1.536050e-4;
+rows(2).channel = '677_2';
+rows(2).slopeVPerCode = 1.695154e-4;
 end

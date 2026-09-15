@@ -41,13 +41,13 @@ dataRoot = 'F:/01_Laser/0_20260727_513test/CW_Data/513_CW_DATA';
 
 ## ILA采样率：旧数据25 MHz，后续数据20 MHz
 
-AD9245旧ILA数据为25 MHz（40 ns），后续计划改为20 MHz（50 ns）。只有实际用20 MHz采集的新数据才按20 MHz分析，旧数据仍用25 MHz，不要在同一次运行中混用两种时基的文件。
+AD9245旧ILA数据为25 MHz（40 ns），ADC转换时钟为20 MHz。SFDR对旧数据按固定相位每5个ILA点保留1个，形成5 MHz分析序列；现有周期Hann窗随后用于FFT。该结果标记为“旧25 MHz ILA数据抽样估算”，频谱覆盖到2.5 MHz。其他指标仍按各自配置处理，不要把SFDR抽样规则套到带宽、隔离度、刻度或INL/DNL。
 
-当前MATLAB的 `9245_hy/private/ad9245Config.m` 仍设置 `ilaCaptureSampleRateHz=25e6`，SFDR、带宽、隔离度、功率刻度和INL/DNL的 `config.sampleRate` 均取这个值。`adcConversionClockHz=20e6` 表示ADC转换时钟，不能代替旧CSV的ILA时基。本次只修正文档，脚本默认值未改，也未核验后续FPGA时钟修改是否已完成。
+当前MATLAB的 `9245_hy/private/ad9245Config.m` 设置 `ilaCaptureSampleRateHz=25e6`。SFDR另设 `sfdrSampleStride=5` 和 `sfdrAnalysisSampleRateHz=5e6`；输出同时记录源样点数、分析样点数、源采样率、抽样步长、分析采样率和结果用途。`adcConversionClockHz=20e6` 只记录ADC转换时钟。
 
-分析20 MHz新数据前，需同步设置 `sampleRate=20e6`、`ilaCaptureSampleRateHz=20e6`，并将 `ilaCaptureClock` 和 `sampleRateSource` 写为实际采集时钟及其来源，不能继续记录旧的 `clk_25m_cp`。
+分析20 MHz同步新数据时，必须同时设置 `sampleRate=20e6`、`ilaCaptureSampleRateHz=20e6`、`sfdrSampleStride=1`、`sfdrAnalysisSampleRateHz=20e6`，并更新 `sfdrSamplingMode`、`sfdrResultUse`、`ilaCaptureClock` 和 `sampleRateSource`。程序会拒绝“源采样率÷步长”与分析采样率不一致的配置。
 
-带宽、功率刻度和隔离度支持第四参数 `runOptions`，可通过 `configOverride` 覆盖上述字段。SFDR和INL/DNL没有第四参数，需在运行前调整 `private/ad9245Config.m`。换回旧数据时，恢复25 MHz和对应来源说明。修改配置后执行 `clear functions`，并检查输出的 `run_config.mat`。
+SFDR、带宽、功率刻度和隔离度支持第四参数 `runOptions`，可通过 `configOverride` 覆盖上述字段。INL/DNL没有第四参数。修改配置后执行 `clear functions`，并检查输出的 `run_config.mat`。
 
 PICO噪声入口读取MAT中的时基，与这里的ILA采样率无关。
 
@@ -58,7 +58,7 @@ PICO噪声入口读取MAT中的时基，与这里的ILA采样率无关。
 | 项目 | 当前关键设置 |
 |---|---|
 | CSV 采样时基、码型 | 当前默认及旧数据为ILA 25 MHz；实际改用20 MHz采集后的新数据用20 MHz。14 bit signed、自动数据列；ADC转换时钟单独配置为20 MHz |
-| SFDR | NFFT=131072；DC/基波跨度16、谐波跨度8、最高8次谐波 |
+| SFDR | 旧25 MHz ILA每5点保留1点，按5 MHz分析；周期Hann窗；NFFT上限131072；DC/基波跨度16、谐波跨度8、最高8次谐波；结果为旧数据估算 |
 | 带宽 | 正弦拟合R²≥0.99；最低频连续3个有效点作参考；频差容差2% |
 | 刻度 | 1 kHz，−10～+6 dBm；已确认50 Ω条件才按50 Ω换算 |
 | 隔离度 | 10 kHz，配置默认驱动 X3G；比较值40 dB |
@@ -92,7 +92,7 @@ r = adc_isolation_analysis(d, files, out, options);
 
 | 函数 | 参数顺序 | 本次可改参数 |
 |---|---|---|
-| `adc_sfdr_analysis` | `(d,files,out)` | 无第四参数；修改 private 中 sfdr 设置 |
+| `adc_sfdr_analysis` | `(d,files,out,runOptions)` | 默认旧25 MHz数据5抽1；20 MHz同步数据须同时覆盖采样率、步长和模式字段 |
 | `adc_bandwidth_analysis` | `(d,files,out,runOptions)` | 直接字段或 `configOverride` 子结构 |
 | `adc_power_scale_analysis` | `(d,files,out,runOptions)` | 同上；另支持 `powerSetpoints` |
 | `adc_isolation_analysis` | `(d,files,out,runOptions)` | 驱动通道、频率、参考面、inputChannels 等 |

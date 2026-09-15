@@ -10,9 +10,11 @@
                               `-> converter.runtime
 ```
 
-五个器件目录提供分析入口和器件参数，公共算法集中在 `_shared`。AD677 仅注册输入频率和输入功率入口。器件入口不得调用 `laser_analysis`、`01_workflows`或历史脚本。纯计算函数不得弹窗；报告层不得重新定义指标公式。
+五个器件目录提供分析入口和器件参数，公共算法集中在 `_shared`。AD677注册输入频率和输入功率入口，并提供ILA与PICO噪声入口。器件入口不得调用 `laser_analysis`、`01_workflows`或历史脚本。纯计算函数不得弹窗；报告层不得重新定义指标公式。
 
 三个 ADC 功率刻度入口共同通过 `converter.adc.estimateCriticalInput` 估计正、负轨首先达到99%数字满量程时的输入。该函数只使用刻度计算中已选入的 `CalibrationIncluded` 点；报告层只显示其结果，不重新拟合。
+
+AD9245 SFDR对旧25 MHz ILA记录采用器件配置驱动的固定步长抽样，每5点保留1点，按5 MHz序列执行现有周期Hann FFT。抽样仅在9245 SFDR配置启用；公共内核校验分析采样率等于源采样率除以步长，并在结果表记录抽样模式和用途。20 MHz同步采集使用步长1。
 
 ## 源码与交付包
 
@@ -44,6 +46,12 @@ MAT 的选择、接口校验和刻度来源设置，调用现有 `noise_chain_hy
 新入口返回时恢复调用前 MATLAB 路径，记录入口/内核哈希及刻度来源。
 AD2208 PICO入口的DA9726斜率固定为1.01451391294771e-4 V/CodePp；
 ADC刻度默认来自 `_shared/+converter/+calibration/reportCalibration.m`，显式指定工作簿时才读取外部文件；不查找或读取DA9726刻度CSV。
+
+`677_hy/adc_ila_noise_analysis.m` 复用 `converter.adc.runInputNoise`，但保留
+全部100 MHz ILA抓取点，valid列只统计脉冲数和有效更新率。AD677噪声斜率
+直接保存在 `private/ad677Config.m`，不读取公共报告刻度。`677_hy/adc_pico_noise_1hz_analysis.m`
+复用 `noise_chain_hy`，固定DA9726 JG18斜率和G=128；接口必须由用户选择或显式指定，
+采样率来自MAT时基。频率覆盖检查在建立结果目录之前完成。
 
 ## 文件选择与参数传递
 
