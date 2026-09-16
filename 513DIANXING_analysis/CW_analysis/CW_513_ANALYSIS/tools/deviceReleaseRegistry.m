@@ -31,7 +31,7 @@ switch deviceName
     case {'DA9726', 'AD9726', '9726_HY'}
         spec = pendingSpec('DA9726', '9726_hy', ...
             {'dac_scale_analysis.m', 'dac_noise_analysis.m', ...
-            'dac_isolation_analysis.m'});
+            'dac_isolation_analysis.m', 'split_dac_isolation_channels.m'});
     otherwise
         error('converter:build:UnknownDevice', '未知器件：%s。', deviceName);
 end

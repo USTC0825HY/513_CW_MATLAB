@@ -57,6 +57,8 @@ ADC刻度默认来自 `_shared/+converter/+calibration/reportCalibration.m`，�
 
 `converter.io.selectCsvFiles/selectMatFiles` 共用 `selectCaptureFiles`，只选择并验证本次文件；不建结果目录。`resolveInputPath` 使相对文件始终基于声明的数据目录，绝对路径可跨目录，避免当前目录同名文件混入。DAC入口通过 `prepareDacInputs` 解析文件/配置和默认结果根；`prepareDacIsolation` 单独处理配对关系，不把清单当作波形。
 
-取消选择时，在创建结果目录前返回，不调用createRun。传入完整文件、接口和配对信息时不显示对话框。ADC隔离度和ILA噪声使用采集表头或inputChannels确认通道，禁止文件名自动改写驱动条件或选择刻度。对话框只补充缺失的接口、驱动和参考条件，数值仍由公共内核计算。
+`9726_hy/split_dac_isolation_channels.m` 是DA9726多通道PICO隔离度预处理入口。它从父目录读取驱动接口和名义频率，严格按源文件名中的JG接口顺序映射实际A/B/C/D变量，输出统一变量A的单通道派生MAT及通道/配对清单。驱动路负责在名义频率附近精确找峰，受扰路统一使用该频率；原始MAT不修改。参考面和负载未填写或驱动拟合不足时，清单只能作为模板。
+
+取消选择时，在创建结果目录前返回，不调用createRun。传入完整文件、接口和配对信息时不显示对话框。DA9726隔离度的简化交互先单选驱动、再多选受扰；接口来自切分MAT元数据或文件名前缀，驱动频率由 `converter.dac.estimateToneFrequency` 统一搜索，未知阻抗/探头信息写入限制而不伪造。隔离度报告将长表 `isolation_db` 同步整理为驱动×受扰矩阵，输出 `dac_isolation_matrix_db.csv` 及按有限 dB 值自适应范围的矩阵热力图；40 dB参考阈值不再用于设置图轴范围。DA766继续使用原逐对条件输入。ADC隔离度和ILA噪声仍使用采集表头或inputChannels确认通道，禁止文件名自动改写驱动条件或选择刻度。
 
 2208隔离度第四参数按字段覆盖默认配置；9245使用runOptions。9245 PICO保留三参数签名，entries或selectedFiles/interfaces作为显式文件映射；一个接口一次一份，避免核心接口命名文件覆盖。2208 PICO仍单份MAT，固定DA9726系数保持不变。两类PICO入口返回时恢复原路径。

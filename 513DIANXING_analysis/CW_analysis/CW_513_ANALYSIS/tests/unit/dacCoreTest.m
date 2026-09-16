@@ -95,6 +95,135 @@ classdef dacCoreTest < matlab.unittest.TestCase
                 'STATUS_SUCCESS.txt')));
         end
 
+        function multichannelIsolationSplitIsTraceable(testCase)
+            rootFolder = [tempname '_cw513_dac_split']; mkdir(rootFolder);
+            testCase.addTeardown(@() rmdir(rootFolder, 's'));
+            dataFolder = fullfile(rootFolder, 'JG18-1K'); mkdir(dataFolder);
+            sampleRate = 20e3; sampleCount = 4096;
+            time = (0:sampleCount - 1)' / sampleRate;
+            actualFrequency = 1001.25;
+            A = single(1.2 * sin(2*pi*actualFrequency*time));
+            B = single(1e-2 * sin(2*pi*actualFrequency*time + 0.1));
+            C = single(5e-3 * sin(2*pi*actualFrequency*time + 0.2));
+            D = single(2e-3 * sin(2*pi*actualFrequency*time + 0.3));
+            Tinterval = 1 / sampleRate; Tstart = -0.01;
+            longName = 'JG18-JG20-JG21-JG23-capture.mat';
+            save(fullfile(dataFolder, longName), ...
+                'A', 'B', 'C', 'D', 'Tinterval', 'Tstart');
+            D = single(1e-3 * sin(2*pi*actualFrequency*time + 0.4));
+            shortName = 'JG25-capture.mat';
+            save(fullfile(dataFolder, shortName), 'D', 'Tinterval', 'Tstart');
+
+            options = struct('referencePlane', 'synthetic common 50 ohm plane');
+            splitResult = split_dac_isolation_channels(dataFolder, ...
+                {longName, shortName}, fullfile(rootFolder, 'split'), options);
+
+            testCase.verifyTrue(splitResult.analysisReady);
+            testCase.verifyEqual(height(splitResult.channelRows), 5);
+            testCase.verifyEqual(string(splitResult.channelRows.channel_label)', ...
+                ["JG18", "JG20", "JG21", "JG23", "JG25"]);
+            testCase.verifyEqual(splitResult.measuredFrequencyHz, ...
+                actualFrequency, 'AbsTol', 0.05);
+            testCase.verifyGreaterThan(splitResult.driveFit.rSquared, 0.999);
+            testCase.verifyEqual(height(splitResult.pairRows), 4);
+            testCase.verifyTrue(isfile(splitResult.pairManifestPath));
+
+            jg20Row = splitResult.channelRows( ...
+                strcmpi(string(splitResult.channelRows.channel_label), 'JG20'), :);
+            splitData = load(fullfile(splitResult.outputFolder, jg20Row.output_file));
+            sourceData = load(fullfile(dataFolder, longName), 'B', 'Tinterval');
+            testCase.verifyEqual(splitData.A, sourceData.B);
+            testCase.verifyEqual(splitData.Tinterval, sourceData.Tinterval);
+            testCase.verifyEqual(splitData.SourceVariable, 'B');
+
+            isolation = dac_isolation_analysis(splitResult.outputFolder, ...
+                splitResult.pairManifestPath, fullfile(rootFolder, 'results'), ...
+                struct('hardwareGain', 1));
+            testCase.verifyEqual(height(isolation.summary), 4);
+            testCase.verifyEqual(isolation.summary.frequency_hz, ...
+                repmat(splitResult.measuredFrequencyHz, 4, 1), 'AbsTol', 1e-9);
+            testCase.verifyGreaterThan(isolation.summary.driven_fit_r2, 0.999);
+            testCase.verifyTrue(isfile(fullfile(isolation.outputFolder, ...
+                'dac_isolation_matrix_db.csv')));
+            testCase.verifyEqual(size(isolation.isolationMatrix.valuesDb), [1, 4]);
+            testCase.verifyEqual(isolation.isolationMatrix.valuesDb, ...
+                isolation.summary.isolation_db', 'AbsTol', 1e-12);
+        end
+
+        function splitWithoutReferencePlaneCreatesTemplateOnly(testCase)
+            rootFolder = [tempname '_cw513_dac_split_template']; mkdir(rootFolder);
+            testCase.addTeardown(@() rmdir(rootFolder, 's'));
+            dataFolder = fullfile(rootFolder, 'JG18-1K'); mkdir(dataFolder);
+            sampleRate = 20e3; time = (0:2047)' / sampleRate;
+            A = sin(2*pi*1e3*time); B = 1e-3 * A; Tinterval = 1 / sampleRate;
+            fileName = 'JG18-JG20-capture.mat';
+            save(fullfile(dataFolder, fileName), 'A', 'B', 'Tinterval');
+
+            splitResult = split_dac_isolation_channels(dataFolder, {fileName}, ...
+                fullfile(rootFolder, 'split'), struct());
+            testCase.verifyFalse(splitResult.analysisReady);
+            testCase.verifyEmpty(splitResult.pairManifestPath);
+            testCase.verifyTrue(isfile(splitResult.pairManifestTemplatePath));
+            testCase.verifySubstring(splitResult.readinessNote, '参考面');
+            testCase.verifyError(@() dac_isolation_analysis( ...
+                splitResult.outputFolder, splitResult.pairManifestTemplatePath, ...
+                fullfile(rootFolder, 'results'), struct('hardwareGain', 1)), ...
+                'converter:dac:ReferenceRequired');
+        end
+
+        function ambiguousIsolationFilenameIsRejected(testCase)
+            rootFolder = [tempname '_cw513_dac_split_bad']; mkdir(rootFolder);
+            testCase.addTeardown(@() rmdir(rootFolder, 's'));
+            dataFolder = fullfile(rootFolder, 'JG18-1K'); mkdir(dataFolder);
+            A = (1:32)'; B = A; Tinterval = 1e-4;
+            fileName = 'JG18-capture.mat';
+            save(fullfile(dataFolder, fileName), 'A', 'B', 'Tinterval');
+            testCase.verifyError(@() split_dac_isolation_channels( ...
+                dataFolder, {fileName}, fullfile(rootFolder, 'split'), struct()), ...
+                'converter:dac:IsolationChannelMapAmbiguous');
+        end
+
+        function automaticIsolationSelectionFindsDrivenFile(testCase)
+            [dataFolder, files, actualFrequency] = ...
+                makeIsolationSingleChannelFiles(testCase, [1.2, 0.01, 0.004]);
+            config = makeSimpleIsolationConfig(dataFolder, files);
+            [prepared, cancelled] = converter.io.prepareDacIsolation( ...
+                config, dataFolder, [], fullfile(dataFolder, 'results'), ...
+                struct('autoDetectDrive', true), dataFolder);
+
+            testCase.verifyFalse(cancelled);
+            testCase.verifyEqual(numel(prepared.pairManifest), 2);
+            testCase.verifyEqual(string({prepared.pairManifest.driven_label}), ...
+                ["JG18", "JG18"]);
+            testCase.verifyEqual(string({prepared.pairManifest.victim_label}), ...
+                ["JG20", "JG21"]);
+            testCase.verifyEqual([prepared.pairManifest.frequency_hz], ...
+                repmat(actualFrequency, 1, 2), 'AbsTol', 0.05);
+            testCase.verifyGreaterThan( ...
+                prepared.isolationSelection.driveSeparationDb, 10);
+            testCase.verifyEqual(prepared.hardwareGain, 1);
+        end
+
+        function automaticIsolationSelectionRejectsLowConfidence(testCase)
+            [dataFolder, files] = makeIsolationSingleChannelFiles( ...
+                testCase, [1.0, 0.8]);
+            config = makeSimpleIsolationConfig(dataFolder, files);
+            testCase.verifyError(@() converter.io.prepareDacIsolation( ...
+                config, dataFolder, [], fullfile(dataFolder, 'results'), ...
+                struct('autoDetectDrive', true), dataFolder), ...
+                'converter:dac:IsolationDriveConfidence');
+        end
+
+        function sharedToneEstimatorRecoversActualFrequency(testCase)
+            sampleRate = 20e3; actualFrequency = 1001.25;
+            time = (0:4095)' / sampleRate;
+            voltage = 0.8 * sin(2*pi*actualFrequency*time + 0.2);
+            estimate = converter.dac.estimateToneFrequency(voltage, sampleRate);
+            testCase.verifyEqual(estimate.frequencyHz, actualFrequency, ...
+                'AbsTol', 0.05);
+            testCase.verifyGreaterThan(estimate.fit.rSquared, 0.999);
+        end
+
         function asdOnlySpectrumHasNoPsdColumn(testCase)
             folder = [tempname '_cw513_dac_noise']; mkdir(folder);
             cleanup = onCleanup(@() rmdir(folder, 's')); %#ok<NASGU>
@@ -118,6 +247,33 @@ classdef dacCoreTest < matlab.unittest.TestCase
             testCase.verifyFalse(~isempty(strfind(lower(header), 'psd'))); %#ok<STREMP>
         end
     end
+end
+
+function config = makeSimpleIsolationConfig(dataFolder, files)
+config = struct('dataFolder', dataFolder, 'outputFolder', '', ...
+    'inputFiles', {files}, 'hardwareGain', 1, 'minimumFitR2', 0.98, ...
+    'measurementCondition', ...
+    'PicoScope输入端直接测量；无外部放大；输入阻抗和探头倍率未记录', ...
+    'simpleIsolationSelection', true, 'autoDetectDrive', false, ...
+    'autoDriveMinimumSeparationDb', 10);
+end
+
+function [dataFolder, files, actualFrequency] = ...
+        makeIsolationSingleChannelFiles(testCase, amplitudes)
+rootFolder = [tempname '_cw513_dac_auto_isolation']; mkdir(rootFolder);
+testCase.addTeardown(@() rmdir(rootFolder, 's'));
+dataFolder = fullfile(rootFolder, 'JG18-1K'); mkdir(dataFolder);
+sampleRate = 20e3; actualFrequency = 1001.25;
+time = (0:4095)' / sampleRate;
+labels = {'JG18', 'JG20', 'JG21'};
+files = cell(1, numel(amplitudes));
+for k = 1:numel(amplitudes)
+    A = amplitudes(k) * sin(2*pi*actualFrequency*time + 0.1*k); %#ok<NASGU>
+    Tinterval = 1 / sampleRate; %#ok<NASGU>
+    ChannelLabel = labels{k}; %#ok<NASGU>
+    files{k} = [labels{k} '.mat'];
+    save(fullfile(dataFolder, files{k}), 'A', 'Tinterval', 'ChannelLabel');
+end
 end
 
 function [folder, files] = makeHexMetadataToneFiles(testCase, sampleRate)
