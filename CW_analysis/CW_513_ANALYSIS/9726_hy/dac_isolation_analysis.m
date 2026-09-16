@@ -1,7 +1,9 @@
 function result = dac_isolation_analysis(dataFolder, pairManifest, outputFolder, configOverride)
-%DAC_ISOLATION_ANALYSIS Select a reference/victim MAT pair with explicit conditions.
-%   Explicit struct/table/CSV pairs run without dialogs; each row declares
-%   driven/victim files, variables, labels, frequency and reference_plane.
+%DAC_ISOLATION_ANALYSIS Analyze one driven output against multiple victims.
+%   With no manifest, select one driven MAT and then all victim MAT files.
+%   Interface, waveform variable, tone frequency, and gain are automatic.
+%   Explicit struct/table/CSV pair manifests remain supported without UI.
+%   Use split_dac_isolation_channels first for a multi-channel Pico MAT.
 bootstrapRuntime();
 if nargin < 1, dataFolder = []; end
 if nargin < 2, pairManifest = []; end

@@ -1,6 +1,6 @@
 # DA9726 分析脚本使用说明
 
-更新：2026-09-09。
+更新：2026-09-16。
 
 在 MATLAB 编辑器中打开对应脚本并点击 Run，也可以在命令窗口输入函数名。不带参数运行时，按弹窗选择原始文件。程序只处理选中的文件；在文件、接口或测量条件对话框中取消，均不生成结果。
 
@@ -30,7 +30,8 @@ dataRoot = 'F:/01_Laser/0_20260727_513test/CW_Data/513_CW_DATA';
 |---|---|---|---|
 | 正弦输出电压与码幅刻度 | `dac_scale_analysis` | `DA9726/sin_scale/DAC1_JG18` 下 `CODE/COADE` 十六进制码值 MAT | 支持多选，当前目录的9个原始MAT可一起选择；至少两点有效才能拟合刻度 |
 | 输出噪声 | `dac_noise_analysis` | `DA9726/03_Noise` 下本次 MAT | 支持多选，逐文件计算 |
-| 通道隔离度 | `dac_isolation_analysis` | `DA9726/05_Isolation` 下同驱动条件的参考与受扰 MAT | 交互一次一对；显式配对清单可多行 |
+| 通道隔离度 | `dac_isolation_analysis` | `DA9726/05_Isolation` 下同驱动条件的参考与受扰 MAT | 先单选驱动，再一次多选全部受扰；显式配对清单仍可用 |
+| 隔离度多通道切分 | `split_dac_isolation_channels` | 文件名包含接口顺序的PICO MAT | 按A/B/C/D拆成单通道MAT，并生成配对模板 |
 
 例如运行 `dac_noise_analysis` 后选择两份噪声MAT，程序就只计算这两份。入口已包含 `uigetfile`，输出目录也可以省略。
 
@@ -65,15 +66,52 @@ r = dac_noise_analysis(d, files, out, settings);
 
 ## 隔离度：参考文件与受扰文件要成对
 
+### 多通道PICO MAT先切分
+
+`split_dac_isolation_channels` 用于同一次PICO采集中包含A/B/C/D多路波形的MAT。父目录名采用“驱动接口-名义频率”，例如 `JG18-1M`；源文件名按通道顺序列出接口，例如 `JG18-JG20-JG21-JG23-200K-2ms.mat`。程序将文件名中的接口依次对应实际存在的A/B/C/D。接口数与波形数不一致时直接报错，不猜测接线。
+
+当前 `JG18-1M` 数据的已核对映射为：长文件A/B/C/D分别对应JG18/JG20/JG21/JG23，短文件D对应JG25。切分后每份MAT只保留一个名为A的波形，同时记录原文件、原变量、接口和SHA-256。`Tinterval` 等PICO时基字段原样保留；当前两份数据的采样率约为9.76562487 MHz。原始MAT不改写。
+
+```matlab
+d = ['F:/01_Laser/0_20260727_513test/CW_Data/513_CW_jianding/' ...
+    'DA9726/03_Isolation/JG18-1M'];
+files = {'JG18-JG20-JG21-JG23-200K-2ms.mat', ...
+    'JG25-200K-2ms.mat'};
+
+% 参考面和负载尚未确认时先留空，只生成不可直接分析的配对模板。
+splitResult = split_dac_isolation_channels(d, files, [], struct());
+
+% 条件已确认后可直接生成可运行清单。文字必须按真实接线填写。
+settings = struct('referencePlane', '填写共同参考面、负载和探头条件');
+splitResult = split_dac_isolation_channels(d, files, [], settings);
+r = dac_isolation_analysis(splitResult.outputFolder, ...
+    splitResult.pairManifestPath, [], struct('hardwareGain',1));
+```
+
+输出位于 `split/run_时间_channel_split`。`channel_manifest.csv` 是切分追溯清单；`pair_manifest_template.csv` 按父目录的JG接口建立“驱动→其余接口”配对。程序把文件夹中的1M作为名义值，在驱动路附近精确找峰，再用同一实测频率拟合所有受扰路。当前驱动路主峰约在1.00098 MHz附近，实际输出以每次计算为准。若驱动拟合R²低于0.98，或没有填写共同参考面和负载，`pairManifestPath` 保持为空，不能直接运行正式分析。
+
+如文件名不能表达通道顺序，可通过 `options.channelMapping` 提供含 `source_file`、`source_variable`、`channel_label` 的table或struct；也可用 `drivenLabel` 和 `nominalFrequencyHz` 覆盖父目录解析值。
+
 运行 `dac_isolation_analysis` 后：
 
 1. 选择驱动输出的参考MAT。
-2. 选择同一驱动条件下受扰输出的MAT。
-3. 填写驱动接口、受扰接口、各自PICO波形变量、已确认频率（Hz）、共同参考面和负载、共同线性电压增益。
+2. 在第二个窗口一次多选同一驱动条件下的全部受扰MAT。
 
-两个选择框均为单选，分别指定参考和受扰记录。两份记录的参考面与采集设置应可比较；两路增益不同且未补偿时，不能直接套用一个共同增益。任何一步取消都不写结果。
+选完直接计算，不再弹参数输入框。程序从切分MAT的 `ChannelLabel` 或文件名前缀读取接口，自动选择唯一A/B/C/D变量，从驱动路寻找最强非DC正弦并精确拟合频率，所有受扰路使用同一频率。交互模式固定 `hardwareGain=1`，测量条件记录为“PicoScope输入端直接测量；无外部放大；输入阻抗和探头倍率未记录”。因此可以得到隔离度数值，但正式状态保持“暂不能判定”。任何一步取消都不写结果。
+
+交互模式只接受每份包含一个A/B/C/D波形的单通道MAT。若仍是多通道PICO原文件，先运行 `split_dac_isolation_channels`。驱动文件不得在受扰列表中重复出现；驱动拟合R²低于0.98时停止计算。
 
 函数签名为 `(dataFolder,pairManifest,outputFolder,configOverride)`。第二参数是配对清单，不能传普通MAT文件列表。支持struct数组、table或CSV清单路径；显式多行清单会处理其中每一对，不弹窗。
+
+需要一次全选并自动识别驱动时，可使用：
+
+```matlab
+settings = struct('autoDetectDrive',true, ...
+    'inputFiles',{{'JG18.mat','JG20.mat','JG21.mat','JG23.mat','JG25.mat'}});
+r = dac_isolation_analysis(d, [], out, settings);
+```
+
+自动模式在各文件的共同主频处比较Vpp，最大者为驱动。最大和次大幅值默认至少相差10 dB，否则拒绝自动识别，改用默认的“先选驱动、再多选受扰”。
 
 每行包含：
 
@@ -96,7 +134,7 @@ pair = struct('driven_file','reference.mat','victim_file','victim.mat', ...
 r = dac_isolation_analysis(d, pair, out, struct('hardwareGain',1));
 ```
 
-结果看 `dac_isolation_summary.csv` 的 `isolation_db`，比较值仍40 dB。原数据出现过名义1 MHz而采样率250 kS/s的条件，不能据此给出正式1 MHz隔离结论。同频拟合质量和频率检查仍需复核，配对关系填写完整并不代表测量方法已经验证。
+结果看 `dac_isolation_summary.csv` 的 `isolation_db`，并同时检查驱动/受扰采样率、驱动拟合R²、受扰拟合R²、Vpp和频率偏差。程序另写 `dac_isolation_matrix_db.csv`，按“驱动接口×受扰接口”整理同一批 dB 数值；`dac_isolation_summary.png/.fig` 现在是对应的矩阵热力图，单元格直接标出 dB，颜色范围只根据有限测量值计算，不再用40 dB参考线把坐标压成39–41 dB。40 dB仍只作为配置中的参考阈值，不参与热力图范围。受扰路信号接近噪声时R²可以很低，因此只作为质量信息；驱动路R²低于阈值时不得作正式判断。原数据出现过名义1 MHz而采样率250 kS/s的条件，不能据此给出正式1 MHz隔离结论。配对关系填写完整也不代表测量方法已经验证。
 
 本目录提供刻度、噪声和隔离度分析，不提供DAC INL/DNL、独立DC电压或相位噪声分析。
 

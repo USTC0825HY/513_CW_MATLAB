@@ -58,9 +58,20 @@ switch config.analysisId
         config.codeConversionRule = ...
             'CODE/COADE token is unsigned 16-bit hexadecimal; signed form is traceability only';
         config.toneFrequencyHz = 1001000;
-    case {'noise','isolation'}
-        % Use the common defaults above.  Isolation frequency is supplied
-        % by the explicit driven/victim pair manifest.
+    case 'noise'
+        % Use the common defaults above.
+    case 'isolation'
+        config.version = '0.2.0';
+        config.hardwareGain = 1;
+        config.measurementCondition = ...
+            'PicoScope输入端直接测量；无外部放大；输入阻抗和探头倍率未记录';
+        config.referencePlane = config.measurementCondition;
+        config.simpleIsolationSelection = true;
+        config.autoDetectDrive = false;
+        config.autoDriveMinimumSeparationDb = 10;
+        config.frequencySearchFraction = 0.01;
+        config.formalEnabled = false;
+        config.formalLimitation = 'PicoScope输入阻抗和探头倍率未记录';
     otherwise
         error('cw513:UnknownAnalysis', '不支持的DA9726分析类型：%s', analysisId);
 end
