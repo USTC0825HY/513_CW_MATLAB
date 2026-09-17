@@ -5,14 +5,24 @@ converter.runtime.validateConfig(config, ...
 files = localFiles(config);
 if isempty(files), error('converter:dac:NoInputFiles', '没有找到噪声MAT文件。'); end
 fileNames = arrayfun(@(f) fullfile(f.folder, f.name), files, 'UniformOutput', false);
+% Read the first selected MAT before creating a result directory.  This
+% makes an incomplete PicoScope export fail as an input error instead of
+% leaving a run folder that contains no analysis evidence.
+firstPath = fullfile(files(1).folder, files(1).name);
+firstCapture = converter.io.loadPicoMat(firstPath, localVariable(config, 1), ...
+    config.hardwareGain, config.removeMean);
 runContext = converter.runtime.createRun(config, config.dataFolder, ...
     fileNames, config.outputFolder);
 try
 rows = repmat(localEmptyRow(), numel(files), 1);
 for k = 1:numel(files)
     path = fullfile(files(k).folder, files(k).name);
-    capture = converter.io.loadPicoMat(path, localVariable(config, k), ...
-        config.hardwareGain, config.removeMean);
+    if k == 1
+        capture = firstCapture;
+    else
+        capture = converter.io.loadPicoMat(path, localVariable(config, k), ...
+            config.hardwareGain, config.removeMean);
+    end
     [frequencyHz, psd, asd, setup] = localSpectrum(capture.voltage, ...
         capture.sampleRateHz, config);
     [~, checkIndex] = min(abs(frequencyHz - config.asdCheckHz));
@@ -146,9 +156,13 @@ row = struct('input_file', "", 'input_path', "", 'source_sha256', "", ...
 end
 
 function judgment = localUpperLimit(value, limit, enabled)
-if ~enabled || ~isfinite(value), judgment = "暂不能判定";
-elseif value < limit, judgment = "满足";
-else, judgment = "不满足"; end
+if ~enabled || ~isfinite(value)
+    judgment = "暂不能判定";
+elseif value < limit
+    judgment = "满足";
+else
+    judgment = "不满足";
+end
 end
 
 function files = localFiles(config)
@@ -156,16 +170,22 @@ if isfield(config, 'inputFiles') && ~isempty(config.inputFiles)
     names = cellstr(config.inputFiles); files = struct([]);
     for k = 1:numel(names)
         item = dir(converter.io.resolveInputPath(config.dataFolder, names{k}));
-        if isempty(item), error('converter:dac:InputMissing', '输入文件不存在：%s', names{k}); end
+        if isempty(item)
+            error('converter:dac:InputMissing', '输入文件不存在：%s', names{k});
+        end
         files = [files; item]; %#ok<AGROW>
     end
-else, files = dir(fullfile(config.dataFolder, config.filePattern)); end
+else
+    files = dir(fullfile(config.dataFolder, config.filePattern));
+end
 end
 
 function variable = localVariable(config, index)
 if isfield(config, 'dataVariables') && ~isempty(config.dataVariables)
     values = cellstr(config.dataVariables); variable = values{min(index, numel(values))};
-else, variable = ''; end
+else
+    variable = '';
+end
 end
 
 function tableValue = localParameters(config)

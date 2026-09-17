@@ -5,13 +5,20 @@ converter.runtime.validateConfig(config, ...
 files = localFiles(config);
 if isempty(files), error('converter:dac:NoInputFiles', '没有找到刻度MAT文件。'); end
 fileNames = arrayfun(@(f) fullfile(f.folder, f.name), files, 'UniformOutput', false);
+% Validate all code labels before creating a result directory.  A noise MAT
+% such as JG18.mat must fail as an input-type error, not leave a misleading
+% partial scale run behind.
+codeInfos = cell(numel(files), 1);
+for k = 1:numel(files)
+    codeInfos{k} = localCodeFromName(files(k).name, config);
+end
 runContext = converter.runtime.createRun(config, config.dataFolder, ...
     fileNames, config.outputFolder);
 try
 rows = repmat(localEmptyRow(), numel(files), 1);
 for k = 1:numel(files)
     path = fullfile(files(k).folder, files(k).name);
-    codeInfo = localCodeFromName(files(k).name, config);
+    codeInfo = codeInfos{k};
     capture = converter.io.loadPicoMat(path, localVariable(config, k), ...
         config.hardwareGain, true);
     fit = converter.dac.fitTone(capture.voltage, capture.sampleRateHz, ...

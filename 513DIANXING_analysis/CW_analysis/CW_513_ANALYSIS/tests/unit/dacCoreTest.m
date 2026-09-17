@@ -118,16 +118,10 @@ classdef dacCoreTest < matlab.unittest.TestCase
             splitResult = split_dac_isolation_channels(dataFolder, ...
                 {longName, shortName}, fullfile(rootFolder, 'split'), options);
 
-            testCase.verifyTrue(splitResult.analysisReady);
+            testCase.verifyFalse(isfield(splitResult, 'analysisReady'));
             testCase.verifyEqual(height(splitResult.channelRows), 5);
             testCase.verifyEqual(string(splitResult.channelRows.channel_label)', ...
                 ["JG18", "JG20", "JG21", "JG23", "JG25"]);
-            testCase.verifyEqual(splitResult.measuredFrequencyHz, ...
-                actualFrequency, 'AbsTol', 0.05);
-            testCase.verifyGreaterThan(splitResult.driveFit.rSquared, 0.999);
-            testCase.verifyEqual(height(splitResult.pairRows), 4);
-            testCase.verifyTrue(isfile(splitResult.pairManifestPath));
-
             jg20Row = splitResult.channelRows( ...
                 strcmpi(string(splitResult.channelRows.channel_label), 'JG20'), :);
             splitData = load(fullfile(splitResult.outputFolder, jg20Row.output_file));
@@ -136,12 +130,18 @@ classdef dacCoreTest < matlab.unittest.TestCase
             testCase.verifyEqual(splitData.Tinterval, sourceData.Tinterval);
             testCase.verifyEqual(splitData.SourceVariable, 'B');
 
+            rows = splitResult.channelRows;
+            pairs = table(repmat(rows.output_file(1),4,1),rows.output_file(2:end), ...
+                repmat("A",4,1),repmat("A",4,1),repmat(actualFrequency,4,1), ...
+                repmat("JG18",4,1),rows.channel_label(2:end), ...
+                repmat("synthetic common 50 ohm plane",4,1), ...
+                'VariableNames',{'driven_file','victim_file','driven_variable', ...
+                'victim_variable','frequency_hz','driven_label','victim_label','reference_plane'});
             isolation = dac_isolation_analysis(splitResult.outputFolder, ...
-                splitResult.pairManifestPath, fullfile(rootFolder, 'results'), ...
-                struct('hardwareGain', 1));
+                pairs, fullfile(rootFolder, 'results'), struct('hardwareGain', 1));
             testCase.verifyEqual(height(isolation.summary), 4);
             testCase.verifyEqual(isolation.summary.frequency_hz, ...
-                repmat(splitResult.measuredFrequencyHz, 4, 1), 'AbsTol', 1e-9);
+                repmat(actualFrequency, 4, 1), 'AbsTol', 1e-9);
             testCase.verifyGreaterThan(isolation.summary.driven_fit_r2, 0.999);
             testCase.verifyTrue(isfile(fullfile(isolation.outputFolder, ...
                 'dac_isolation_matrix_db.csv')));
@@ -150,10 +150,10 @@ classdef dacCoreTest < matlab.unittest.TestCase
                 isolation.summary.isolation_db', 'AbsTol', 1e-12);
         end
 
-        function splitWithoutReferencePlaneCreatesTemplateOnly(testCase)
+        function splitWithoutDriveOrFolderConvention(testCase)
             rootFolder = [tempname '_cw513_dac_split_template']; mkdir(rootFolder);
             testCase.addTeardown(@() rmdir(rootFolder, 's'));
-            dataFolder = fullfile(rootFolder, 'JG18-1K'); mkdir(dataFolder);
+            dataFolder = fullfile(rootFolder, 'arbitrary_folder'); mkdir(dataFolder);
             sampleRate = 20e3; time = (0:2047)' / sampleRate;
             A = sin(2*pi*1e3*time); B = 1e-3 * A; Tinterval = 1 / sampleRate;
             fileName = 'JG18-JG20-capture.mat';
@@ -161,14 +161,10 @@ classdef dacCoreTest < matlab.unittest.TestCase
 
             splitResult = split_dac_isolation_channels(dataFolder, {fileName}, ...
                 fullfile(rootFolder, 'split'), struct());
-            testCase.verifyFalse(splitResult.analysisReady);
-            testCase.verifyEmpty(splitResult.pairManifestPath);
-            testCase.verifyTrue(isfile(splitResult.pairManifestTemplatePath));
-            testCase.verifySubstring(splitResult.readinessNote, '参考面');
-            testCase.verifyError(@() dac_isolation_analysis( ...
-                splitResult.outputFolder, splitResult.pairManifestTemplatePath, ...
-                fullfile(rootFolder, 'results'), struct('hardwareGain', 1)), ...
-                'converter:dac:ReferenceRequired');
+            testCase.verifyEqual(height(splitResult.channelRows), 2);
+            testCase.verifyFalse(isfield(splitResult,'pairManifestPath'));
+            testCase.verifyFalse(isfile(fullfile(splitResult.outputFolder, ...
+                'pair_manifest_template.csv')));
         end
 
         function ambiguousIsolationFilenameIsRejected(testCase)

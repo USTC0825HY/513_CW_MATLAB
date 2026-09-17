@@ -3,7 +3,19 @@ function capture = loadPicoMat(filePath, requestedVariable, hardwareGain, remove
 if nargin < 2 || isempty(requestedVariable), requestedVariable = ''; end
 if nargin < 3 || isempty(hardwareGain), hardwareGain = 1; end
 if nargin < 4, removeMean = true; end
-data = load(filePath);
+try
+    data = load(filePath);
+catch exception
+    fileBytes = NaN;
+    item = dir(filePath);
+    if ~isempty(item), fileBytes = item.bytes; end
+    wrapped = MException('converter:io:MatReadFailed', ...
+        ['MAT文件无法读取，文件可能尚未写完或已损坏：%s ' ...
+        '(文件大小 %.0f bytes)。请重新从PicoScope导出或完整复制后再运行。' ...
+        '\n原始MATLAB错误：%s'], filePath, fileBytes, exception.message);
+    wrapped = addCause(wrapped, exception);
+    throw(wrapped);
+end
 sampleRate = localSampleRate(data, filePath);
 variableName = localVariable(data, requestedVariable, filePath);
 rawValue = data.(variableName);

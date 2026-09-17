@@ -22,6 +22,8 @@ AD9245 SFDR对旧25 MHz ILA记录采用器件配置驱动的固定步长抽样�
 
 ## 新器件接入步骤
 
+ADC128新增 `128_hy/adc_bandwidth_analysis.m` 和 `private/adc128Config.m`，复用2208所用的公共带宽流程。12 bit unsigned经IO减2048归一到公共码域；直流偏置由正弦拟合截距吸收，近轨检查对应原始0～4095。入口要求明确采样率并预检码域、文件频率和Nyquist范围；不加载其他器件配置。当前未注册独立发布包，保留 `releaseReady=false`。
+
 1. 确认器件类型、采样率、位数、码型、数据列、测试项目和验收阈值。
 2. 从 `_templates/adc_device` 或 `_templates/dac_device` 复制器件骨架。
 3. 只新增器件入口和固定配置；可以复用的逻辑必须进入 `_shared`。
@@ -57,7 +59,11 @@ ADC刻度默认来自 `_shared/+converter/+calibration/reportCalibration.m`，�
 
 `converter.io.selectCsvFiles/selectMatFiles` 共用 `selectCaptureFiles`，只选择并验证本次文件；不建结果目录。`resolveInputPath` 使相对文件始终基于声明的数据目录，绝对路径可跨目录，避免当前目录同名文件混入。DAC入口通过 `prepareDacInputs` 解析文件/配置和默认结果根；`prepareDacIsolation` 单独处理配对关系，不把清单当作波形。
 
-`9726_hy/split_dac_isolation_channels.m` 是DA9726多通道PICO隔离度预处理入口。它从父目录读取驱动接口和名义频率，严格按源文件名中的JG接口顺序映射实际A/B/C/D变量，输出统一变量A的单通道派生MAT及通道/配对清单。驱动路负责在名义频率附近精确找峰，受扰路统一使用该频率；原始MAT不修改。参考面和负载未填写或驱动拟合不足时，清单只能作为模板。
+DA9726 的 `dac_noise_analysis` 与 `dac_scale_analysis` 只共用上述输入管理，不存在刻度脚本调用噪声脚本或反向调用。`9726_hy/private/resolveDa9726DataFolder.m` 只为零参数运行提供可用的选择框起始目录，优先读取 `CW513_DATA_ROOT` 等环境变量和已存在的数据目录；显式传入 `dataFolder`/`inputFiles` 时始终以调用者参数为准。噪声 MAT（如 `JG18.mat`）没有码值标签，不能作为刻度拟合输入。
+
+噪声内核在创建运行目录前先读取首个选定 MAT；`converter.io.loadPicoMat` 将未完成复制、截断或损坏的文件包装为 `converter:io:MatReadFailed`，记录文件大小并保留原始 MATLAB 错误。该错误只能通过重新导出或完整复制原始 MAT 解决，不能由分析代码补齐波形。
+
+`9726_hy/split_dac_isolation_channels.m` 仅负责多通道PICO MAT切分：按文件名JG顺序或显式channelMapping映射实际A/B/C/D变量，输出统一变量A的单通道派生MAT与来源清单。切分不解析父目录、不要求驱动通道、不拟合频率、不生成配对模板；隔离度条件由dac_isolation_analysis负责。原始MAT不修改。
 
 取消选择时，在创建结果目录前返回，不调用createRun。传入完整文件、接口和配对信息时不显示对话框。DA9726隔离度的简化交互先单选驱动、再多选受扰；接口来自切分MAT元数据或文件名前缀，驱动频率由 `converter.dac.estimateToneFrequency` 统一搜索，未知阻抗/探头信息写入限制而不伪造。隔离度报告将长表 `isolation_db` 同步整理为驱动×受扰矩阵，输出 `dac_isolation_matrix_db.csv` 及按有限 dB 值自适应范围的矩阵热力图；40 dB参考阈值不再用于设置图轴范围。DA766继续使用原逐对条件输入。ADC隔离度和ILA噪声仍使用采集表头或inputChannels确认通道，禁止文件名自动改写驱动条件或选择刻度。
 

@@ -1,21 +1,21 @@
 # CW_513_ANALYSIS 资源与 Skill 索引
 
 - 状态日期：2026-08-31
-- 目的：让新任务直接选择正确 skill、数据根、细则、手册和报告来源。
+本页列出维护时使用的 skill，以及数据、细则、手册和报告的位置。
 
 ## Skill 路由
 
-| 任务 | 首选 skill | 必要组合与边界 |
+| 任务 | 首选 skill | 配合使用时的说明 |
 |---|---|---|
-| ILA CSV、Pico MAT、PSD/ASD、积分噪声、ADC/DAC 刻度和证据包 | `laser-electrical-data-analysis` | 先按该 skill 盘点工作区并选择最窄的现有 MATLAB 入口；不得自行推断采样率、阻抗、增益或参考面 |
+| ILA CSV、Pico MAT、PSD/ASD、积分噪声、ADC/DAC 刻度和证据包 | `laser-electrical-data-analysis` | 先按该 skill 盘点工作区并选择对应的现有 MATLAB 单项入口；不得自行推断采样率、阻抗、增益或参考面 |
 | 审查 MATLAB 方法、质量、性能和可维护性 | `matlab-review-code` | 与 `laser-electrical-data-analysis` 联用时，前者审方法实现，后者约束电测证据与结果包 |
 | 编写/运行单元、集成、黄金、覆盖率和迁移测试 | `matlab-testing` | 方法变化必须同时补测试；测试通过不自动等于物理方法正确 |
-| MATLAB 新代码或重构 | `matlab-clean-code` | 保持物理单位、配置和现有结果契约清晰；未经授权不改变方法 |
-| 处理 checkcode 的废弃接口 | `matlab-modernize-code` | 仅在发现废弃/将移除 API 时使用，不能借现代化改变数值行为 |
-| 513 CW 单器件台架操作手册 | `laser-cw-operation-manual-writing` | 只写当前固件、VIO/ILA、仪器动作、安全态和证据边界；不代替正式报告 |
+| MATLAB 新代码或重构 | `matlab-clean-code` | 写清物理单位、配置和结果字段约定；未经授权不改变方法 |
+| 处理 checkcode 的废弃接口 | `matlab-modernize-code` | 仅在发现废弃/将移除 API 时使用，不改变数值行为 |
+| 513 CW 单器件台架操作手册 | `laser-cw-operation-manual-writing` | 只写当前固件、VIO/ILA、仪器动作、安全态和已验证范围；不代替正式报告 |
 | 测试结果汇总或测试结果 DOCX | `laser-test-report-writing` | 数值必须来自已审计结果包，DOCX 阶段不得重新计算正式结果 |
 | 正式封面、目录、页码和正式模板报告 | `laser-test-report-writing` + `laser-electrical-test-report-standard` | 只有用户明确要求正式报告模板时追加标准 skill |
-| CW 资格测试 FPGA、XPR/XDC、板卡和固件证据 | `laser-cw-qualification-test-development` | 结论必须区分 RTL/XDC 当前实现、BIT/LTX 映射、物理导通和实测验收 |
+| CW 资格测试 FPGA、XPR/XDC、板卡和固件证据 | `laser-cw-qualification-test-development` | 分别记录 RTL/XDC 实现、BIT/LTX 对应关系、实物导通和实测验收结果 |
 
 任务明确点名某个 skill 时，必须先完整读取其 `SKILL.md` 及该任务要求的引用文件，再执行任务。
 
@@ -32,7 +32,7 @@
 - `超稳鉴定数字锁定板 测试细则V2.0（公开）.docx`
 - `超稳鉴定延迟驱动板 测试细则V2.0（公开）.docx`
 
-20260803 版本仅用于版本差异和历史追溯。需求冲突时不得静默选择其中一版，必须记录差异并将正式结论降为“暂不能判定”。
+20260803 版本仅用于版本差异和历史追溯。两版需求冲突时，记录各自要求和差异，正式结论写“暂不能判定”，不要自行选一版。
 
 ## 操作手册总索引
 
@@ -53,9 +53,9 @@
 |---|---|---|---|
 | AD2208/YB2208 | `04_修订版手册_待评审/YB2208_测试操作说明_v07_状态与追溯版_待评审.docx` | C | 只能在索引列出的 5 路已确认物理输入、ILA 原始采集和有条件回放边界内使用 |
 | AD9245 | `04_修订版手册_待评审/AD9245_测试操作说明_v05_状态与追溯版_待评审.docx` | C | 4 路接口和已批准参数下的受限采集 |
-| DA9726 | `04_修订版手册_待评审/DA9726_测试操作说明_v03_状态与追溯版_待评审.docx` | B | 5 路已确认物理输出的有条件测试；逻辑 8 路不得冒充 8 路外部验收 |
+| DA9726 | `04_修订版手册_待评审/DA9726_测试操作说明_v03_状态与追溯版_待评审.docx` | B | 5 路已确认物理输出的有条件测试；逻辑 8 路不能作为 8 路外部验收结果 |
 | DA766/手册命名 AD766 | `04_修订版手册_待评审/AD766_测试操作说明_v05_状态与追溯版_待评审.docx` | C | 只允许已批准接口的安全小码、静态和受控低频测试 |
-| AD677 | 暂无独立手册 | C | 只能依据当前 XPR/RTL/XDC 和匹配 BIT/LTX 建立逻辑选择、VIO 安全态和 ILA 抓取框架 |
+| AD677 | 暂无独立手册 | C | 只能依据当前 XPR/RTL/XDC 和匹配 BIT/LTX 确定逻辑选择、VIO 安全态和 ILA 采集方式 |
 
 说明：
 

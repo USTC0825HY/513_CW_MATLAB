@@ -11,7 +11,12 @@ if isempty(dataFolder)
 end
 dataFolder = char(dataFolder);
 if ~isfolder(dataFolder)
-    error('converter:io:DataFolderNotFound', '数据目录不存在：%s', dataFolder);
+    if isempty(selectedFiles)
+        % A chooser start folder is a hint, not a required input location.
+        dataFolder = pwd;
+    else
+        error('converter:io:DataFolderNotFound', '数据目录不存在：%s', dataFolder);
+    end
 end
 if isempty(selectedFiles)
     [selectedFiles, selectedPath] = uigetfile(fullfile(dataFolder, ['*' extension]), ...

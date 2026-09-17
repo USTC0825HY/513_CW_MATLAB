@@ -31,9 +31,39 @@ dataRoot = 'F:/01_Laser/0_20260727_513test/CW_Data/513_CW_DATA';
 | 正弦输出电压与码幅刻度 | `dac_scale_analysis` | `DA9726/sin_scale/DAC1_JG18` 下 `CODE/COADE` 十六进制码值 MAT | 支持多选，当前目录的9个原始MAT可一起选择；至少两点有效才能拟合刻度 |
 | 输出噪声 | `dac_noise_analysis` | `DA9726/03_Noise` 下本次 MAT | 支持多选，逐文件计算 |
 | 通道隔离度 | `dac_isolation_analysis` | `DA9726/05_Isolation` 下同驱动条件的参考与受扰 MAT | 先单选驱动，再一次多选全部受扰；显式配对清单仍可用 |
-| 隔离度多通道切分 | `split_dac_isolation_channels` | 文件名包含接口顺序的PICO MAT | 按A/B/C/D拆成单通道MAT，并生成配对模板 |
+| 隔离度多通道切分 | `split_dac_isolation_channels` | 文件名包含接口顺序的PICO MAT | 按A/B/C/D拆成单通道MAT，并记录来源映射 |
 
 例如运行 `dac_noise_analysis` 后选择两份噪声MAT，程序就只计算这两份。入口已包含 `uigetfile`，输出目录也可以省略。
+
+### 噪声和刻度是两条独立流程
+
+`dac_noise_analysis` 和 `dac_scale_analysis` 共用的只是文件选择、MAT 时基读取和结果目录管理，不会互相调用。噪声文件名如 `JG18.mat` 没有 DAC 码值，不能拿来做刻度拟合；刻度入口必须选择文件名中含 `CODE` 或 `COADE` 十六进制码值的正弦采集文件。刻度数据不在噪声目录中，不能用同一批 `JG18.mat` 等文件代替。
+
+本机早上采集的噪声数据可直接指定到下面的目录，并只测试一份文件：
+
+```matlab
+d = 'G:/513_CW_test/CW_Data/513_CW_DATA/DA9726/03_Noise/nosie_20260901';
+r = dac_noise_analysis(d, {'JG18.mat'}, fullfile(d, 'results'));
+```
+
+结果会写入 `G:/513_CW_test/CW_Data/513_CW_DATA/DA9726/03_Noise/nosie_20260901/results/run_日期_时间_noise`，原始 `JG18.mat` 不变。若只输入 `dac_noise_analysis`，程序会优先把这个本机目录作为选择框起始目录；换电脑时建议显式传入 `d`，或设置环境变量 `CW513_DATA_ROOT` 为包含 `DA9726` 的数据根目录。
+
+刻度应另选实际的码值文件，例如：
+
+```matlab
+scaleDir = 'G:/513_CW_test/CW_Data/513_CW_DATA/DA9726/sin_scale/DAC1_JG18';
+scaleFiles = {'CODE_1000_JG18_CH1_39_1MSPS_10usdiv.mat', ...
+    'CODE_3000_JG18_CH1_39_1MSPS_10usdiv.mat'};
+r = dac_scale_analysis(scaleDir, scaleFiles, ...
+    fullfile(scaleDir, 'results'));
+```
+
+上面只列两份用于验证入口；正式刻度拟合应把同一批9个码值文件全部传入。
+如果只有一个文件需要检查输入格式，第一个参数也可以直接写 MAT 的完整路径，第二个参数留空；刻度拟合仍至少需要两份有效码值。
+
+文件名没有 `CODE/COADE` 码值时，刻度入口会报“文件名必须包含……码值”，这是输入类型不对，不是噪声脚本缺少刻度依赖。
+
+如果噪声入口报 `converter:io:MatReadFailed`，先检查该 MAT 是否仍在写入或复制不完整。程序会给出文件大小和原始 MATLAB 错误；重新从 PicoScope 导出或完整复制后再运行。文件头能被识别不等于波形数组已经完整，不能用改扩展名或重新运行脚本修复缺失样本。
 
 ## 刻度与噪声参数
 
@@ -60,6 +90,8 @@ r = dac_noise_analysis(d, files, out, settings);
 | 噪声输出/比较 | ASD-only，75 µV/√Hz；配置中的积分频带/120 µVrms本次模式不启用 |
 | 正式判定 | `formalEnabled=false`，需求、负载和参考面尚未完全确认 |
 
+噪声运行时控制台中的“配置采样率”只是兼容字段（默认 250 kHz）；实际计算采样率逐份从 MAT 的 `Tinterval`/`fs` 读取。以本次 `JG18.mat` 为例，结果摘要中的实际值约为 1.97784816 MHz，不能用控制台的兼容字段代替。
+
 刻度先看 `dac_scale_measurements.csv` 的 `output_vpp_v`，再看 `dac_scale_summary.csv` 和拟合PNG。这是正弦峰峰电压，不是独立DC输出电压。噪声看 `dac_noise_summary.csv` 的 `asd_at_1hz_uV_per_sqrtHz`，单位已是µV/√Hz，同时查看实际分辨率、段数和coverage。
 
 当前DAC1_JG18刻度文件名如 `COADE_E000_JG18_CH1_39_1MSPS_10usdiv.mat`。直接运行 `dac_scale_analysis`，进入 `sin_scale/DAC1_JG18` 并选择这批9个原始MAT即可。不要把文件名改成十进制；程序按十六进制读取，例如 `E000=57344`、`FFFF=65535`。MAT中的实际采样率仍从 `Tinterval` 读取；当前数据约为39.062499 MSPS。
@@ -68,29 +100,21 @@ r = dac_noise_analysis(d, files, out, settings);
 
 ### 多通道PICO MAT先切分
 
-`split_dac_isolation_channels` 用于同一次PICO采集中包含A/B/C/D多路波形的MAT。父目录名采用“驱动接口-名义频率”，例如 `JG18-1M`；源文件名按通道顺序列出接口，例如 `JG18-JG20-JG21-JG23-200K-2ms.mat`。程序将文件名中的接口依次对应实际存在的A/B/C/D。接口数与波形数不一致时直接报错，不猜测接线。
+`split_dac_isolation_channels` 只负责把PICO MAT中的A/B/C/D波形分别保存为单通道MAT。可以只选一份文件，也可以选择多份；不需要驱动通道、频率、参考面或特定目录名，不拟合信号，也不生成隔离度配对模板。
 
-当前 `JG18-1M` 数据的已核对映射为：长文件A/B/C/D分别对应JG18/JG20/JG21/JG23，短文件D对应JG25。切分后每份MAT只保留一个名为A的波形，同时记录原文件、原变量、接口和SHA-256。`Tinterval` 等PICO时基字段原样保留；当前两份数据的采样率约为9.76562487 MHz。原始MAT不改写。
+文件名中的JG接口按顺序对应实际存在的A/B/C/D。例如 `JG18-JG20-JG21-JG23-200K-2ms.mat` 切成4路，只有D变量的 `JG25-200K-2ms.mat` 切成1路。接口数与波形数不符时需通过第四参数的 `channelMapping` 指定映射（source_file、source_variable、channel_label）。
 
 ```matlab
-d = ['F:/01_Laser/0_20260727_513test/CW_Data/513_CW_jianding/' ...
-    'DA9726/03_Isolation/JG18-1M'];
-files = {'JG18-JG20-JG21-JG23-200K-2ms.mat', ...
-    'JG25-200K-2ms.mat'};
+% 直接弹窗选择要切分的MAT，不必选入驱动参考。
+split_dac_isolation_channels
 
-% 参考面和负载尚未确认时先留空，只生成不可直接分析的配对模板。
-splitResult = split_dac_isolation_channels(d, files, [], struct());
-
-% 条件已确认后可直接生成可运行清单。文字必须按真实接线填写。
-settings = struct('referencePlane', '填写共同参考面、负载和探头条件');
-splitResult = split_dac_isolation_channels(d, files, [], settings);
-r = dac_isolation_analysis(splitResult.outputFolder, ...
-    splitResult.pairManifestPath, [], struct('hardwareGain',1));
+% 只切分这份四通道文件：
+d = 'G:/513_CW_test/CW_Data/513_CW_jianding/DA9726/03_Isolation/JG25-1M';
+r = split_dac_isolation_channels(d, ...
+    {'JG18-JG20-JG21-JG23-200K-2ms.mat'});
 ```
 
-输出位于 `split/run_时间_channel_split`。`channel_manifest.csv` 是切分追溯清单；`pair_manifest_template.csv` 按父目录的JG接口建立“驱动→其余接口”配对。程序把文件夹中的1M作为名义值，在驱动路附近精确找峰，再用同一实测频率拟合所有受扰路。当前驱动路主峰约在1.00098 MHz附近，实际输出以每次计算为准。若驱动拟合R²低于0.98，或没有填写共同参考面和负载，`pairManifestPath` 保持为空，不能直接运行正式分析。
-
-如文件名不能表达通道顺序，可通过 `options.channelMapping` 提供含 `source_file`、`source_variable`、`channel_label` 的table或struct；也可用 `drivenLabel` 和 `nominalFrequencyHz` 覆盖父目录解析值。
+输出在所选目录的 `split/run_时间_channel_split`，包括单通道MAT、`channel_manifest.csv` 和 `channel_split_result.mat`。每份派生MAT的波形名统一为A，原始数值、时基、源变量和哈希可追溯；原始文件不修改。隔离度计算另行运行 `dac_isolation_analysis`，在该入口选择驱动参考和受扰数据。
 
 运行 `dac_isolation_analysis` 后：
 

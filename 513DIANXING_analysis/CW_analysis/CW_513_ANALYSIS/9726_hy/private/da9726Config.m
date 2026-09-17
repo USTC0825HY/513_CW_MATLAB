@@ -2,6 +2,8 @@ function config = da9726Config(analysisId)
 %DA9726CONFIG Fixed DA9726 CW_513_ANALYSIS configuration.
 config = struct();
 config.deviceId = 'DA9726';
+% Keep the published calibration row as traceability metadata.  The noise
+% entry does not consume it; scale fitting uses the selected MAT captures.
 config.reportCalibration = converter.calibration.reportCalibration('DA9726');
 config.analysisId = lower(char(analysisId));
 config.version = '0.1.0';
@@ -11,7 +13,7 @@ config.outputFolder = '';
 config.filePattern = '*.mat';
 config.inputFiles = {};
 config.dataVariables = {};
-config.hardwareGain = 1;
+config.hardwareGain = 100;
 config.removeMean = true;
 config.sampleRate = 250e3;
 config.dacBits = 16;
@@ -59,7 +61,11 @@ switch config.analysisId
             'CODE/COADE token is unsigned 16-bit hexadecimal; signed form is traceability only';
         config.toneFrequencyHz = 1001000;
     case 'noise'
-        % Use the common defaults above.
+        % Each PicoScope MAT supplies its own Tinterval (or fs).  The
+        % generic sampleRate field is retained only for compatibility and
+        % must not be read as the measured rate of a particular file.
+        config.sampleRateSource = ...
+            '每个PicoScope MAT优先读取Tinterval，缺失时读取fs';
     case 'isolation'
         config.version = '0.2.0';
         config.hardwareGain = 1;

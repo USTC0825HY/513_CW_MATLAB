@@ -2,18 +2,26 @@
 
 本库用于513测试中的五类器件：AD9245、AD2208、AD677、DA9726和DA766。器件入口、公共算法、测试和发布工具全部位于本目录内，运行器件入口不依赖 `laser_analysis`、`01_workflows`或历史脚本。
 
-当前有效数据根目录为：
+当前常用数据根目录为：
 
 `F:\01_Laser\0_20260727_513test\CW_Data\513_CW_DATA`
+
+本机 DA9726 噪声采集还位于：
+
+`G:\513_CW_test\CW_Data\513_CW_DATA\DA9726\03_Noise\nosie_20260901`
+
+两个路径都不是代码仓库。换电脑时请把实际数据目录作为入口参数传入；也可以设置环境变量 `CW513_DATA_ROOT`，其值应为包含 `DA9726` 的数据根目录。代码不会把 F 盘不存在的旧目录当作有效数据目录。
 
 使用说明见各器件目录的 `README_先看.md`；公共结构和指标说明见 `ARCHITECTURE.md`、`METRICS.md`。
 
 ## 器件入口
 
+新增 `128_hy`：ADC128的12 bit unsigned CSV带宽入口，支持全正正弦。采样率须按本次记录填写，调用见 `128_hy/README_先看.md`；尚未注册独立发布包。下列五类原有器件入口保持不变。
+
 - `9245_hy`：SFDR、带宽、隔离度、`CodePp -> Vpp` 刻度及99%临界输入估计、INL/DNL，以及经 DA9726 JG18/G=128 链路折算的 1 Hz 输入等效噪声。
 - `2208_hy`：SFDR、带宽、隔离度、`CodePp -> Vpp` 刻度及99%临界输入估计、INL/DNL；`adc_ila_noise_analysis` 处理直接 ILA 噪声，`adc_pico_noise_1hz_analysis` 处理经 DA9726 刻度折算的 PICO 1 Hz 噪声。
 - `677_hy`：输入频率响应、输入 Vpp—CodePp 刻度及99%临界输入外推；另有直接ILA噪声和经DA9726 JG18/G=128链路折算的PICO 1 Hz输入等效噪声。正式结论暂关闭。
-- `9726_hy`：DA刻度、DA噪声、DA隔离度；多通道PICO隔离度MAT可先按文件名接口顺序切成单通道派生MAT，隔离度结果同时导出 dB 矩阵 CSV 和矩阵热力图。
+- `9726_hy`：DA刻度、DA噪声、DA隔离度；刻度和噪声入口相互独立，多通道PICO隔离度MAT可先按文件名接口顺序切成单通道派生MAT，隔离度结果同时导出 dB 矩阵 CSV 和矩阵热力图。
 - `766_hy`：DA刻度、DA噪声、DA隔离度。
 
 DA刻度入口给出正弦输出 Vpp；独立DC输出电压、DAC INL/DNL、DA相噪以及DA766更新率/分辨率暂没有对应正式入口。DA9726/DA766 当前入口的 `formalEnabled` 保持关闭，结果可用于迁移和复核，但不自动给出正式满足结论。
