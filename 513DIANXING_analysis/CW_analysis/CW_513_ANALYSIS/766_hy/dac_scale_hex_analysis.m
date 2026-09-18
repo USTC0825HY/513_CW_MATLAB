@@ -9,8 +9,8 @@ function result = dac_scale_hex_analysis(dataFolder, selectedFiles, outputFolder
 %   original DA766 entry point keeps its existing defaults.
 
 if nargin < 1 || isempty(dataFolder)
-    dataFolder = fullfile('F:', filesep, '01_Laser', ...
-        '0_20260727_513test', 'CW_Data', '513_CW_DATA', 'DA766', '06_scale');
+    dataFolder = fullfile('I:', filesep, '513_CW_test', 'CW_Data', ...
+        '513_CW_DATA_jianding', 'DA766', '06_scale');
 end
 dataFolder = char(dataFolder);
 if ~isfolder(dataFolder)

@@ -12,8 +12,8 @@ if nargin < 2, selectedFiles = []; end
 if nargin < 3, outputFolder = []; end
 if nargin < 4 || isempty(options), options = struct(); end
 
-defaultFolder = fullfile('F:', filesep, '01_Laser', '0_20260727_513test', ...
-    'CW_Data', '513_CW_DATA', 'DA9726', '05_Isolation');
+defaultFolder = fullfile('I:', filesep, '513_CW_test', 'CW_Data', ...
+    '513_CW_DATA_jianding', 'DA9726', '05_Isolation');
 if isempty(dataFolder), dataFolder = defaultFolder; end
 [selectedFiles, dataFolder] = converter.io.selectMatFiles(dataFolder, ...
     selectedFiles, '选择需要切分的PICO隔离度MAT');
