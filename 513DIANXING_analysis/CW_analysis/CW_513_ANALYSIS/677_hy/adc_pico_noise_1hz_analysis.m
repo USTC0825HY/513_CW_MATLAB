@@ -59,7 +59,7 @@ pathCleanup = onCleanup(@() path(originalPath)); %#ok<NASGU>
 bootstrapRuntime();
 deviceConfig = ad677Config('input_noise');
 cfg = localConfig(deviceConfig, runOptions);
-capture = converter.io.loadPicoMat(char(capturePath), 'A', 1, true);
+capture = loadWithAnyPicoChannel(char(capturePath));
 minimumDurationS = 1 / cfg.welch.targetResolutionHz;
 if capture.sampleCount / capture.sampleRateHz < minimumDurationS
     error('ad677:PicoFrequencyCoverage', ...
@@ -132,4 +132,22 @@ for k = 1:numel(deviceRows)
         'intercept', NaN, 'r2', NaN, ...
         'dataGroup', deviceRows(k).sourceSection);
 end
+end
+
+function capture = loadWithAnyPicoChannel(filePath)
+%LOADWITHANYPICOCHANNEL Prefer Pico channel A, fall back to B/C/D.
+%   Some PicoScope exports store the waveform under channel B (for example
+%   the jiaqiang X3/X13 captures were recorded on Pico channel B), so the
+%   requested variable is picked from the file instead of hard-coded.
+matVars = whos('-file', filePath);
+present = matVars(ismember({matVars.name}, {'A', 'B', 'C', 'D'}));
+if isempty(present)
+    error('ad677:PicoWaveformMissing', ...
+        'MAT文件中没有A/B/C/D波形变量：%s', filePath);
+end
+if ~any(strcmp({present.name}, 'A'))
+    fprintf('AD677 PICO 波形不在通道A，改用变量 %s：%s\n', ...
+        present(1).name, filePath);
+end
+capture = converter.io.loadPicoMat(filePath, present(1).name, 1, true);
 end

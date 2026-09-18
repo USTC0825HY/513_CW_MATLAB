@@ -56,7 +56,8 @@ for k = 1:numel(runConfig.entries)
     row.file_size_bytes = fileInfo.bytes;
     row.source_sha256 = string(converter.runtime.sha256File(entry.matFile));
     manifest(end + 1) = localManifestRow(entry.matFile, "raw", row.source_sha256); %#ok<AGROW>
-    [complete, integrityNote] = localCheckMatCompleteness(entry.matFile);
+    [complete, integrityNote] = localCheckMatCompleteness(entry.matFile, ...
+        localPickWaveVariable(entry.matFile));
     if ~complete
         row.formal_state = "暂不能判定";
         row.note = string(integrityNote);
@@ -65,7 +66,8 @@ for k = 1:numel(runConfig.entries)
     end
 
     try
-        capture = converter.io.loadPicoMat(entry.matFile, 'A', 1, true);
+        waveVariable = localPickWaveVariable(entry.matFile);
+        capture = converter.io.loadPicoMat(entry.matFile, waveVariable, 1, true);
         [frequencyHz, psdPico, asdPico, setup] = localWelch( ...
             capture.voltage, capture.sampleRateHz, runConfig.welch);
         asdInput_nV = sqrt(max(psdPico, 0)) * row.scale_adc_in_per_dac_out * 1e9;
@@ -288,13 +290,15 @@ end
 row = matches(1);
 end
 
-function [complete, note] = localCheckMatCompleteness(matFile)
+function [complete, note] = localCheckMatCompleteness(matFile, waveVariable)
 complete = true; note = "";
 try
     info = whos('-file', matFile);
-    a = info(strcmp({info.name}, 'A'));
+    a = info(strcmp({info.name}, waveVariable));
     if isempty(a)
-        complete = false; note = "MAT 文件没有 A 通道变量。"; return;
+        complete = false;
+        note = "MAT 文件没有 " + string(waveVariable) + " 波形变量。";
+        return;
     end
     fileInfo = dir(matFile);
     if fileInfo.bytes < a.bytes
@@ -325,6 +329,19 @@ end
 function [actualHz, index] = localNearestBin(frequencyHz, requestedHz)
 [~, index] = min(abs(frequencyHz - requestedHz));
 actualHz = frequencyHz(index);
+end
+
+function waveVariable = localPickWaveVariable(matFile)
+%LOCALPICKWAVEVARIABLE Prefer Pico channel A, fall back to B/C/D.
+%   Some PicoScope exports store the waveform under channel B (for example
+%   the jiaqiang AD677 X3/X13 captures were recorded on Pico channel B).
+matVars = whos('-file', matFile);
+present = matVars(ismember({matVars.name}, {'A', 'B', 'C', 'D'}));
+if isempty(present)
+    error('cw513:PicoWaveformMissing', ...
+        'MAT文件中没有A/B/C/D波形变量：%s', matFile);
+end
+waveVariable = present(1).name;
 end
 
 function values = localSegmentAsdAtBin(y, fs, setup, index, scale)
