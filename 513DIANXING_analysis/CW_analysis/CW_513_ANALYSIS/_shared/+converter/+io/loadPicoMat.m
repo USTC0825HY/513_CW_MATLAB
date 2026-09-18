@@ -45,6 +45,20 @@ end
 
 function variableName = localVariable(data, requestedVariable, filePath)
 requestedVariable = char(requestedVariable);
+picoChannels = {'A', 'B', 'C', 'D'};
+present = picoChannels(cellfun(@(name) isfield(data, name), picoChannels));
+% Single-channel exports occasionally save the waveform under a different
+% channel letter (the jiaqiang X3/X13 captures were recorded on Pico
+% channel B).  When the requested channel letter is missing but exactly one
+% other Pico channel is present, fall back to it instead of failing.
+if ~isempty(strtrim(requestedVariable)) && ...
+        ismember(upper(requestedVariable), picoChannels) && ...
+        ~isfield(data, requestedVariable) && numel(present) == 1
+    fprintf('PICO 波形不在通道%s，改用变量 %s：%s\n', ...
+        upper(requestedVariable), present{1}, filePath);
+    variableName = present{1};
+    return;
+end
 if ~isempty(strtrim(requestedVariable))
     if ~isfield(data, requestedVariable)
         error('converter:io:VariableMissing', ...
@@ -53,8 +67,6 @@ if ~isempty(strtrim(requestedVariable))
     variableName = requestedVariable;
     return;
 end
-candidates = {'A', 'B', 'C', 'D'};
-present = candidates(cellfun(@(name) isfield(data, name), candidates));
 if numel(present) ~= 1
     error('converter:io:VariableAmbiguous', ...
         'MAT文件必须唯一包含A/B/C/D通道，或显式指定通道：%s', filePath);
