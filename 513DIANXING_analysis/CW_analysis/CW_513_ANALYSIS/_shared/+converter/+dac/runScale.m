@@ -124,16 +124,25 @@ if isfield(config, 'codeNameFormat') && ~isempty(config.codeNameFormat)
 end
 switch lower(formatName)
     case 'hex_unsigned'
-        % Read the first hexadecimal token immediately after CODE/COADE.
-        % Acquisition metadata may follow it, for example _JG18_CH1 or
-        % _CH2.  Requiring a separator (or the extension) after the token
-        % prevents a partial match such as reading CODE7FFF as decimal 7.
+        % Read the first hexadecimal token immediately after the configured
+        % code token (CODE/COADE by default).  Acquisition metadata may
+        % follow it, for example _JG18_CH1 or _CH2.  Requiring a separator
+        % (or the extension) after the token prevents a partial match such
+        % as reading CODE7FFF as decimal 7.  A device entry may widen the
+        % accepted tokens via codeNameTokens, for example {'amp'} for the
+        % jiaqiang batch named X7-FS_19.5MS-AMP_7FFF-FTW_0002.mat.
+        codeTokens = {'code', 'coade'};
+        if isfield(config, 'codeNameTokens') && ~isempty(config.codeNameTokens)
+            codeTokens = cellstr(lower(string(config.codeNameTokens(:))));
+        end
+        tokenAlternation = strjoin(codeTokens, '|');
         token = regexp(fileName, ...
-            '(?i)(?:code|coade)[_-]?([0-9a-f]+)(?=[_-]|\.mat$)', ...
+            ['(?i)(?:' tokenAlternation ')[_-]?([0-9a-f]+)(?=[_-]|\.mat$)'], ...
             'tokens', 'once');
         if isempty(token)
             error('converter:dac:CodeMissing', ...
-                '文件名必须包含CODE/COADE十六进制码值：%s', fileName);
+                ['文件名未找到配置的码值标记（默认CODE/COADE，' ...
+                '可经codeNameTokens扩展）：%s'], fileName);
         end
         rawCode = hex2dec(token{1});
         fullScale = 2^bits;

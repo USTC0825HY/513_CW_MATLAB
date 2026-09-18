@@ -33,6 +33,24 @@ if ischar(selectedFiles) || isstring(selectedFiles)
 end
 localValidateCaptureSet(selectedFiles);
 
+% The 20260918 jiaqiang batch names the code as AMP_<hex> in files like
+% X7-FS_19.5MS-AMP_7FFF-FTW_0002.mat instead of CODE_<hex>.  Pick the code
+% token set from the actual file names so both batches run unchanged.
+% NOTE: probe per file on a CHAR scalar.  regexpi on string/cell arrays
+% returns "" scalars for non-matches in recent releases, and
+% isempty("") is false, which would make hasCodeToken always true.
+names = cellstr(string(selectedFiles(:)));
+hasCodeToken = false;
+hasAmpToken = false;
+for probeIndex = 1:numel(names)
+    probe = char(names{probeIndex});
+    if ~isempty(regexpi(probe, '(?:code|coade)[_-]?[0-9a-f]+', 'once'))
+        hasCodeToken = true;
+    elseif ~isempty(regexpi(probe, 'amp[_-]?[0-9a-f]+', 'once'))
+        hasAmpToken = true;
+    end
+end
+
 configOverride = struct( ...
     'version', '0.1.1', ...
     'codeNameFormat', 'hex_unsigned', ...
@@ -48,7 +66,13 @@ configOverride = struct( ...
     'referencePlane', ...
         'DA766 output; PicoScope A voltage waveform; termination not recorded', ...
     'calibrationSource', ...
-        'PicoScope MAT A/Tinterval; CODE token interpreted as unsigned 16-bit hex');
+        'PicoScope MAT A/Tinterval; hex code token interpreted as unsigned 16-bit');
+if hasAmpToken
+    configOverride.codeNameTokens = {'amp'};
+    configOverride.calibrationSource = ...
+        'PicoScope MAT A/Tinterval; AMP token interpreted as unsigned 16-bit hex';
+    fprintf('DA766 加强件刻度命名：码值取自 AMP_<hex> 标记。\n');
+end
 
 % Keep run_info.sampleRate tied to measured evidence.  The measurements
 % table still records the actual rate for every capture independently.
