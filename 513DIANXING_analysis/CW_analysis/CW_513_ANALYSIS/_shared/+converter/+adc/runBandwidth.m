@@ -32,7 +32,13 @@ try
         results, bandwidth3dBHz, runContext.folder, config);
     disp(results);
     if isfinite(bandwidth3dBHz)
-        fprintf('\n估算 -3 dB 带宽：%.6f MHz\n', bandwidth3dBHz / 1e6);
+        % Match the figure convention: cutoffs below 1 MHz read in kHz
+        % instead of fractional MHz.
+        if bandwidth3dBHz < 1e6
+            fprintf('\n估算 -3 dB 带宽：%.4f kHz\n', bandwidth3dBHz / 1e3);
+        else
+            fprintf('\n估算 -3 dB 带宽：%.6f MHz\n', bandwidth3dBHz / 1e6);
+        end
     else
         fprintf('\n覆盖内未发现 -3 dB 交点：覆盖不足，暂不能判定。\n');
     end

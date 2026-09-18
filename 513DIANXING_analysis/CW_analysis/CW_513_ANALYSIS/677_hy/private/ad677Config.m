@@ -37,14 +37,31 @@ config.referenceImpedanceOhm = NaN;
 
 switch config.analysisId
     case 'bandwidth'
-        % The 100 MHz ILA records a zero-order-held ADC word. The expected
-        % high-frequency stair-step residual lowers sine-fit R2 near the
-        % observed roll-off; 0.90 retains the resolved 12--16 kHz points
-        % while excluding the visibly under-resolved 20/30 kHz captures.
+        config.version = '0.2.0';
+        % The ILA captures at 100 MHz but the AD677 word only updates on the
+        % adc_data_vld strobe (every 1200 ILA cycles on the 20260917
+        % captures, i.e. 83.333 kS/s uniform). Bandwidth reads filter the
+        % held rows (filterValidStrobe) and the effective sample rate is
+        % derived per run from the measured strobe spacing; a finite
+        % sampleRate override via runOptions skips the derivation.
+        config.ilaClockHz = 100e6;
+        config.sampleRate = NaN;
+        config.sampleRateDefinition = ['ILA 100 MHz capture clock divided ' ...
+            'by the measured adc_data_vld strobe period (1200 on 20260917 ' ...
+            'captures = 83.333 kS/s effective data rate)'];
+        config.filterValidStrobe = true;
+        % A record must span at least this many input cycles for the fitted
+        % amplitude to be phase-robust: 100 Hz--1 kHz captures hold only
+        % 0.13--1.31 cycles of ~109 valid samples, and a partial-arc fit
+        % returns a wrong CodePp with an excellent R2.
+        config.minimumRecordCycles = 2;
+        % R2 relaxes only for the AD677's real distortion/noise, which grows
+        % toward 30 kHz (measured 0.94 at 30 kHz); 0.90 keeps the resolved
+        % 20/22/24 kHz points that bracket the -3 dB crossing.
         config.minimumFitR2 = 0.90;
         config.referencePointCount = 3;
         config.frequencyMismatchTolerance = 0.02;
-        config.rejectFrequencyMismatch = false;
+        config.rejectFrequencyMismatch = true;
         config.bandwidthFrequencySource = 'file';
         config.fitFrequencySource = 'file';
         config.clippingMarginCode = round(0.02 * config.adcFullScalePeakCode);

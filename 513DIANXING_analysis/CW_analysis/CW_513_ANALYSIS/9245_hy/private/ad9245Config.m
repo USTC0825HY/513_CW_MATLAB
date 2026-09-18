@@ -21,7 +21,7 @@ config.showFigures = false;
 % records are exported by the ILA clocked from clk_25m_cp.  Frequency- and
 % time-domain analysis must therefore use the ILA record interval (40 ns),
 % rather than the ADC conversion-clock period (50 ns).
-ilaCaptureSampleRateHz = 25e6;
+ilaCaptureSampleRateHz = 20e6;
 config.adcConversionClockHz = 20e6;
 config.ilaCaptureClock = 'clk_25m_cp';
 config.ilaCaptureSampleRateHz = ilaCaptureSampleRateHz;
@@ -63,20 +63,24 @@ switch config.analysisId
         config.drivenChannel = 'X3G';
         config.minimumIsolationDb = 40;
     case 'power_scale'
-        config.version = '1.2.0';
+        config.version = '1.3.0';
         config.sampleRate = ilaCaptureSampleRateHz;
-        % The current AD9245 power-scale captures are 1 kHz sweeps.
+        % The 20260917 AD9245 power sweeps are 1 kHz Vpp-labelled sweeps
+        % (0.1--2.1 Vpp at the generator, High-Z, 0 V offset); older
+        % dBm-labelled sweeps keep the legacy path. The shared kernel now
+        % parses either filename unit.
         config.testFrequencyHz = 1e3;
         config.frequencyMismatchTolerance = 0.02;
         config.powerRangeDbm = [-10, 6];
+        config.powerRangeVpp = [0.1, 2.1];
         config.clippingThreshold = 0.98;
         config.clippingFractionLimit = 0.01;
         config.criticalInputThresholdFraction = 0.99;
         config.plateauChangeThreshold = 0.01;
         config.referenceImpedanceOhm = 50;
-        % Filename dBm values are converted to Vpp at 50 ohm before the
-        % formal CodePp -> Vpp fit. dBm remains traceability metadata.
-        config.powerSetpointSource = 'dBm value parsed from AD9245 CSV filename';
+        % Filename Vpp/dBm values feed the CodePp -> Vpp fit directly;
+        % dBm metadata is derived at the 50 ohm reference impedance.
+        config.powerSetpointSource = 'Vpp or dBm value parsed from AD9245 CSV filename';
     case 'inl_dnl'
         config.version = '1.1.0';
         config.sampleRate = ilaCaptureSampleRateHz;

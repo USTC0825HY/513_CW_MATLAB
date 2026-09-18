@@ -2,6 +2,13 @@ function plotBandwidth(results, bandwidthHz, outputFolder, config)
 %PLOTBANDWIDTH Plot fitted code amplitude and normalized response.
 
 if config.showFigures, visibility = 'on'; else, visibility = 'off'; end
+% Display the sampling rate and the -3 dB cutoff in kHz below 1 MHz so
+% slow ADC chains do not read as "0.083 MHz"; MHz chains are unchanged.
+if config.sampleRate < 1e6
+    fsLabelText = sprintf('Fs = %.3f kHz', config.sampleRate / 1e3);
+else
+    fsLabelText = sprintf('Fs = %.3f MHz', config.sampleRate / 1e6);
+end
 figureHandle = figure('Color', 'w', 'Visible', visibility, ...
     'Name', 'ADC 频率响应', 'NumberTitle', 'off');
 valid = results.ValidForBandwidth;
@@ -26,7 +33,7 @@ referenceHandle = semilogx(plotFrequencyHz(results.ReferencePoint), ...
 hold off;
 grid on;
 xlabel('输入频率 (Hz)'); ylabel('拟合 Code_{pp} (LSB)');
-title(sprintf('ADC 码值峰峰值响应，Fs = %.3f MHz', config.sampleRate / 1e6));
+title(['ADC 码值峰峰值响应，' fsLabelText]);
 if isempty(invalidHandle)
     legend([validHandle referenceHandle], {'有效数据', '0 dB参考点'}, ...
         'Location', 'best');
@@ -58,4 +65,3 @@ if config.saveFigures
 end
 if ~config.showFigures, close(figureHandle); end
 end
-

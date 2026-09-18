@@ -15,6 +15,7 @@ fitResidualRmsCode = NaN(fileCount, 1);
 frequencyMismatchFlag = false(fileCount, 1);
 clippingFlag = false(fileCount, 1);
 fullScalePeakCode = 2^(config.adcBits - 1);
+[marginLowCode, marginHighCode] = railMargins(config);
 
 for fileIndex = 1:fileCount
     adcCode = adcCodeList{fileIndex};
@@ -48,8 +49,8 @@ for fileIndex = 1:fileCount
     fitR2(fileIndex) = metrics.fit.r2;
     fitResidualRmsCode(fileIndex) = metrics.fit.residualRmsCode;
     clippingFlag(fileIndex) = ...
-        min(adcCode) <= -fullScalePeakCode + config.clippingMarginCode || ...
-        max(adcCode) >= fullScalePeakCode - 1 - config.clippingMarginCode;
+        min(adcCode) <= -fullScalePeakCode + marginLowCode || ...
+        max(adcCode) >= fullScalePeakCode - 1 - marginHighCode;
 end
 
 [fileFrequencyHz, sortIndex] = sort(fileFrequencyHz(:));
@@ -124,5 +125,23 @@ details = struct('bandwidth3dBHz', bandwidth3dBHz, ...
     'referenceCodePp', referenceCodePp, ...
     'coverageStatus', coverageStatus, 'conclusion', conclusion, ...
     'validPointCount', nnz(validForBandwidth));
+end
+
+function [marginLowCode, marginHighCode] = railMargins(config)
+%RAILMARGINS Per-side near-rail margins with the legacy single-margin fallback.
+%   clippingMarginLowCode/HighCode override the shared clippingMarginCode
+%   per rail when present; unchanged configurations keep the old behavior.
+if isfield(config, 'clippingMarginLowCode') && ...
+        ~isempty(config.clippingMarginLowCode)
+    marginLowCode = config.clippingMarginLowCode;
+else
+    marginLowCode = config.clippingMarginCode;
+end
+if isfield(config, 'clippingMarginHighCode') && ...
+        ~isempty(config.clippingMarginHighCode)
+    marginHighCode = config.clippingMarginHighCode;
+else
+    marginHighCode = config.clippingMarginCode;
+end
 end
 

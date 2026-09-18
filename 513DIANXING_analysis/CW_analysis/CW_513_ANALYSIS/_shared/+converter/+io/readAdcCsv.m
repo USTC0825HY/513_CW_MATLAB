@@ -8,6 +8,29 @@ if isempty(numericData)
     error('converter:io:NoNumericData', 'CSV 中没有数值数据：%s', filePath);
 end
 
+% Optional per-row strobe filter: only when the device configuration
+% explicitly opts in with filterValidStrobe = true AND declares a
+% validDataColumn (e.g. the ADC128/AD677 ILA exports with a vld strobe),
+% keep only rows whose strobe is high. The dropped rows are held codes,
+% not additional samples, so the remaining sequence stays uniformly
+% sampled. Configs that merely carry validDataColumn for their own vld
+% statistics (AD677 noise/power entries) are left unchanged.
+if isfield(config, 'filterValidStrobe') && ...
+        ~isempty(config.filterValidStrobe) && config.filterValidStrobe && ...
+        isfield(config, 'validDataColumn') && ~isempty(config.validDataColumn)
+    validColumn = config.validDataColumn;
+    if ~isscalar(validColumn) || validColumn ~= round(validColumn) || ...
+            validColumn < 1 || validColumn > size(numericData, 2)
+        error('converter:io:ValidColumnOutOfRange', ...
+            '有效标志列 %d 超出 CSV 列范围：%s', validColumn, filePath);
+    end
+    numericData = numericData(numericData(:, validColumn) == 1, :);
+    if size(numericData, 1) == 0
+        error('converter:io:NoValidStrobeSamples', ...
+            '有效标志列没有为1的数据行：%s', filePath);
+    end
+end
+
 dataColumn = config.adcDataColumn;
 if dataColumn == 0
     dataColumn = size(numericData, 2);

@@ -18,18 +18,54 @@ if isfield(runOptions, 'powerSetpoints') && ...
     [inputPowerDbm, setpointInfo] = resolveExplicitSetpoints( ...
         fileNames, runOptions.powerSetpoints, referenceImpedanceOhm);
 else
+    % Filename setpoints are accepted in either unit: dBm labels keep the
+    % legacy path, Vpp labels are used directly, and a mixed selection is
+    % rejected so one run always has a single traceable unit source.
     inputPowerDbm = cellfun(@converter.io.parsePowerDbm, fileNames);
-    parseValid = isfinite(inputPowerDbm);
-    if any(~parseValid)
-        fprintf('以下文件名无法解析 dBm，已忽略：\n');
-        fprintf('  %s\n', fileNames{~parseValid});
-        fileNames = fileNames(parseValid);
-        inputPowerDbm = inputPowerDbm(parseValid);
+    inputVoltageVpp = cellfun(@converter.io.parseVoltageVpp, fileNames);
+    dbmValid = isfinite(inputPowerDbm);
+    vppValid = isfinite(inputVoltageVpp);
+    if any(dbmValid & vppValid)
+        error('converter:adc:MixedPowerUnits', ...
+            ['文件名同时含 dBm 和 Vpp 标注，请分开运行或改用 powerSetpoints ' ...
+            '显式清单：%s'], strjoin(fileNames(dbmValid & vppValid), ', '));
     end
-    setpointInfo = defaultSetpointInfo(numel(fileNames), inputPowerDbm, ...
-        referenceImpedanceOhm);
+    if all(vppValid(~dbmValid)) && any(vppValid)
+        % Pure Vpp-labelled sweep: use the filename Vpp directly.
+        fileNames = fileNames(vppValid);
+        inputVoltageVpp = inputVoltageVpp(vppValid);
+        inputPowerDbm = NaN(numel(fileNames), 1);
+        if isfinite(referenceImpedanceOhm)
+            inputPowerDbm = converter.adc.vppToDbm(inputVoltageVpp, ...
+                referenceImpedanceOhm);
+        end
+        setpointInfo = defaultSetpointInfo(numel(fileNames), ...
+            NaN(numel(fileNames), 1), referenceImpedanceOhm);
+        setpointInfo.inputVoltageVpp = inputVoltageVpp;
+        setpointInfo.inputPowerSource = repmat( ...
+            "Vpp value parsed from CSV filename", numel(fileNames), 1);
+        setpointInfo.inputPowerDefinition = repmat( ...
+            "filename Vpp setpoint; dBm metadata derived at reference impedance", ...
+            numel(fileNames), 1);
+    elseif any(dbmValid)
+        % Legacy dBm-labelled sweep.
+        parseValid = dbmValid;
+        if any(~parseValid)
+            fprintf('以下文件名无法解析 dBm，已忽略：\n');
+            fprintf('  %s\n', fileNames{~parseValid});
+            fileNames = fileNames(parseValid);
+            inputPowerDbm = inputPowerDbm(parseValid);
+        end
+        setpointInfo = defaultSetpointInfo(numel(fileNames), inputPowerDbm, ...
+            referenceImpedanceOhm);
+    else
+        fprintf('以下文件名无法解析 dBm/Vpp 标注，已忽略：\n');
+        fprintf('  %s\n', fileNames{~dbmValid & ~vppValid});
+        fileNames = fileNames(dbmValid | vppValid);
+        setpointInfo = [];
+    end
 end
-if isempty(fileNames)
+if isempty(fileNames) || isempty(setpointInfo)
     error('converter:adc:NoPowerInput', '没有可解析输入功率的 CSV 文件。');
 end
 if any(~isfinite(setpointInfo.inputVoltageVpp)) || ...
