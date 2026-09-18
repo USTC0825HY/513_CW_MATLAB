@@ -68,8 +68,7 @@ for k = 1:numel(runConfig.entries)
         capture = converter.io.loadPicoMat(entry.matFile, 'A', 1, true);
         [frequencyHz, psdPico, asdPico, setup] = localWelch( ...
             capture.voltage, capture.sampleRateHz, runConfig.welch);
-        psdInput = psdPico .* (row.scale_adc_in_per_dac_out ^ 2);
-        asdInput_nV = sqrt(max(psdInput, 0)) * 1e9;
+        asdInput_nV = sqrt(max(psdPico, 0)) * row.scale_adc_in_per_dac_out * 1e9;
         [actualHz, idx] = localNearestBin(frequencyHz, runConfig.asdCheckHz);
         segmentAsd = localSegmentAsdAtBin(capture.voltage, ...
             capture.sampleRateHz, setup, idx, row.scale_adc_in_per_dac_out);
@@ -102,13 +101,11 @@ for k = 1:numel(runConfig.entries)
 
         safeStem = regexprep(sprintf('%s_%s', char(entry.device), ...
             char(entry.interface)), '[^A-Za-z0-9_-]', '_');
-        spectrumPath = fullfile(runFolder, [safeStem '_full_PSD_ASD.csv']);
-        band = repmat("0-Nyquist", numel(frequencyHz), 1);
-        spectrumTable = table(frequencyHz, psdPico, asdPico, psdInput, ...
-            asdInput_nV, band, 'VariableNames', {'frequency_hz', ...
-            'pico_psd_v2_per_hz', 'pico_asd_v_per_sqrt_hz', ...
-            'input_equiv_psd_v2_per_hz', 'input_equiv_asd_nV_per_sqrt_hz', ...
-            'analysis_band'});
+        % Only the input-equivalent ASD curve is archived; PSD columns and
+        % the PSD figure were dropped to keep result folders lightweight.
+        spectrumPath = fullfile(runFolder, [safeStem '_input_equiv_ASD.csv']);
+        spectrumTable = table(frequencyHz, asdInput_nV, ...
+            'VariableNames', {'frequency_hz', 'input_equiv_asd_nV_per_sqrt_hz'});
         converter.report.writeTable(spectrumTable, spectrumPath);
         row.spectrum_file = string(spectrumPath);
 
@@ -142,22 +139,6 @@ for k = 1:numel(runConfig.entries)
             asdInput_nV(2:end) / 1e3, ...
             plotStem, plotConfig);
         row.asd_plot_file = string([plotStem '.png']);
-
-        psdStem = fullfile(runFolder, [safeStem '_input_equiv_PSD']);
-        plotConfig = struct();
-        plotConfig.titleText = sprintf('%s | %s | input-equivalent PSD', ...
-            entry.device, entry.interface);
-        plotConfig.yLabel = 'ADC input-equivalent PSD (V^2/Hz)';
-        plotConfig.lineLabel = '输入等效 PSD';
-        plotLimit = localPlotLimit(runConfig);
-        plotConfig.limitValue = (plotLimit * 1e-6)^2;
-        plotConfig.limitLabel = '';
-        plotConfig.checkFrequencyHz = actualHz;
-        plotConfig.checkValue = psdInput(idx);
-        plotConfig.checkLabel = '实测 1 Hz';
-        converter.report.plotSpectrum(frequencyHz(2:end), psdInput(2:end), ...
-            psdStem, plotConfig);
-        row.psd_plot_file = string([psdStem '.png']);
     catch exception
         row.formal_state = "暂不能判定";
         row.note = "MAT 可读性或频谱计算失败：" + string(exception.message);
@@ -184,7 +165,7 @@ end
 function cfg = localDefaultConfig()
 cfg = struct();
 cfg.analysisId = 'adc_input_equiv_noise';
-cfg.version = '1.2.0';
+cfg.version = '1.3.0';
 cfg.outputRoot = fullfile('F:', '01_Laser', '0_20260727_513test', ...
     'CW_Data', '513_CW_DATA', 'results');
 cfg.baselineMode = 'none';
@@ -378,7 +359,7 @@ row = struct('device', "", 'interface', "", 'input_file', "", ...
     'segment_asd_mean_n_v_per_sqrt_hz', NaN, ...
     'segment_asd_max_n_v_per_sqrt_hz', NaN, 'segment_asd_cv', NaN, ...
     'baseline_mode', "", 'formal_state', "", 'note', "", ...
-    'spectrum_file', "", 'asd_plot_file', "", 'psd_plot_file', "", ...
+    'spectrum_file', "", 'asd_plot_file', "", ...
     'band', "", 'analysis_band', "");
 end
 

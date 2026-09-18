@@ -118,7 +118,7 @@ r = adc_input_noise_analysis(d, [], options);
 
 DA9726 JG18固定系数为1.014514e-4 V/CodePp，默认不读DAC刻度CSV。2208入口使用不同的固定系数，两者不要混用。当前总链路换算仍不扣PICO/DAC本底。
 
-默认结果按前述raw同级/其它目录内部results规则，子目录名为 `run_时间_ad9245_input_equiv_noise_1hz`，返回 `r.runFolder`。先看 `input_equiv_noise_summary.csv`，再看每接口PSD/ASD、参数和source_manifest。部分记录已有完整性问题，必须检查每行状态和note；生成结果不能证明ADC本征噪声合格。
+默认结果按前述raw同级/其它目录内部results规则，子目录名为 `run_时间_ad9245_input_equiv_noise_1hz`，返回 `r.runFolder`。先看 `input_equiv_noise_summary.csv`，再看每接口ASD图、参数和source_manifest（PSD图与PSD列已移除以减轻结果负担）。部分记录已有完整性问题，必须检查每行状态和note；生成结果不能证明ADC本征噪声合格。
 
 ## 查看结果
 

@@ -89,7 +89,9 @@ switch config.analysisId
             'AD677 external board input; physical board/ADC-pin plane unverified';
         config.sampleRate = 100e6;
         config.noiseBandHz = [1, 10e3];
-        config.noiseLimitNvPerSqrtHz = NaN;
+        % Requirement line drawn on the input-equivalent ASD figure:
+        % <=1 uV/sqrtHz over 1 Hz--10 kHz (user-fixed AD677 noise limit).
+        config.noiseLimitNvPerSqrtHz = 1000;
         config.welchSegmentCount = 1;
         config.welchOverlapRatio = 0;
         config.welchNfft = 131072;
