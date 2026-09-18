@@ -75,6 +75,33 @@ if numel(unique(frequencies)) ~= numel(frequencies)
 end
 validateattributes(effectiveSampleRate, {'numeric'}, ...
     {'scalar', 'real', 'finite', 'positive'}, mfilename, 'sampleRate');
+% Channel-dependent source-impedance de-embedding (see adc128Config):
+% X11-* inputs see the generator 50 ohm output impedance in series with the
+% board 33 ohm resistor, so their bandwidth is de-embedded by (33+50)/33;
+% X10 (OP27 buffer drive) keeps factor 1.
+scaleFactor = 1;
+scaleReason = '默认：无源阻抗去嵌（系数=1）';
+if isfield(config, 'bandwidthScaleRules')
+    for ruleIndex = 1:numel(config.bandwidthScaleRules)
+        rule = config.bandwidthScaleRules{ruleIndex};
+        pattern = rule{1};
+        hit = cellfun(@(f) ~isempty(strfind(lower(char(f)), ...
+            lower(pattern))), selectedFiles);
+        if any(hit)
+            assert(all(hit), ...
+                'adc128:MixedChannelRules', ...
+                '所选文件部分匹配 %s，请勿在同一次运行中混合不同输入链路的通道。', pattern);
+            scaleFactor = rule{2};
+            scaleReason = sprintf(['文件名匹配 %s：源内阻%.0fΩ与板级%.0fΩ串联，' ...
+                '带宽×%.4f 去嵌到板级R=%.0fΩ'], pattern, config.sourceROhm, ...
+                config.boardSeriesROhm, scaleFactor, config.boardSeriesROhm);
+            break;
+        end
+    end
+end
+fprintf('带宽源阻抗修正：%s\n', scaleReason);
+config.bandwidthScaleFactor = scaleFactor;
+config.bandwidthScaleReason = scaleReason;
 % Validate format and coverage before the shared workflow creates outputs.
 for k = 1:numel(selectedFiles)
     path = converter.io.resolveInputPath(dataFolder, selectedFiles{k});

@@ -103,6 +103,19 @@ else
     bandwidth3dBHz = NaN;
     coverageStatus = "覆盖不足";
 end
+% Optional source-impedance de-embedding: a device configuration may
+% declare bandwidthScaleFactor (default 1) to rescale the crossing to the
+% board-only bandwidth (e.g. ADC128 X11 inputs, R = 33 ohm board + 50 ohm
+% generator). The relative-dB curve and all frequency checks stay in the
+% measured domain; only the reported bandwidth is scaled.
+bandwidthScaleFactor = 1;
+if isfield(config, 'bandwidthScaleFactor') && ...
+        ~isempty(config.bandwidthScaleFactor)
+    bandwidthScaleFactor = double(config.bandwidthScaleFactor);
+end
+if isfinite(bandwidth3dBHz)
+    bandwidth3dBHz = bandwidth3dBHz * bandwidthScaleFactor;
+end
 % The numeric crossing is reported separately; without an acceptance limit,
 % the formal conclusion remains an auditable unknown state.
 conclusion = "暂不能判定";
@@ -124,7 +137,8 @@ results = table(string(fileNames(:)), fileFrequencyHz, frequencyHz, ...
 details = struct('bandwidth3dBHz', bandwidth3dBHz, ...
     'referenceCodePp', referenceCodePp, ...
     'coverageStatus', coverageStatus, 'conclusion', conclusion, ...
-    'validPointCount', nnz(validForBandwidth));
+    'validPointCount', nnz(validForBandwidth), ...
+    'bandwidthScaleFactor', bandwidthScaleFactor);
 end
 
 function [marginLowCode, marginHighCode] = railMargins(config)
