@@ -9,19 +9,9 @@ if config.sampleRate < 1e6
 else
     fsLabelText = sprintf('Fs = %.3f MHz', config.sampleRate / 1e6);
 end
-% Optional source-impedance de-embedding display: with a factor other than
-% 1 the frequency axis is drawn de-embedded (measured frequency x factor)
-% so the -3 dB marker lands on the corrected board-only bandwidth, and the
-% axis label states the applied factor.
-bandwidthScaleFactor = 1;
-if isfield(config, 'bandwidthScaleFactor') && ...
-        ~isempty(config.bandwidthScaleFactor)
-    bandwidthScaleFactor = double(config.bandwidthScaleFactor);
-end
-scaleNote = '';
-if bandwidthScaleFactor ~= 1
-    scaleNote = sprintf('，×%.4f 源阻抗去嵌', bandwidthScaleFactor);
-end
+% Plot the measured injection frequencies directly: the figure must
+% reflect the test as performed. Any source-impedance conversion of the
+% cutoff frequency is done by the engineer, not in this figure.
 figureHandle = figure('Color', 'w', 'Visible', visibility, ...
     'Name', 'ADC 频率响应', 'NumberTitle', 'off');
 valid = results.ValidForBandwidth;
@@ -31,7 +21,6 @@ if isfield(config, 'bandwidthFrequencySource') && ...
 else
     plotFrequencyHz = results.FrequencyHz;
 end
-plotFrequencyHz = plotFrequencyHz * bandwidthScaleFactor;
 subplot(2, 1, 1);
 validHandle = semilogx(plotFrequencyHz(valid), results.CodePp(valid), ...
     'bo-', 'LineWidth', 1.2, 'MarkerFaceColor', 'b');
@@ -46,7 +35,7 @@ referenceHandle = semilogx(plotFrequencyHz(results.ReferencePoint), ...
     'MarkerSize', 8);
 hold off;
 grid on;
-xlabel(sprintf('输入频率 (Hz)%s', scaleNote)); ...
+xlabel('输入频率 (Hz)'); ...
     ylabel('拟合 Code_{pp} (LSB)');
 title(['ADC 码值峰峰值响应，' fsLabelText]);
 if isempty(invalidHandle)
@@ -76,13 +65,13 @@ if isfinite(bandwidthHz)
         align = 'left';
     end
     text(textX, mean(currentYLim), ...
-        sprintf('-3 dB 带宽 %.4f kHz%s', bandwidthHz / 1e3, scaleNote), ...
+        sprintf('-3 dB 带宽 %.4f kHz', bandwidthHz / 1e3), ...
         'Color', [0 0.5 0], 'VerticalAlignment', 'bottom', ...
         'HorizontalAlignment', align);
 end
 hold off;
 grid on;
-xlabel(sprintf('输入频率 (Hz)%s', scaleNote)); ylabel('相对幅度 (dB)');
+xlabel('输入频率 (Hz)'); ylabel('相对幅度 (dB)');
 title('归一化幅频响应');
 if config.saveFigures
     converter.report.saveFigure(figureHandle, ...
