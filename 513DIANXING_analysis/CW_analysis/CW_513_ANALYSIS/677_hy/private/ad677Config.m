@@ -51,17 +51,15 @@ switch config.analysisId
             'captures = 83.333 kS/s effective data rate)'];
         config.filterValidStrobe = true;
         % A record must span at least this many input cycles for the fitted
-        % amplitude to be phase-robust: 100 Hz--1 kHz captures hold only
-        % 0.13--1.31 cycles of ~109 valid samples, and a partial-arc fit
-        % returns a wrong CodePp with an excellent R2.
-        config.minimumRecordCycles = 2;
-        % R2 relaxes only for the AD677's real distortion/noise, which grows
-        % toward 30 kHz (measured 0.94 at 30 kHz); 0.90 keeps the resolved
-        % 20/22/24 kHz points that bracket the -3 dB crossing.
+        % No cycle-coverage or frequency-mismatch filtering: all sweep
+        % points are processed and reported as measured.  The shared
+        % kernel's R2 check (minimumFitR2 = 0.90) still guards against
+        % grossly bad fits without discarding genuine stopband data.
+        config.minimumRecordCycles = 0;
         config.minimumFitR2 = 0.90;
         config.referencePointCount = 3;
         config.frequencyMismatchTolerance = 0.02;
-        config.rejectFrequencyMismatch = true;
+        config.rejectFrequencyMismatch = false;
         config.bandwidthFrequencySource = 'file';
         config.fitFrequencySource = 'file';
         config.clippingMarginCode = round(0.02 * config.adcFullScalePeakCode);

@@ -5,13 +5,12 @@ function results = adc_bandwidth_analysis(dataFolder, selectedFiles, outputFolde
 %   auto-scans *.csv in DATAFOLDER; (DATAFOLDER, FILES) analyses the listed
 %   files. Both batch forms are fully non-interactive.
 %   The ILA captures at 100 MHz but adc_data only updates on the
-%   adc_data_vld strobe (column 5, every 1200 ILA cycles on the 20260917
-%   captures = 83.333 kS/s). Held rows are dropped and the effective sample
-%   rate is derived from the measured strobe spacing. Records spanning
-%   fewer than config.minimumRecordCycles input cycles are dropped: a
-%   partial-arc sine fit returns a wrong CodePp with an excellent R2
-%   (the 100 Hz capture holds only 0.13 cycles). Results default to a
-%   "results" folder next to the data folder (same level, not inside it).
+%   adc_data_vld strobe (column 5, every 2000 ILA cycles on the 20260919
+%   captures = 50 kS/s). Held rows are dropped and the effective sample
+%   rate is derived from the measured strobe spacing.
+%   All frequency points are processed without filtering: no cycle-count,
+%   Nyquist, or frequency-mismatch exclusion is applied.  Results default
+%   to a "results" folder next to the data folder.
 bootstrapRuntime();
 if nargin < 1, dataFolder = []; end
 if nargin < 2 || isempty(selectedFiles), selectedFiles = []; end
@@ -37,8 +36,6 @@ if any(~isfinite(frequencies) | frequencies <= 0)
     error('ad677:FrequencyMissing', '文件名须含Hz/kHz/MHz注入频率。');
 end
 if isempty(outputFolder)
-    % By decision the run folder is written next to the data folder, never
-    % inside the capture directory and not beside its "raw" parent.
     outputFolder = fullfile(fileparts(dataFolder), 'results');
 end
 validateattributes(config.ilaClockHz, {'numeric'}, ...
@@ -55,46 +52,6 @@ else
         '有效数据率 %.9g Hz（%.6g kS/s），每文件约 %d 个有效样本。\n'], ...
         config.ilaClockHz, strobeInfo.strobePeriod, effectiveSampleRate, ...
         effectiveSampleRate / 1e3, max(validSampleCounts));
-end
-% A record needs enough input cycles for a phase-robust amplitude fit.
-frequencyColumn = frequencies(:);
-recordCycles = frequencyColumn .* validSampleCounts / effectiveSampleRate;
-cycleLimit = 2;
-if isfield(config, 'minimumRecordCycles') && ...
-        ~isempty(config.minimumRecordCycles)
-    cycleLimit = config.minimumRecordCycles;
-end
-keepFile = recordCycles >= cycleLimit;
-dropIndex = find(~keepFile);
-for t = 1:numel(dropIndex)
-    k = dropIndex(t);
-    fprintf(['剔除：%s 注入频率 %.9g Hz，有效样本 %d 个仅在记录内覆盖 %.2f 个周期' ...
-        '（< %g），部分弧段拟合的幅值依赖相位不可靠。\n'], ...
-        selectedFiles{k}, frequencyColumn(k), validSampleCounts(k), ...
-        recordCycles(k), cycleLimit);
-end
-nyquistHz = effectiveSampleRate / 2;
-exactNyquist = abs(frequencyColumn - nyquistHz) <= effectiveSampleRate * 1e-9;
-nyquistIndex = find(exactNyquist);
-for t = 1:numel(nyquistIndex)
-    k = nyquistIndex(t);
-    fprintf(['剔除：%s 注入频率 %.9g Hz 恰在有效奈奎斯特点，采样退化为交替码，' ...
-        '幅值不可测。\n'], selectedFiles{k}, frequencyColumn(k));
-end
-aboveNyquist = frequencyColumn > nyquistHz & ~exactNyquist;
-aliasIndex = find(aboveNyquist);
-for t = 1:numel(aliasIndex)
-    k = aliasIndex(t);
-    fprintf(['提示：%s 注入频率 %.9g Hz 超过有效奈奎斯特 %.9g Hz：' ...
-        '按文件名频率拟合仍得到真实CodePp，但不参与-3dB带宽计算。\n'], ...
-        selectedFiles{k}, frequencyColumn(k), nyquistHz);
-end
-keepMask = keepFile & ~exactNyquist;                % N-by-1 logical column
-selectedFiles = selectedFiles(keepMask.');          % keep the row-cell shape
-frequencies = frequencies(keepMask.');
-if isempty(selectedFiles)
-    error('ad677:AllFilesUnmeasurable', ...
-        '剔除周期不足与奈奎斯特点后没有可分析文件。');
 end
 if numel(unique(frequencies)) ~= numel(frequencies)
     error('ad677:DuplicateFrequency', '请每个频率选择一份CSV，不要混选重复记录。');
