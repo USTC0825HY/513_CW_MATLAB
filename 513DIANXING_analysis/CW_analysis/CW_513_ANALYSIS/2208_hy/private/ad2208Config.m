@@ -34,7 +34,12 @@ switch config.analysisId
         config.harmonicSpan = 8;
         config.maxHarmonicOrder = 8;
     case 'bandwidth'
-        config.minimumFitR2 = 0.99;
+        % 0.95, not 0.99: deep-stopband captures (70-80 MHz, -40 dB or
+        % more) carry little signal, so the sine-fit R2 naturally drops to
+        % ~0.98 even for a valid measurement.  These points ARE the
+        % stopband-attenuation evidence and must stay valid; in-band R2 is
+        % ~0.999999 and unaffected by the relaxed floor.
+        config.minimumFitR2 = 0.95;
         config.referencePointCount = 3;
         config.frequencyMismatchTolerance = 0.02;
         config.rejectFrequencyMismatch = false;
