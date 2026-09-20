@@ -29,18 +29,27 @@ for k = 1:numel(files)
     actualCheckHz = frequencyHz(checkIndex);
     relativeError = abs(actualCheckHz - config.asdCheckHz) / config.asdCheckHz;
     coverage = setup.segmentCount >= config.minimumAsdSegmentCount && ...
+        setup.resolutionHz <= config.targetResolutionHz * (1 + 1e-6) && ...
         relativeError <= config.maximumAsdBinRelativeError;
     asdValue = asd(checkIndex) * 1e6;
     asdJudgment = localUpperLimit(asdValue, config.asdLimit_uVPerSqrtHz, ...
         coverage && config.formalEnabled);
-    nyquistHz = capture.sampleRateHz / 2;
-    fullBand = config.integratedBandHz(2) <= nyquistHz;
-    integratedVrms = NaN; integratedJudgment = "未处理";
+    band = config.integratedBandHz;
+    validateattributes(band, {'numeric'}, {'real','finite','numel',2,'nonnegative'});
+    if band(2) <= band(1)
+        error('converter:dac:NoiseBandInvalid', '积分上限必须大于下限。');
+    end
+    mask = frequencyHz >= band(1) & frequencyHz <= band(2);
+    fullBand = band(1) >= frequencyHz(1) && band(2) <= frequencyHz(end) && nnz(mask) >= 2;
+    integratedVrms = NaN; integratedJudgment = "未测试";
     if ~config.asdOnly
-        mask = frequencyHz >= config.integratedBandHz(1) & ...
-            frequencyHz <= min(config.integratedBandHz(2), nyquistHz);
-        if any(mask)
-            integratedVrms = sqrt(trapz(frequencyHz(mask), psd(mask)));
+        if nnz(mask) >= 2
+            integrationHz = frequencyHz(mask);
+            if fullBand
+                integrationHz = unique([band(1); integrationHz; band(2)]);
+            end
+            integrationPsd = interp1(frequencyHz, psd, integrationHz, 'linear');
+            integratedVrms = sqrt(trapz(integrationHz, integrationPsd));
             integratedJudgment = localUpperLimit(integratedVrms * 1e6, ...
                 config.integratedLimit_uVrms, fullBand && config.formalEnabled);
         else
@@ -62,6 +71,7 @@ result = struct('config', config, 'summary', summary, ...
     'outputFolder', runContext.folder);
 save(fullfile(runContext.folder, 'dac_noise_result.mat'), 'result');
 converter.runtime.finishRun(runContext, true, 'DA噪声分析完成');
+result = converter.runtime.refreshResultPaths(result, runContext.folder);
 catch exception
     converter.runtime.finishRun(runContext, false, exception.message);
     rethrow(exception);
@@ -69,7 +79,10 @@ end
 end
 
 function [frequencyHz, psd, asd, setup] = localSpectrum(voltage, sampleRate, config)
+validateattributes(config.targetResolutionHz, {'numeric'}, {'real','scalar','finite','positive'});
+validateattributes(config.overlapRatio, {'numeric'}, {'real','scalar','finite','>=',0,'<',1});
 sampleCount = numel(voltage);
+if sampleCount < 16, error('converter:dac:TooFewNoiseSamples', '噪声记录至少需要16点。'); end
 windowLength = round(sampleRate / config.targetResolutionHz);
 windowLength = max(16, min(windowLength, sampleCount));
 nfft = windowLength;
@@ -114,7 +127,7 @@ plotConfig.limitLabel = sprintf('%.4g uV/sqrtHz limit', ...
     config.asdLimit_uVPerSqrtHz);
 plotConfig.checkFrequencyHz = actualCheckHz;
 plotConfig.checkValue = asdValue;
-plotConfig.checkLabel = '实测 1 Hz';
+plotConfig.checkLabel = sprintf('实际频点 %.6g Hz', actualCheckHz);
 plotConfig.annotationText = sprintf('ASD @ %.4g Hz = %.4f uV/sqrtHz', ...
     actualCheckHz, asdValue);
 converter.report.plotSpectrum(frequencyHz(2:end), asd(2:end) * 1e6, ...
@@ -139,6 +152,11 @@ row.integrated_noise_uVrms = integratedVrms * 1e6;
 row.integrated_judgment = integratedJudgment; row.requested_band_fully_covered = fullBand;
     row.spectrum_file = string(spectrumFile); row.asd_plot_file = string([plotFile '.png']);
 row.formal_conclusion = asdJudgment;
+if integratedJudgment == "不满足" || asdJudgment == "不满足"
+    row.formal_conclusion = "不满足";
+elseif integratedJudgment == "暂不能判定"
+    row.formal_conclusion = "暂不能判定";
+end
 end
 
 function row = localEmptyRow()

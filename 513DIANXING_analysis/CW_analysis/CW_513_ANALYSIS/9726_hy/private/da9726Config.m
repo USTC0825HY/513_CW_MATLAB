@@ -13,7 +13,7 @@ config.outputFolder = '';
 config.filePattern = '*.mat';
 config.inputFiles = {};
 config.dataVariables = {};
-config.hardwareGain = 100;
+config.hardwareGain = 1;
 config.removeMean = true;
 config.sampleRate = 250e3;
 config.dacBits = 16;
@@ -61,6 +61,7 @@ switch config.analysisId
             'CODE/COADE token is unsigned 16-bit hexadecimal; signed form is traceability only';
         config.toneFrequencyHz = 1001000;
     case 'noise'
+        config.hardwareGain = 100;
         % Each PicoScope MAT supplies its own Tinterval (or fs).  The
         % generic sampleRate field is retained only for compatibility and
         % must not be read as the measured rate of a particular file.

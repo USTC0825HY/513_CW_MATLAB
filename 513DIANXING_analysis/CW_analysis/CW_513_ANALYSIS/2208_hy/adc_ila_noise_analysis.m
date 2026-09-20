@@ -28,10 +28,14 @@ if nargin < 3 || isempty(outputFolder)
 end
 
 [config, ~] = converter.runtime.applyRunOptions(ad2208Config('input_noise'), runOptions);
+config.allowRadixPrompt = interactive;
 channels = converter.io.resolveAdcChannels(config, dataFolder, selectedFiles, interactive);
 if isempty(channels), results = struct([]); return; end
 config.inputChannels = cellstr(channels);
 calibration = config.reportCalibration;
+[config, selectedFiles, dataFolder, radixCancelled] = converter.io.prepareAdcRadix( ...
+    config, dataFolder, selectedFiles);
+if radixCancelled, results = []; return; end
 results = converter.adc.runInputNoise(config, dataFolder, selectedFiles, ...
     outputFolder, calibration);
 end

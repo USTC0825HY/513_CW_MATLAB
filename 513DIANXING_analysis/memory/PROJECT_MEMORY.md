@@ -196,3 +196,28 @@ converter.dac.loadPicoMat.m 因 tests/unit/dacCoreTest.m 直接调用而保留�
 ## 2026-09-17 MAT纯切分入口
 
 split_dac_isolation_channels v0.2.0只切分A/B/C/D并记录接口、时基和哈希；移除驱动接口、目录频率、正弦拟合及配对模板生成。保留文件名JG顺序/显式channelMapping映射。真实JG25-1M目录中四通道文件单独切分4路、单D文件单独切分1路均通过；波形/时基/源哈希一致；checkcode零问题，3项相关回归通过（含另行显式构建配对后的隔离度计算）。证据：F:/01_Laser/.codex_work/20260917-jg25-isolation/pure_split.log。原始数据和历史结果不改，方法审计状态不升级。
+
+## 2026-09-20 AD677刻度读取进度输出与多副本遮蔽排查
+
+- `_shared/+converter/+adc/runPowerScale.m` 读取循环增加逐文件进度打印（正在读取 i/N、已读入行数）。起因：10个约7.9MB CSV 读取+拟合约10分钟无任何输出，用户两次误判卡死并中断（run目录无STATUS_*标记即为中断证据），实际管线完整可跑通。
+- 实测回归：AD677 X3 1kHz 0.25–2.5Vpp 扫幅10点全部入标定，斜率1.5325135925e-4 Vpp/CodePp，截距0.0417323155 Vpp，R²=0.99999657；结果包 run_20260920_163743_power_scale（STATUS_SUCCESS）。
+- 遮蔽风险记录：CW_513_CODE 为旧快照（缺 +io/parseVoltageVpp.m，runPowerScale 只认dBm文件名、ad677Config 为旧版），另有 D:\CW_analysis 旧库仅2208/9245。AD677 入口必须从 CW_513_ANALYSIS\677_hy 运行，否则路径解析到旧副本会报"没有可解析输入功率的 CSV 文件"。
+- 遗留：CSV 表头为 adc1_data[15:0] 时 detectChannel 无法回映射，summary 的 Channel 标记 Unknown（数值不受影响）；本次通道为 X3→adc1_data(677_1)。
+
+## 2026-09-20 readAdcCsv 性能修复（76s→0.85s/文件）
+
+- 热点：含十六进制列的 ILA CSV 走 textscan 回退后对全部 21 列逐元素 str2double（约275万次，单文件76.3s，10文件一次分析11.6分钟）。计算本身（FFT/正弦拟合）每文件不足1s。
+- 修复 `_shared/+converter/+io/readAdcCsv.m`：首行字段探测含 [a-fA-F] 字母则跳过必败的 dlmread；textscan 只解析需要的列（数据列+可选valid列，其余 %*s）；整数列用整串 sscanf 向量化，数据列保留旧的整列 hex2dec 语义（仅当全列纯hex字符）。textscan 对 %*s 跳过列不产生输出单元，转换循环必须用递增 token 索引而非列号（此坑已踩）。
+- 回归：X3 0.25Vpp 单文件 read 76.31s→0.85s；全套10点分析 11.6min→40.4s（含MATLAB启动）；slope/intercept/R² 与旧版17位有效数字一致（0.00015325135925031594 / 0.041732315541242224 / 0.99999657033375233）。
+- X13 刻度必须用 runOptions.adcDataColumn=12（adc2_data/677_2）；X13 CSV 第4列(adc1_data)为另一路且已到-32768满轨，按默认列解析会全部频点失配并报"标定点少于2个"。
+- AD677 X3/X13 刻度与动态范围已填入电性加强件 20260920 报告 5.1/5.2（三段式 numId 30/31，复用 abstractNum 2，startOverride=1）。
+
+## 2026-09-20 十六进制输入、方法门控与精简结果包
+
+- 主库当前保留25个单项入口。ADC CSV统一由`readAdcCsv/resolveAdcInputRadix`解析`auto|hex|decimal`；auto不猜纯数字或无前缀歧义码。按器件位宽/码制转换，缺失、非法、非整数和超范围样点直接拒绝；实际进制、列、位宽和转换规则写入`evidence/input_decoding.csv`。
+- 新成功运行根目录提供`结果汇总.xlsx`和PNG，完整CSV/MAT/FIG/配置/哈希/日志/状态放入`evidence`。工作簿是报告用字段选择层，不重新拟合；数值保持数值单元格，缺测留空。历史结果不迁移。
+- SFDR修正THD符号与谱掩码；带宽增加时基/周期/Nyquist/有效点门控；ADC隔离度和INL/DNL增加正式有效性/通道覆盖限制；PICO变量、压缩MAT、噪声增益和积分覆盖已修正。9726/766噪声默认电压增益100，刻度和隔离度默认1；2208/9245动态范围算法未改。
+- 真实AD677 X3十进制与只改变ADC列表示的十六进制副本结果逐字段一致，并与历史刻度一致：斜率1.5325135925031594e-4 Vpp/CodePp、截距0.041732315541242224 Vpp、R²=0.99999657033375233。9.918286837 Vpp临界输入是0.25～2.5 Vpp扫描外推，不能当实测点。
+- 真实DA9726 JG18刻度复现历史：斜率1.01451391294771e-4 V/原始无符号码幅、截距-0.00772158623565433 V、R²=0.999984119899267；原始9个MAT哈希不变。负载/参考面仍不完整，正式状态保持暂不能判定。
+- 可读审计报告和144脚本矩阵位于`CW_513_ANALYSIS/docs/20260920_revision`。本轮没有同步旧发布副本、CW_513_CODE/ZIP，没有提交或推送Git。
+- AD9245真实黄金回归驱动已显式固定历史条件：十进制、25 MHz源采样率、SFDR步长1且分析采样率25 MHz。SFDR、带宽、隔离度、INL/DNL四入口均实际运行，最终因当前完整summary字段/状态与旧黄金CSV签名不同而报`converter:test:GoldenMismatch`。旧基线按要求未改，因此该项状态是“已运行、未通过旧签名”，不能写成回归通过；证据在`.codex_work/20260920-cw513-current-audit/implementation/golden_regression_2.log`。

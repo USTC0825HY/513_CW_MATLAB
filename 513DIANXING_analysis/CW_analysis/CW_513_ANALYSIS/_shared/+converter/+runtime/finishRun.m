@@ -3,11 +3,17 @@ function finishRun(runContext, succeeded, message)
 
 diary('off');
 if succeeded
+    saved = load(fullfile(runContext.folder, 'run_config.mat'), 'config');
+    converter.runtime.finalizeBundle(runContext.folder, saved.config);
     statusName = 'STATUS_SUCCESS.txt';
 else
     statusName = 'STATUS_FAILED.txt';
 end
-fileId = fopen(fullfile(runContext.folder, statusName), 'w');
+statusFolder = runContext.folder;
+if isfolder(fullfile(statusFolder, 'evidence'))
+    statusFolder = fullfile(statusFolder, 'evidence');
+end
+fileId = fopen(fullfile(statusFolder, statusName), 'w');
 if fileId < 0
     warning('converter:runtime:CannotWriteStatus', ...
         '无法写入运行状态：%s', runContext.folder);

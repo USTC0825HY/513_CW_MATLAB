@@ -89,6 +89,7 @@ result = struct('config', config, 'summary', summary, ...
     'isolationMatrix', isolationMatrix, 'outputFolder', runContext.folder);
 save(fullfile(runContext.folder, 'dac_isolation_result.mat'), 'result');
 converter.runtime.finishRun(runContext, true, 'DA隔离度分析完成');
+result = converter.runtime.refreshResultPaths(result, runContext.folder);
 catch exception
     converter.runtime.finishRun(runContext, false, exception.message);
     rethrow(exception);

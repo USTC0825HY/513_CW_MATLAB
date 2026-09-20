@@ -4,13 +4,16 @@ function revision = getGitRevision(startFolder)
 revision = 'unknown';
 currentFolder = char(startFolder);
 while ~isempty(currentFolder)
-    if isfolder(fullfile(currentFolder, '.git'))
+    if isfolder(fullfile(currentFolder, '.git')) || isfile(fullfile(currentFolder, '.git'))
         oldFolder = pwd;
         cleanupObject = onCleanup(@() cd(oldFolder));
         cd(currentFolder);
-        [status, output] = system('git rev-parse --short HEAD');
+        safe = strrep(currentFolder, '\', '/');
+        [status, output] = system(sprintf('git -c safe.directory="%s" rev-parse --short HEAD', safe));
         if status == 0
             revision = strtrim(output);
+            [dirtyStatus, dirty] = system(sprintf('git -c safe.directory="%s" status --porcelain', safe));
+            if dirtyStatus == 0 && ~isempty(strtrim(dirty)), revision = sprintf('%s-dirty',revision); end
         end
         return;
     end

@@ -26,9 +26,12 @@ runContext.startedAt = datestr(now, 31); %#ok<DATST,TNOW1>
 runContext.gitRevision = converter.runtime.getGitRevision( ...
     fileparts(mfilename('fullpath')));
 
+config.dataFolder = dataFolder;
+config.bundleLayoutVersion = 2;
 save(fullfile(runFolder, 'run_config.mat'), 'config');
 writeRunInfo(runContext, config, dataFolder);
 converter.runtime.writeRunManifest(runFolder, dataFolder, fileNames);
+converter.runtime.writeSourceManifest(runFolder);
 diary(runContext.logPath);
 runContext.diaryCleanup = onCleanup(@() diary('off'));
 

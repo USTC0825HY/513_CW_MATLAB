@@ -1,6 +1,6 @@
 # AD9245 分析脚本使用说明
 
-更新：2026-09-09。
+更新：2026-09-20。
 
 在 MATLAB 编辑器中打开对应脚本并点击 Run，也可以在命令窗口输入函数名。不带参数运行时，按弹窗选择原始文件。程序只处理选中的文件；在文件、接口或测量条件对话框中取消，均不生成结果。
 
@@ -22,6 +22,7 @@ dataRoot = 'F:/01_Laser/0_20260727_513test/CW_Data/513_CW_DATA';
 - 相对文件名以给定的数据目录为准；也支持绝对路径。传入非空文件列表或有效配对清单时直接运行，不弹选择框。
 - 不改写原始数据。省略输出目录时，输入目录名为 `raw` 就写到它旁边的 `results`，否则写到该目录内的 `results`。
 - 每次创建新的 `run_日期_时间_项目` 子目录；同一秒再次运行会加序号。命令窗口打印完整路径，历史结果保留。
+- 新结果目录外层是 `结果汇总.xlsx` 和 PNG；逐点 CSV、MAT、可编辑 FIG、参数、来源哈希、日志及状态在 `evidence` 子目录。本文 CSV 文件名指该子目录内的文件。已有历史结果保持原布局。
 - 重复文件或会生成同名图谱的文件会报错，避免相互覆盖。通道、参考面、增益和负载以测量记录为准，文件名不能代替这些记录。
 
 ## 脚本与数据
@@ -39,15 +40,15 @@ dataRoot = 'F:/01_Laser/0_20260727_513test/CW_Data/513_CW_DATA';
 
 例如只做 SFDR，输入 `adc_sfdr_analysis`，在选择框进入本次采集目录并勾选 CSV。带宽选一组扫频；刻度选同频、不同输入幅度的一组记录；INL/DNL 选同一接口的正弦记录。不要把一组文件依次交给所有指标。
 
-## ILA采样率：旧数据25 MHz，后续数据20 MHz
+## ILA采样率：当前20 MHz；旧25 MHz数据要显式修改
 
-AD9245旧ILA数据为25 MHz（40 ns），ADC转换时钟为20 MHz。SFDR对旧数据按固定相位每5个ILA点保留1个，形成5 MHz分析序列；现有周期Hann窗随后用于FFT。该结果标记为“旧25 MHz ILA数据抽样估算”，频谱覆盖到2.5 MHz。其他指标仍按各自配置处理，不要把SFDR抽样规则套到带宽、隔离度、刻度或INL/DNL。
+当前磁盘配置的ILA采样率为20 MHz，SFDR仍每5点保留1点，因此实际分析采样率是4 MHz，频谱覆盖到2 MHz。结果标签会明确写出源20 MHz、步长5、分析4 MHz。这个设置保留了用户现有参数。旧25 MHz数据需要显式改为源25 MHz、步长5、分析5 MHz；其频谱覆盖到2.5 MHz。不要将SFDR抽样规则套到其他指标。
 
-当前MATLAB的 `9245_hy/private/ad9245Config.m` 设置 `ilaCaptureSampleRateHz=25e6`。SFDR另设 `sfdrSampleStride=5` 和 `sfdrAnalysisSampleRateHz=5e6`；输出同时记录源样点数、分析样点数、源采样率、抽样步长、分析采样率和结果用途。`adcConversionClockHz=20e6` 只记录ADC转换时钟。
+`private/ad9245Config.m` 当前为 `ilaCaptureSampleRateHz=20e6`、`sfdrSampleStride=5`、`sfdrAnalysisSampleRateHz=4e6`。输出同时记录源/分析样点数、采样率、步长和用途；ADC转换时钟字段单独记录20 MHz，不是CSV时基证据。
 
 分析20 MHz同步新数据时，必须同时设置 `sampleRate=20e6`、`ilaCaptureSampleRateHz=20e6`、`sfdrSampleStride=1`、`sfdrAnalysisSampleRateHz=20e6`，并更新 `sfdrSamplingMode`、`sfdrResultUse`、`ilaCaptureClock` 和 `sampleRateSource`。程序会拒绝“源采样率÷步长”与分析采样率不一致的配置。
 
-SFDR、带宽、功率刻度和隔离度支持第四参数 `runOptions`，可通过 `configOverride` 覆盖上述字段。INL/DNL没有第四参数。修改配置后执行 `clear functions`，并检查输出的 `run_config.mat`。
+SFDR、带宽、功率刻度、隔离度和INL/DNL都支持第四参数 `runOptions`，可通过 `configOverride` 覆盖本次字段。修改配置后执行 `clear functions`，并检查 `evidence/run_config.mat`。
 
 PICO噪声入口读取MAT中的时基，与这里的ILA采样率无关。
 
@@ -57,10 +58,10 @@ PICO噪声入口读取MAT中的时基，与这里的ILA采样率无关。
 
 | 项目 | 当前关键设置 |
 |---|---|
-| CSV 采样时基、码型 | 当前默认及旧数据为ILA 25 MHz；实际改用20 MHz采集后的新数据用20 MHz。14 bit signed、自动数据列；ADC转换时钟单独配置为20 MHz |
-| SFDR | 旧25 MHz ILA每5点保留1点，按5 MHz分析；周期Hann窗；NFFT上限131072；DC/基波跨度16、谐波跨度8、最高8次谐波；结果为旧数据估算 |
+| CSV 采样时基、码型 | 当前默认20 MHz；旧25 MHz采集必须覆盖为25 MHz。14 bit signed、自动数据列；ADC转换时钟单独记录 |
+| SFDR | 当前20 MHz ILA每5点保留1点，按4 MHz分析；周期Hann窗；NFFT上限131072；DC/基波跨度16、谐波跨度8、最高8次谐波；仅为抽样估算 |
 | 带宽 | 正弦拟合R²≥0.99；最低频连续3个有效点作参考；频差容差2% |
-| 刻度 | 1 kHz，−10～+6 dBm；已确认50 Ω条件才按50 Ω换算 |
+| 刻度 | 1 kHz；当前有效Vpp拟合范围0.1～2.1 Vpp；保留旧−10～+6 dBm配置但Vpp范围优先。已确认50 Ω条件才按50 Ω换算 |
 | 隔离度 | 10 kHz，配置默认驱动 X3G；比较值40 dB |
 | INL/DNL | R²≥0.99，marginCode=0，不额外裁剪正弦两端；有效记录比例100%；默认各记录独立触发 |
 
@@ -92,11 +93,32 @@ r = adc_isolation_analysis(d, files, out, options);
 
 | 函数 | 参数顺序 | 本次可改参数 |
 |---|---|---|
-| `adc_sfdr_analysis` | `(d,files,out,runOptions)` | 默认旧25 MHz数据5抽1；20 MHz同步数据须同时覆盖采样率、步长和模式字段 |
+| `adc_sfdr_analysis` | `(d,files,out,runOptions)` | 当前20 MHz数据5抽1；全点同步分析或旧25 MHz数据须同时覆盖采样率、步长和用途字段 |
 | `adc_bandwidth_analysis` | `(d,files,out,runOptions)` | 直接字段或 `configOverride` 子结构 |
 | `adc_power_scale_analysis` | `(d,files,out,runOptions)` | 同上；另支持 `powerSetpoints` |
 | `adc_isolation_analysis` | `(d,files,out,runOptions)` | 驱动通道、频率、参考面、inputChannels 等 |
-| `adc_inl_dnl_analysis` | `(d,files,out)` | 无第四参数；连续性与质量门槛在 private 中修改 |
+| `adc_inl_dnl_analysis` | `(d,files,out,runOptions)` | inputRadix、inputChannels、连续性和质量门槛等本次设置 |
+
+### CSV 进制和结果含义
+
+`inputRadix` 取 `'hex'`（十六进制）、`'decimal'`（十进制）或默认 `'auto'`。
+这与14位补码配置不同：前者决定如何读文本，后者决定读出数值怎样解释正负号。
+按 ILA 导出设置填写；无声明、无明确前缀的码值不再猜测进制。交互运行会提示选择，显式调用须补参数：
+
+```matlab
+options = struct('inputRadix','hex');
+r = adc_sfdr_analysis(d, files, [], options);
+r = adc_inl_dnl_analysis(d, files, [], options);
+```
+
+最终进制及数据列在 `evidence/input_decoding.csv`。INL/DNL 对每份文件核对采集接口，
+表头不够时用 `options.inputChannels` 逐一声明；不同接口分开运行。
+
+- SFDR 仍是 Hann 窗峰值频点法，可能受到音调位于 FFT 栅格中间的影响。DC 先排除再找基波；Nyquist 不再被排除出杂散搜索；重叠的 DC/基波窗口明确报错。
+- THD 现在为谐波功率除以基波功率再取 dB。1%幅度谐波对应 −40 dB，旧版正40 dB是相反比值。旧25 MHz数据的5抽1估算边界保持不变。
+- 带宽保留全部明细，但达到/超过 Nyquist、拟合退化或超码域幅值的点不参与交点计算。少于两周期标 `InsufficientCyclesFlag`；结果一律保留正式“暂不能判定”。
+- 隔离度 `IsolationDb` 为未校正通道增益的码幅比。`ThresholdMet` 是数值过阈值；`Pass` 还受频率、驱动质量、已确认参考条件及正式开关限制。条件不足看 `FormalConclusion`，不能将未获准判断的 `Pass=false` 当作不合格。
+- INL/DNL 是各有效记录共有码域的码密度结果，INL 为最佳拟合直线扣除后的结果。码覆盖不足保留曲线但标 `IncompleteCodeCoverage`；全覆盖也不自动证明源纯度、相位统计和非线性真值已验证。
 
 ## PICO 1 Hz 噪声
 

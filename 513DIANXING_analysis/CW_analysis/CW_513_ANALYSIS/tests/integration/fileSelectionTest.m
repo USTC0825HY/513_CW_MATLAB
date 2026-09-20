@@ -87,15 +87,16 @@ classdef fileSelectionTest < matlab.unittest.TestCase
         function matSubsetDefaultOutputAndUniqueRuns(t,dacFolder)
             t.target(dacFolder,'dac_scale_analysis');
             t.dialogs({{{'code_1000.mat','code_2000.mat'},t.Raw}});
-            selected = dac_scale_analysis(t.Raw);
+            selected = dac_scale_analysis(t.Raw,[],[],struct('toneFrequencyHz',1000));
             t.dialogs({});
-            explicit = dac_scale_analysis(t.Raw,{'code_1000.mat','code_2000.mat'});
+            explicit = dac_scale_analysis(t.Raw,{'code_1000.mat','code_2000.mat'},[], ...
+                struct('toneFrequencyHz',1000));
             t.verifyEqual(height(selected.measurements),2);
             t.verifyEqual(selected.measurements.output_vpp_v,explicit.measurements.output_vpp_v,'AbsTol',1e-12);
             t.verifyNotEqual(selected.outputFolder,explicit.outputFolder);
             t.verifyEqual(fileparts(selected.outputFolder),fullfile(t.Work,'results'));
             t.verifyEqual(t.calls(),0);
-            manifest = readtable(fullfile(explicit.outputFolder,'run_manifest.csv'));
+            manifest = readtable(converter.runtime.evidencePath(explicit.outputFolder,'run_manifest.csv'));
             t.verifyEqual(height(manifest),2);
             t.verifyTrue(all(isfile(string(manifest.FileName))));
         end
@@ -133,7 +134,8 @@ classdef fileSelectionTest < matlab.unittest.TestCase
         function isolationConditionsCancelHasNoOutput(t,dacFolder)
             t.target(dacFolder,'dac_isolation_analysis');
             t.dialogs({{'code_1000.mat',t.Raw},{'code_2000.mat',t.Raw},{{}}});
-            result = dac_isolation_analysis(t.Raw,[],fullfile(t.Work,'out'));
+            result = dac_isolation_analysis(t.Raw,[],fullfile(t.Work,'out'), ...
+                struct('simpleIsolationSelection',false));
             t.verifyEmpty(result);
             t.verifyFalse(isfolder(fullfile(t.Work,'out')));
         end
@@ -141,7 +143,8 @@ classdef fileSelectionTest < matlab.unittest.TestCase
             t.target(dacFolder,'dac_isolation_analysis');
             t.dialogs({{'code_1000.mat',t.Raw},{'code_2000.mat',t.Raw}, ...
                 {{'drive','victim','A','A','1000','synthetic common voltage reference','1'}}});
-            selected = dac_isolation_analysis(t.Raw,[],fullfile(t.Work,'chosen'));
+            selected = dac_isolation_analysis(t.Raw,[],fullfile(t.Work,'chosen'), ...
+                struct('simpleIsolationSelection',false));
             t.dialogs({});
             explicit = dac_isolation_analysis(t.Raw,fileSelectionTest.pair(t.Raw),fullfile(t.Work,'explicit'));
             t.verifyEqual(height(selected.summary),1);
@@ -239,7 +242,7 @@ classdef fileSelectionTest < matlab.unittest.TestCase
                     call = @() dac_isolation_analysis(t.Raw,pair,out);
                 case 'dac_scale_hex_analysis'
                     call = @() dac_scale_hex_analysis(t.Raw,{'absent.mat'},out);
-                    id = 'cw513:ScaleFileMissing';
+                    id = 'converter:io:InputFileNotFound';
                 otherwise
                     ext = '.csv'; if startsWith(entry.name,'dac'), ext = '.mat'; end
                     call = @() feval(entry.name,t.Raw,{['absent' ext]},out);

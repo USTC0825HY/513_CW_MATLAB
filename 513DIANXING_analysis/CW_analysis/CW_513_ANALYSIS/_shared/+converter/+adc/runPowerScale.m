@@ -80,11 +80,20 @@ try
     fileCount = numel(fileNames);
     adcCodeList = cell(fileCount, 1);
     channelNames = strings(fileCount, 1);
+    fprintf('开始读取 %d 个 CSV；此阶段逐文件读入并拟合，大文件时耗时最长，请等待...\n', ...
+        fileCount);
     for fileIndex = 1:fileCount
         filePath = converter.io.resolveInputPath(dataFolder, fileNames{fileIndex});
+        fprintf('正在读取 %d/%d：%s\n', fileIndex, fileCount, fileNames{fileIndex});
         channelNames(fileIndex) = converter.io.detectChannel( ...
             filePath, fileNames{fileIndex}, dataFolder, config);
-        adcCodeList{fileIndex} = converter.io.readAdcCsv(filePath, config);
+        [adcCodeList{fileIndex}, decoding] = converter.io.readAdcCsv(filePath, config);
+        converter.runtime.recordInputDecoding(runContext.folder, decoding);
+        fprintf('  已读入 %d 行\n', numel(adcCodeList{fileIndex}));
+    end
+    knownChannels = unique(channelNames(channelNames ~= "Unknown" & channelNames ~= ""));
+    if numel(knownChannels) > 1
+        error('converter:adc:MixedCalibrationChannels','刻度每次只允许同一接口的数据，当前包含：%s',strjoin(cellstr(knownChannels),', '));
     end
     [results, details] = converter.adc.calculatePowerScale( ...
         adcCodeList, fileNames, inputPowerDbm, channelNames, config, ...
@@ -95,8 +104,6 @@ try
         runContext.folder, 'input_power_setpoint_manifest.csv'));
     converter.report.writeTable(results, fullfile( ...
         runContext.folder, 'ADC_vpp_codepp_summary.csv'));
-    converter.report.writeTable(results, fullfile( ...
-        runContext.folder, 'ADC_vpp_codepp_measurements.csv'));
     converter.report.writeTable(createParameterTable(config, details), ...
         fullfile(runContext.folder, 'analysis_parameters.csv'));
     converter.report.writeTable(createCalibrationTable(config, details), ...

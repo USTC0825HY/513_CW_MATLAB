@@ -8,6 +8,10 @@ if nargin < 3, outputFolder = []; end
 if nargin < 4, runOptions = []; end
 [config, ~] = converter.runtime.applyRunOptions( ...
     ad2208Config('bandwidth'), runOptions);
+config.allowRadixPrompt = isempty(selectedFiles);
+[config, selectedFiles, dataFolder, radixCancelled] = converter.io.prepareAdcRadix( ...
+    config, dataFolder, selectedFiles);
+if radixCancelled, results = []; return; end
 results = converter.adc.runBandwidth(config, ...
     dataFolder, selectedFiles, outputFolder);
 end

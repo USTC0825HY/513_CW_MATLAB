@@ -1,6 +1,7 @@
 # ADC128 带宽分析
 
-运行 `128_hy/adc_bandwidth_analysis.m`，全部采集参数固化在 `128_hy/private/adc128Config.m`，无任何 GUI 弹窗或命令行问答：
+运行 `128_hy/adc_bandwidth_analysis.m`，默认采集参数在 `128_hy/private/adc128Config.m`；
+零参数会弹文件选择框。CSV进制缺少声明时，交互运行还会要求确认进制：
 
 - `ilaClockHz = 50e6`：ILA 记录时钟。
 - `adcDataColumn = 5`：CSV 第 5 列 `data_128[11:0]`，12 bit unsigned 原始码 0～4095。第 4 列是 `data_128_vld` 选通标志，不是码值。
@@ -25,10 +26,21 @@ r = adc_bandwidth_analysis( ...
     'G:/.../01_freq/results/<通道名>');        % 输出目录（可省略，默认数据目录下results）
 ```
 
-文件名须包含注入频率（600Hz、1kHz 等）。混叠频率点的处理：
+文件名须包含注入频率（600Hz、1kHz 等）。当前处理规则：
 
-- **超过有效奈奎斯特**（如 55 kHz，混叠到 45 kHz）：保留并按文件名频率拟合，CodePp 为真实幅值（正弦的混叠像仍是严格正弦，幅值不失真；实测 55 kHz 与 45 kHz 拟合 CodePp 完全相等），但不参与 −3 dB 带宽计算（频率校验自动排除）。
-- **恰在有效奈奎斯特点**（50 kHz = 100 kS/s / 2）：剔除。采样退化为交替码，幅值依赖触发相位，且 `sin(πn)` 基底数值退化，最小二乘会得出超量程伪值（实测某通道拟出 CodePp>22000）。
+- **超过有效Nyquist**（例如100 kS/s采样的55 kHz注入）：保留明细，按FFT估计并优化得到的采样域频率拟合，不能把混叠频率当成新的注入频率；该点不参与 −3 dB 带宽。
+- **恰在有效Nyquist**：也保留明细，但不参与带宽。此时正弦幅值依赖采样相位，不能只因R²好就采信。
+- 表内 `NyquistOrAboveFlag`、`IllConditionedFitFlag`、`InsufficientCyclesFlag` 分别提示混叠范围、病态拟合或超码域幅值、少于两周期。所有数值都需连同这些标记查看。
+
+显式传文件时，按真实导出进制设置，例如：
+
+```matlab
+options = struct('inputRadix','hex'); % 确认本批ILA导出为十六进制
+r = adc_bandwidth_analysis(dataFolder, files, [], options);
+```
+
+`inputRadix` 可用hex、decimal、auto。auto只采用明确声明等证据，无法判断时不会猜测。
+实际采用的进制、列号、点数记录在 `evidence/input_decoding.csv`。12位unsigned表示码域0～4095，不表示CSV一定是十进制。
 
 ## 源阻抗说明与截止频率换算（v0.3.1 起）
 
@@ -51,9 +63,13 @@ fc_板级 = fc_实测 × (33+50)/33 ≈ fc_实测 × 2.5152
 
 近轨检查支持上下轨独立门限（`clippingMarginLowCode/HighCode`，缺省回退共用 `clippingMarginCode`）。本入口下轨设 −1：2.5 Vpp/1.25 V 偏置恰好把波谷压在 0 码附近，触及/轻削 0 码的低频文件按既定判定**仍参与拟合**；上轨保留 1 码余量。参考幅值取最低 3 个有效点（600/800/1000 Hz）的 CodePp 中位数，响应为 `20*log10(CodePp/referenceCodePp)`；−3 dB 交点在 log10 频率轴上线性插值，覆盖不足不外推。输出为码值峰峰值与相对 dB，无 V/code 刻度不宣称电压单位。
 
-结果沿用公共内核：`ADC_bandwidth_summary.csv`、`ADC_bandwidth_result.mat`、PNG/FIG、参数表、输入哈希和日志，写入时间戳 results 目录，原始数据不覆盖。无 ADC128 验收限值，正式结论为"暂不能判定"。
+新结果写入独立时间戳目录。外层为 `结果汇总.xlsx` 和PNG；`evidence` 内保存
+`ADC_bandwidth_summary.csv`、`ADC_bandwidth_result.mat`、FIG、参数、输入哈希和日志。
+先看工作簿及标记，再看图；原始数据和历史结果不覆盖。无ADC128验收限值，正式结论为“暂不能判定”。
 
 ## 20260917 重分析结论（01_freq，5 通道，下轨放宽后）
+
+以下为当时配置下的历史结果。当前源码已有输入解析与质量标记更新，这些数值不是本次重跑结论。
 
 | 通道 | −3 dB 带宽 | 有效点 | 参考 | 备注 |
 |---|---|---|---|---|
@@ -63,4 +79,6 @@ fc_板级 = fc_实测 × (33+50)/33 ≈ fc_实测 × 2.5152
 | X11-3 | 12.33 kHz | 同上 | 同上 | 同上 |
 | X11-4 | 12.48 kHz | 同上 | 同上 | 同上 |
 
-50 kHz 注入点恰在有效奈奎斯特点被剔除；55 kHz 点在结果表中给出 CodePp（真实幅值）。权威结果目录：`G:\513_CW_test\CW_Data\513_CW_DATA\20260917\ad128\01_freq\results\<通道>\run_20260917_123***_bandwidth\`（每通道取时间戳最大的一组；更早的 run 是本轮调试中间产物，策略不同勿引用）。
+上述历史处理未让50 kHz/55 kHz点参与带宽。历史结果目录为
+`G:\513_CW_test\CW_Data\513_CW_DATA\20260917\ad128\01_freq\results\<通道>\run_20260917_123***_bandwidth\`。
+引用时核对目录中的实际参数、状态和原始数据哈希，不仅按时间戳选择。

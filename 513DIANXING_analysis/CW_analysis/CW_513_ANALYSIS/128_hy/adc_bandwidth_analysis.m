@@ -24,6 +24,7 @@ if nargin < 4, runOptions = []; end
 if config.adcBits ~= 12 || ~strcmpi(config.adcCodeFormat, 'unsigned')
     error('adc128:CodeFormat', '本入口要求12 bit unsigned码，范围0～4095。');
 end
+config.allowRadixPrompt = isempty(dataFolder) && isempty(selectedFiles);
 if isempty(dataFolder) && isempty(selectedFiles)
     [selectedFiles, dataFolder] = converter.io.selectCsvFiles( ...
         dataFolder, selectedFiles, '选择同一ADC128通道的扫频CSV（可多选）');
@@ -37,6 +38,9 @@ end
 if isempty(selectedFiles)
     error('adc128:NoCsvFiles', '数据目录中没有CSV文件：%s', dataFolder);
 end
+[config, selectedFiles, dataFolder, radixCancelled] = converter.io.prepareAdcRadix( ...
+    config, dataFolder, selectedFiles);
+if radixCancelled, results = []; return; end
 frequencies = cellfun(@converter.io.parseFrequencyHz, selectedFiles);
 if any(~isfinite(frequencies) | frequencies <= 0)
     error('adc128:FrequencyMissing', '文件名须含Hz/kHz/MHz注入频率，如600Hz、1kHz。');
@@ -70,8 +74,8 @@ if isfield(config, 'bandwidthScaleRules')
     for ruleIndex = 1:numel(config.bandwidthScaleRules)
         rule = config.bandwidthScaleRules{ruleIndex};
         pattern = rule{1};
-        hit = cellfun(@(f) ~isempty(strfind(lower(char(f)), ...
-            lower(pattern))), selectedFiles);
+        hit = cellfun(@(f) contains(lower(char(f)), lower(pattern)), ...
+            selectedFiles);
         if any(hit)
             assert(all(hit), ...
                 'adc128:MixedChannelRules', ...

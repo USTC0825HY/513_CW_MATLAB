@@ -13,17 +13,12 @@ if nargin < 1 || isempty(dataFolder)
         '513_CW_DATA_jianding', 'DA766', '06_scale');
 end
 dataFolder = char(dataFolder);
-if ~isfolder(dataFolder)
-    error('cw513:DataFolderMissing', 'DA766刻度数据目录不存在：%s', dataFolder);
-end
 if nargin < 2, selectedFiles = {}; end
 if nargin < 3, outputFolder = []; end
 
 bootstrapRuntime();
-if isempty(selectedFiles)
-    [selectedFiles, dataFolder] = converter.io.selectMatFiles(dataFolder, [], ...
+[selectedFiles, dataFolder] = converter.io.selectMatFiles(dataFolder, selectedFiles, ...
         '选择本次 DA766 十六进制刻度 MAT（可多选；标准批次和 CH2 批次不要混选）');
-end
 if isempty(selectedFiles)
     result = struct([]);
     return;
@@ -51,6 +46,10 @@ for probeIndex = 1:numel(names)
     end
 end
 
+if hasCodeToken && hasAmpToken
+    error('cw513:MixedScaleNaming', ...
+        'CODE/COADE批次和AMP批次请分开选择，避免混合码值定义或采集条件。');
+end
 configOverride = struct( ...
     'version', '0.1.1', ...
     'codeNameFormat', 'hex_unsigned', ...
@@ -64,13 +63,13 @@ configOverride = struct( ...
     'maximumCodeVpp', 2^16, ...
     'formalEnabled', false, ...
     'referencePlane', ...
-        'DA766 output; PicoScope A voltage waveform; termination not recorded', ...
+        'DA766 output; actual PicoScope channel recorded per measurement; termination not recorded', ...
     'calibrationSource', ...
-        'PicoScope MAT A/Tinterval; hex code token interpreted as unsigned 16-bit');
+        'PicoScope MAT waveform/Tinterval; hex code token interpreted as unsigned 16-bit');
 if hasAmpToken
     configOverride.codeNameTokens = {'amp'};
     configOverride.calibrationSource = ...
-        'PicoScope MAT A/Tinterval; AMP token interpreted as unsigned 16-bit hex';
+        'PicoScope MAT waveform/Tinterval; AMP token interpreted as unsigned 16-bit hex';
     fprintf('DA766 加强件刻度命名：码值取自 AMP_<hex> 标记。\n');
 end
 
@@ -96,11 +95,7 @@ end
 end
 
 function filePath = localFirstFile(dataFolder, selectedFile)
-if isfile(selectedFile)
-    filePath = char(selectedFile);
-else
-    filePath = fullfile(dataFolder, char(selectedFile));
-end
+filePath = converter.io.resolveInputPath(dataFolder, selectedFile);
 if ~isfile(filePath)
     error('cw513:ScaleFileMissing', '选定的DA766刻度文件不存在：%s', filePath);
 end

@@ -8,7 +8,8 @@
 
 采集证据为 16 位 signed two's-complement 十进制码，ADC 数据位于 CSV
 第 4 列，第 5 列为 `adc_data_vld`；ILA 以 100 MHz 记录，转换码在有效脉冲
-之间保持。通道由 CSV 头的 `u_ad677_1/2` 映射为 `677_1/677_2`。
+之间保持。通道由所选ADC列的CSV表头映射：旧格式 `u_ad677_1/2` 和新格式
+`adc1_data/adc2_data` 都对应 `677_1/677_2`；只依据选中列，不因同表另一通道存在而改通道。
 
 输入功率刻度严格拟合 `Vpp = a*CodePp + b`，横轴 CodePp、纵轴 Vpp。
 manifest 表明信号源为 SDG6032X-E 且输出模式为 High-Z；这里的 Vpp 是
@@ -83,16 +84,18 @@ ILA 以 100 MHz 记录，但 `adc_data` 只在 `adc_data_vld`（第5列）选通
 约 109 个有效样本。带宽入口自动从选通间隔推导该速率并校验均匀性，读取时剔除保持码
 （共享内核按 `filterValidStrobe=true` 显式开启，噪声/功率刻度入口不受影响）。
 
-记录内周期数门限 `minimumRecordCycles=2`：100 Hz～1 kHz 各文件仅覆盖 0.13～1.31 个
-周期，部分弧段的正弦拟合会以完美 R² 返回错误幅值（100 Hz 实测虚高 11%），因此剔除；
-参考幅值取 2/4/6 kHz 的 CodePp 中位数。`minimumFitR2=0.90` 是为容纳 AD677 高频端真实
-失真（30 kHz 实测 R²≈0.94），使 20/22/24 kHz 点保留在 −3 dB 交点插值内。超过有效奈奎
-斯特（41.7 kHz）的频点按文件名频率拟合仍给出真实 CodePp 但不参与带宽计算；恰在奈奎
-斯特点的频点剔除。
+当前配置为 `minimumRecordCycles=0`，没有按周期数删除低频点；`minimumFitR2=0.90`，
+`rejectFrequencyMismatch=false`。拟合使用文件名频率，参考为最低三个有效点的 CodePp 中位数，
+不再固定写成2/4/6 kHz。短记录即使R²很高也可能幅值不稳定，少于两周期的明细现在标
+`InsufficientCyclesFlag=true`；正式结论仍为“暂不能判定”，建议补采更长记录。
+如本次需要两周期门槛，可传 `struct('minimumRecordCycles',2)`。所有点保留在表中，
+但达到/超过有效Nyquist、拟合矩阵病态或拟合峰峰值超出码域的点不参与带宽。
+Nyquist取本次有效采样率的一半，不能固定使用历史41.7 kHz。
 
 **结果目录**：带宽入口默认写入数据目录同级的 `results`（不在数据目录内部，也不在
 raw 上级）；例如数据 `...\01_freq\raw\ad677_ch01_...` → 结果 `...\01_freq\raw\results\`。
 
+下列是历史处理结果，采用当时两周期筛选；不是当前默认参数的回归基线。
 20260917 ch01 1 Vpp 扫频：2k～30k 共 15 点全部有效，−3 dB 带宽 **20.87 kHz**
 （参考 CodePp 中位数 5378.7，2/4/6 kHz）。1.5 Vpp 扫频：15 点全部有效，
 −3 dB 带宽 **20.49 kHz**（参考 CodePp 中位数 8353.4，幅值比 1 Vpp 高约 1.55 倍，
@@ -101,12 +104,27 @@ raw 上级）；例如数据 `...\01_freq\raw\ad677_ch01_...` → 结果 `...\01
 
 四个入口的函数签名均为 `(dataFolder,selectedFiles,outputFolder,runOptions)`。
 第四参数支持本次配置覆盖；刻度还支持powerSetpoints。配置默认值在
-`private/ad677Config.m`，采集点校验在private辅助文件中。这次文件选择修改未改变参数和公式。
+`private/ad677Config.m`，采集点校验在private辅助文件中。
 
-未给输出目录时，一般在输入目录内部results；输入目录名为raw时，写入raw同级的results；
+CSV进制用 `inputRadix='hex'` 或 `'decimal'` 按实际ILA导出设置声明。
+默认auto只使用CSV明确声明等证据；不能确定时，交互运行询问，显式运行要求补参数。
+这与16位补码设置不同，不能因为码值没有A～F就认定十进制。
+
+```matlab
+options = struct('inputRadix','decimal','adcDataColumn',4);
+r = adc_power_scale_analysis(csvFolder, csvFiles, [], options);
+r = adc_bandwidth_analysis(csvFolder, csvFiles, [], options);
+```
+
+双通道CSV必须按实际表头选列，例如已确认的 `adc2_data` 位于第12列时，设置
+`adcDataColumn=12`，同时确认对应valid列。最终进制、数据列和点数在 `evidence/input_decoding.csv`。
+
+带宽输出遵循上面单独列出的“数据目录同级results”；其他入口未给输出目录时，一般在输入目录内部results；输入目录名为raw时，写入raw同级的results；
 采集目录位于raw下一层时，沿用raw同级results布局。每次新建时间戳子目录，
-历史结果保留。先看 `ADC_bandwidth_summary.csv` 或
-`ADC_vpp_codepp_calibration.csv`、`ADC_critical_input_estimate.csv`，再看图、参数和输入清单。
+历史结果保留。正式单项入口的新结果外层为 `结果汇总.xlsx` 和 PNG，先看工作簿；
+`ADC_bandwidth_summary.csv`、`ADC_vpp_codepp_calibration.csv`、
+`ADC_critical_input_estimate.csv` 及其他CSV、MAT、FIG、参数、日志和输入哈希放在 `evidence`。
+通用 `ila_waveform_fft` 工具目前仍沿用自己的输出格式，不把它当成正式噪声或带宽结果。
 
 切换到本目录前使用restoredefaultpath、clear functions，并用which核对同名函数。
 保留private、相邻_shared及noise_chain_hy；原始数据只读。上述文件选择规则适用于四个单项入口，
@@ -117,7 +135,7 @@ raw 上级）；例如数据 `...\01_freq\raw\ad677_ch01_...` → 结果 `...\01
 ILA入口按CSV表头识别 `677_1/677_2`，不根据文件名猜通道。全部100 MHz抓取点
 都参与Welch计算，包括 `adc_data_vld` 脉冲之间的保持码；第5列只统计有效脉冲数
 和有效更新率。默认使用131072点Hann窗，统计1 Hz～10 kHz。100 MHz是ILA记录
-时钟，不等于AD677有效转换更新率。当前没有正式噪声限值，结果为“暂不能判定”。
+时钟，不等于AD677有效转换更新率。配置中的图上参考线为1 µV/√Hz，但正式开关仍关闭，结果为“暂不能判定”。
 频带标线按实际数量级显示单位，因此上限标为 `10 kHz`，不会显示为 `0 MHz`。
 
 噪声电压只在去均值后乘固定斜率，不使用截距：`677_1 = 1.536050e-4 V/code`，
@@ -140,3 +158,21 @@ PICO入口按
 ## 报告刻度配置
 
 输入频率和输入功率入口的报告刻度由 `private` 配置加载，统一保存在 `_shared/+converter/+calibration/reportCalibration.m`。完整数值、单位和缺失项见 [CALIBRATION.md](../CALIBRATION.md)。刻度分析入口仍根据所选数据重新拟合，不会用报告数值替换新测量结果。两个噪声入口只使用上面的器件固定斜率，不读取该报告刻度。
+
+## PICO MAT里有多个波形通道时怎么办
+
+这里的“ADC接口”与“PICO波形变量”是两件事：interface指定板上的输入接口；waveVariable指定MAT里的A、B、C或D。
+
+- MAT只有一个A/B/C/D波形时，不需要填写waveVariable，程序会记录实际变量名。
+- MAT有多个波形时，在第四参数runOptions中写明`'waveVariable','A'`（按实际采集选择A/B/C/D）。程序不会默认挑第一个。
+- 如果明确指定A，但MAT只有B，程序会报错，不会悄悄换到B。核对采集记录后再修改参数。
+
+例如，在已有参数结构options上增加：
+
+```matlab
+options.waveVariable = 'B';  % 仅在本次采集确实保存在B时这样写
+r = adc_pico_noise_1hz_analysis(dataFolder, {'本次原始文件.mat'}, outputFolder, options);
+```
+
+options.interface仍须按本次真实板卡接口填写，其他增益、刻度和Welch参数不因选择B而改变。输出摘要中的wave_variable记录实际分析了哪个PICO变量。
+0.2 Hz频点间隔对应每段约5秒；这只够一段。默认覆盖检查还要求至少4段，50%重叠时通常需要至少12.5秒总记录。摘要中的asd_coverage_adequate只表示频率和分段覆盖满足配置，不代表器件性能已通过验收。

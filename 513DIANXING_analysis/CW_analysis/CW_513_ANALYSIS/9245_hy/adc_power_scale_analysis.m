@@ -30,6 +30,10 @@ end
 % figure contains only the inverse Vpp-to-CodePp panel.
 config.autoSelectPowerRangeFromUnclipped = true;
 config.powerScalePlotMode = 'inverse';
+config.allowRadixPrompt = isempty(selectedFiles);
+[config, selectedFiles, dataFolder, radixCancelled] = converter.io.prepareAdcRadix( ...
+    config, dataFolder, selectedFiles);
+if radixCancelled, results = []; return; end
 results = converter.adc.runPowerScale(config, dataFolder, selectedFiles, ...
     outputFolder, runOptions);
 end

@@ -27,6 +27,7 @@ classdef ioUtilitiesTest < matlab.unittest.TestCase
 
         function convertsUnsignedCodes(testCase)
             config = ioUtilitiesTest.adcConfig('unsigned', 2);
+            config.inputRadix = 'decimal';
             actual = converter.io.readAdcCsv( ...
                 ioUtilitiesTest.fixturePath('adc_unsigned_no_header.csv'), config);
             testCase.verifyEqual(actual, [-8192; 0; 8191]);

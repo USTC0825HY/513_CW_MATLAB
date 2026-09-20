@@ -10,11 +10,11 @@
                               `-> converter.runtime
 ```
 
-五个器件目录提供分析入口和器件参数，公共算法集中在 `_shared`。AD677注册输入频率和输入功率入口，并提供ILA与PICO噪声入口。器件入口不得调用 `laser_analysis`、`01_workflows`或历史脚本。纯计算函数不得弹窗；报告层不得重新定义指标公式。
+六个器件目录提供分析入口和器件参数，公共算法集中在 `_shared`。AD677注册输入频率和输入功率入口，并提供ILA与PICO噪声入口。器件入口不得调用 `laser_analysis`、`01_workflows`或历史脚本。纯计算函数不得弹窗；报告层不得重新定义指标公式。
 
 三个 ADC 功率刻度入口共同通过 `converter.adc.estimateCriticalInput` 估计正、负轨首先达到99%数字满量程时的输入。该函数只使用刻度计算中已选入的 `CalibrationIncluded` 点；报告层只显示其结果，不重新拟合。
 
-AD9245 SFDR对旧25 MHz ILA记录采用器件配置驱动的固定步长抽样，每5点保留1点，按5 MHz序列执行现有周期Hann FFT。抽样仅在9245 SFDR配置启用；公共内核校验分析采样率等于源采样率除以步长，并在结果表记录抽样模式和用途。20 MHz同步采集使用步长1。
+AD9245 SFDR当前默认20 MHz源时基、每5点取1点、4 MHz分析时基；旧25 MHz记录需显式配置25 MHz和抽取后5 MHz。抽样仅在9245 SFDR配置启用；公共内核校验分析采样率等于源采样率除以步长，并在结果表记录抽样模式和用途。20 MHz同步采集使用步长1。
 
 ## 源码与交付包
 
@@ -68,3 +68,11 @@ DA9726 的 `dac_noise_analysis` 与 `dac_scale_analysis` 只共用上述输入�
 取消选择时，在创建结果目录前返回，不调用createRun。传入完整文件、接口和配对信息时不显示对话框。DA9726隔离度的简化交互先单选驱动、再多选受扰；接口来自切分MAT元数据或文件名前缀，驱动频率由 `converter.dac.estimateToneFrequency` 统一搜索，未知阻抗/探头信息写入限制而不伪造。隔离度报告将长表 `isolation_db` 同步整理为驱动×受扰矩阵，输出 `dac_isolation_matrix_db.csv` 及按有限 dB 值自适应范围的矩阵热力图；40 dB参考阈值不再用于设置图轴范围。DA766继续使用原逐对条件输入。ADC隔离度和ILA噪声仍使用采集表头或inputChannels确认通道，禁止文件名自动改写驱动条件或选择刻度。
 
 2208隔离度第四参数按字段覆盖默认配置；9245使用runOptions。9245 PICO保留三参数签名，entries或selectedFiles/interfaces作为显式文件映射；一个接口一次一份，避免核心接口命名文件覆盖。2208 PICO仍单份MAT，固定DA9726系数保持不变。两类PICO入口返回时恢复原路径。
+
+## 2026-09-20 输入和输出合同
+
+CSV基数解析统一位于 `converter.io.readAdcCsv/resolveAdcInputRadix`；交互询问由入口前置 `prepareAdcRadix` 完成。只有选中数据列按指定基数解码；valid列仍按0/1处理。缺失、非法或越位宽码值直接拒绝，不删点改变时基。实际基数、列、位宽和码制记录在 `evidence/input_decoding.csv`。
+
+所有新结果由 `converter.runtime.finalizeBundle` 整理：根目录仅保留精简 `结果汇总.xlsx` 和PNG；完整CSV、FIG、配置、完整结果MAT、源码哈希和状态在evidence。共享 `buildSummarySheets` 只挑选已计算字段及换算显示单位，`writeSummaryXlsx` 写标准OOXML数值单元格，不依赖Excel进程。缺少应有字段报错，缺测数值留空。历史结果不迁移；审计读取用 `evidencePath` 兼容旧目录。
+
+本次修改的是主源码。历史ZIP、独立发布目录和旁边的CW_513_CODE没有被更新或删除，不能声称它们已经包含本次修正。

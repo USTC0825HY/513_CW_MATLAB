@@ -14,12 +14,12 @@ classdef dacCoreTest < matlab.unittest.TestCase
         function picoMatLoaderUsesTinterval(testCase)
             folder = [tempname '_cw513_dac_loader']; mkdir(folder);
             cleanup = onCleanup(@() rmdir(folder, 's')); %#ok<NASGU>
-            A = [1; 2; NaN; 4]; Tinterval = 1 / 1000;
+            A = [1; 2; 3; 4]; Tinterval = 1 / 1000;
             filePath = fullfile(folder, 'capture.mat');
             save(filePath, 'A', 'Tinterval');
             capture = converter.dac.loadPicoMat(filePath, 'A', 2, true);
             testCase.verifyEqual(capture.sampleRateHz, 1000, 'AbsTol', eps);
-            testCase.verifyEqual(capture.droppedNonfinite, 1);
+            testCase.verifyEqual(capture.droppedNonfinite, 0);
             testCase.verifyEqual(mean(capture.voltage), 0, 'AbsTol', eps);
         end
 
@@ -37,7 +37,7 @@ classdef dacCoreTest < matlab.unittest.TestCase
             result = converter.dac.runScale(config);
             testCase.verifyEqual(result.summary.fit_point_count, 2);
             testCase.verifyTrue(isfile(fullfile(result.outputFolder, ...
-                'STATUS_SUCCESS.txt')));
+                'evidence', 'STATUS_SUCCESS.txt')));
         end
 
         function hexUnsignedCodeNamesAreSignExtended(testCase)
@@ -92,7 +92,7 @@ classdef dacCoreTest < matlab.unittest.TestCase
             result = converter.dac.runIsolation(config);
             testCase.verifyEqual(result.summary.status, "未测试");
             testCase.verifyTrue(isfile(fullfile(result.outputFolder, ...
-                'STATUS_SUCCESS.txt')));
+                'evidence', 'STATUS_SUCCESS.txt')));
         end
 
         function multichannelIsolationSplitIsTraceable(testCase)
@@ -144,7 +144,7 @@ classdef dacCoreTest < matlab.unittest.TestCase
                 repmat(actualFrequency, 4, 1), 'AbsTol', 1e-9);
             testCase.verifyGreaterThan(isolation.summary.driven_fit_r2, 0.999);
             testCase.verifyTrue(isfile(fullfile(isolation.outputFolder, ...
-                'dac_isolation_matrix_db.csv')));
+                'evidence', 'dac_isolation_matrix_db.csv')));
             testCase.verifyEqual(size(isolation.isolationMatrix.valuesDb), [1, 4]);
             testCase.verifyEqual(isolation.isolationMatrix.valuesDb, ...
                 isolation.summary.isolation_db', 'AbsTol', 1e-12);
@@ -238,7 +238,7 @@ classdef dacCoreTest < matlab.unittest.TestCase
                 'integratedBandHz', [10, 100], 'integratedLimit_uVrms', 120, ...
                 'asdOnly', true, 'formalEnabled', false);
             result = converter.dac.runNoise(config);
-            spectrum = dir(fullfile(result.outputFolder, '*ASD_spectrum.csv'));
+            spectrum = dir(fullfile(result.outputFolder, 'evidence', '*ASD_spectrum.csv'));
             header = fileread(fullfile(spectrum.folder, spectrum.name));
             testCase.verifyFalse(~isempty(strfind(lower(header), 'psd'))); %#ok<STREMP>
         end

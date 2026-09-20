@@ -31,8 +31,9 @@ try
     fitConfig.sampleRate = analysisSampleRateHz;
     for fileIndex = 1:fileCount
         fileName = fileNames{fileIndex};
-        adcCode = converter.io.readAdcCsv( ...
+        [adcCode, decoding] = converter.io.readAdcCsv( ...
             converter.io.resolveInputPath(dataFolder, fileName), config);
+        converter.runtime.recordInputDecoding(runContext.folder, decoding);
         sourceSampleCount(fileIndex) = numel(adcCode);
         adcCode = adcCode(1:sampleStride:end);
         analysisSampleCount(fileIndex) = numel(adcCode);
@@ -82,9 +83,6 @@ end
 function [sampleStride, analysisSampleRateHz, samplingMode, resultUse] = ...
         resolveSampling(config)
 sampleStride = 1;
-analysisSampleRateHz = config.sampleRate;
-samplingMode = 'direct_uniform_samples';
-resultUse = '按器件配置解释';
 if isfield(config, 'sfdrSampleStride')
     sampleStride = config.sfdrSampleStride;
 end
@@ -105,9 +103,17 @@ if abs(analysisSampleRateHz - expectedRateHz) > ...
 end
 if isfield(config, 'sfdrSamplingMode')
     samplingMode = char(string(config.sfdrSamplingMode));
+else
+    samplingMode = 'direct_uniform_samples';
 end
 if isfield(config, 'sfdrResultUse')
     resultUse = char(string(config.sfdrResultUse));
+elseif sampleStride > 1
+    resultUse = sprintf( ...
+        '固定步长抽样估算；源%.9g MHz、步长%d、分析%.9g MHz', ...
+        config.sampleRate/1e6, sampleStride, analysisSampleRateHz/1e6);
+else
+    resultUse = '按器件配置解释';
 end
 end
 

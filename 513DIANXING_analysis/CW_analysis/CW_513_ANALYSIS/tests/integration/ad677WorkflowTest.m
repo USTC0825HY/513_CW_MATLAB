@@ -50,7 +50,7 @@ classdef ad677WorkflowTest < matlab.unittest.TestCase
             testCase.verifyTrue(ad677WorkflowTest.hasSuccessfulRun( ...
                 fullfile(testCase.PowerFolder, 'results')));
             criticalFiles = dir(fullfile(testCase.PowerFolder, 'results', ...
-                'run_*', 'ADC_critical_input_estimate.csv'));
+                'run_*', 'evidence', 'ADC_critical_input_estimate.csv'));
             testCase.verifyNotEmpty(criticalFiles);
         end
 
@@ -60,7 +60,8 @@ classdef ad677WorkflowTest < matlab.unittest.TestCase
                 'ad677_ch01_input_frequency_1.5Vpp_30kHz_sweep.csv'};
             outputFolder = fullfile(testCase.WorkFolder, 'explicit_result');
             results = adc_bandwidth_analysis(testCase.BandwidthFolder, ...
-                files, outputFolder);
+                files, outputFolder, struct('sampleRate',100e6, ...
+                'inputRadix','decimal'));
             testCase.verifyEqual(results.FileFrequencyHz, [100; 1e3; 30e3]);
             testCase.verifyEqual(unique(results.CoverageStatus), "覆盖不足");
             testCase.verifyTrue(ad677WorkflowTest.hasSuccessfulRun(outputFolder));
@@ -206,7 +207,7 @@ classdef ad677WorkflowTest < matlab.unittest.TestCase
 
         function tf = hasSuccessfulRun(folder)
             tf = ~isempty(dir(fullfile(folder, 'run_*', ...
-                'STATUS_SUCCESS.txt')));
+                'evidence', 'STATUS_SUCCESS.txt')));
         end
     end
 end

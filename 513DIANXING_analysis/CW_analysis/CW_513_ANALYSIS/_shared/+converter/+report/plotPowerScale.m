@@ -34,8 +34,6 @@ end
 
 if config.saveFigures
     converter.report.saveFigure(figureHandle, ...
-        fullfile(outputFolder, 'ADC_vpp_codepp_result'), 180);
-    converter.report.saveFigure(figureHandle, ...
         fullfile(outputFolder, 'ADC_vpp_codepp_fit'), 180);
 end
 if ~config.showFigures, close(figureHandle); end
@@ -113,8 +111,21 @@ critical = details.criticalInput;
 criticalColor = [1 0 0];
 
 markerLabel = buildCriticalLegendLabel(critical);
-hCritical = plot(critical.criticalCodePp, critical.criticalInputVpp, 'x', ...
-    'Color', criticalColor, 'MarkerSize', 11, 'LineWidth', 2.2);
+isExtrapolation = contains(lower(char(string(critical.status))), ...
+    'extrapolation');
+if isExtrapolation
+    % Do not put an extrapolated point on the measured curve or expand the
+    % axes to it.  A legend-only hollow marker keeps the value visible while
+    % making clear that it was not captured by the sweep.
+    hCritical = plot(nan, nan, 'd', 'Color', criticalColor, ...
+        'MarkerFaceColor', 'none', 'MarkerSize', 9, 'LineWidth', 1.8);
+    handles = hCritical;
+    labels = {markerLabel};
+    return;
+end
+hCritical = plot(critical.criticalCodePp, critical.criticalInputVpp, 'd', ...
+    'Color', criticalColor, 'MarkerFaceColor', 'none', ...
+    'MarkerSize', 9, 'LineWidth', 1.8);
 
 expandAxesForCritical(critical.criticalCodePp, critical.criticalInputVpp);
 currentXLim = xlim;
@@ -154,5 +165,9 @@ if isfinite(critical.criticalInputDbm)
 else
     valueText = sprintf('%.3f Vpp', critical.criticalInputVpp);
 end
-label = sprintf('99%% 临界满量程：%s', valueText);
+if contains(lower(char(string(critical.status))), 'extrapolation')
+    label = sprintf('99%% 临界输入外推（非实测）：%s', valueText);
+else
+    label = sprintf('99%% 临界输入估计：%s', valueText);
+end
 end

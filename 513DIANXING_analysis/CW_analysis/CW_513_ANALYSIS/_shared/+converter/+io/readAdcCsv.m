@@ -1,197 +1,126 @@
-function adcCode = readAdcCsv(filePath, config)
-%READADCCSV Read and normalize one ADC-code column from an ILA CSV file.
-
-requiredFields = {'adcDataColumn', 'adcBits', 'adcCodeFormat'};
-converter.runtime.validateConfig(config, requiredFields);
-numericData = readNumericCsv(filePath, config.adcDataColumn);
-if isempty(numericData)
-    error('converter:io:NoNumericData', 'CSV 中没有数值数据：%s', filePath);
+function [adcCode, metadata] = readAdcCsv(filePath, config)
+%READADCCSV Read ADC words with explicit radix; never discard bad samples.
+% INPUTRADIX: auto/hex/decimal. ALLOWRADIXPROMPT: interactive entries only.
+converter.runtime.validateConfig(config, {'adcDataColumn','adcBits','adcCodeFormat'});
+validateattributes(config.adcBits, {'numeric'}, {'scalar','integer','>=',1,'<=',32});
+[headerRows, fields, headers] = inspectHeader(filePath);
+columnCount = numel(fields);
+column = config.adcDataColumn;
+if column == 0, column = columnCount; end
+if ~isscalar(column) || column ~= fix(column) || column < 1 || column > columnCount
+    error('converter:io:ColumnOutOfRange', 'ADC数据列超出CSV列范围：%s', filePath);
 end
-
-% Optional per-row strobe filter: only when the device configuration
-% explicitly opts in with filterValidStrobe = true AND declares a
-% validDataColumn (e.g. the ADC128/AD677 ILA exports with a vld strobe),
-% keep only rows whose strobe is high. The dropped rows are held codes,
-% not additional samples, so the remaining sequence stays uniformly
-% sampled. Configs that merely carry validDataColumn for their own vld
-% statistics (AD677 noise/power entries) are left unchanged.
-if isfield(config, 'filterValidStrobe') && ...
-        ~isempty(config.filterValidStrobe) && config.filterValidStrobe && ...
-        isfield(config, 'validDataColumn') && ~isempty(config.validDataColumn)
-    validColumn = config.validDataColumn;
-    if ~isscalar(validColumn) || validColumn ~= round(validColumn) || ...
-            validColumn < 1 || validColumn > size(numericData, 2)
-        error('converter:io:ValidColumnOutOfRange', ...
-            '有效标志列 %d 超出 CSV 列范围：%s', validColumn, filePath);
+filterValid = isfield(config,'filterValidStrobe') && config.filterValidStrobe;
+keepColumns = column;
+if filterValid
+    if ~isfield(config,'validDataColumn') || ~isscalar(config.validDataColumn) || ...
+            config.validDataColumn ~= fix(config.validDataColumn) || ...
+            config.validDataColumn < 1 || config.validDataColumn > columnCount
+        error('converter:io:ValidColumnOutOfRange','有效标志列超出CSV列范围。');
     end
-    numericData = numericData(numericData(:, validColumn) == 1, :);
-    if size(numericData, 1) == 0
-        error('converter:io:NoValidStrobeSamples', ...
-            '有效标志列没有为1的数据行：%s', filePath);
-    end
+    keepColumns = unique([column config.validDataColumn]);
 end
-
-dataColumn = config.adcDataColumn;
-if dataColumn == 0
-    dataColumn = size(numericData, 2);
-end
-if dataColumn < 1 || dataColumn > size(numericData, 2)
-    error('converter:io:ColumnOutOfRange', ...
-        'ADC 数据列 %d 超出 CSV 列范围：%s', dataColumn, filePath);
-end
-
-adcCode = double(numericData(:, dataColumn));
-adcCode = adcCode(isfinite(adcCode));
-if isempty(adcCode)
-    error('converter:io:NoAdcSamples', 'ADC 数据列没有有限数值：%s', filePath);
-end
-
-fullScalePeak = 2^(config.adcBits - 1);
-% Some Vivado exports store the ADC word as an unprefixed hexadecimal
-% token (for example, ``f31f``) rather than a signed decimal value.  The
-% text reader below returns those words as unsigned integers; normalize
-% them to the configured signed two's-complement range before analysis.
-if strcmpi(config.adcCodeFormat, 'signed')
-    adcCode(adcCode >= fullScalePeak) = ...
-        adcCode(adcCode >= fullScalePeak) - 2 * fullScalePeak;
-end
-if strcmpi(config.adcCodeFormat, 'unsigned')
-    adcCode = adcCode - fullScalePeak;
-elseif ~strcmpi(config.adcCodeFormat, 'signed')
-    error('converter:io:InvalidCodeFormat', ...
-        'adcCodeFormat 只能是 signed 或 unsigned。');
-end
-if any(adcCode < -fullScalePeak | adcCode > fullScalePeak - 1)
-    warning('converter:io:CodeOutOfRange', ...
-        '文件 %s 的码值超出 %d 位 ADC 范围。', filePath, config.adcBits);
-end
-end
-
-function numericData = readNumericCsv(filePath, dataColumn)
-fileInfo = dir(filePath);
-if isempty(fileInfo)
-    error('converter:io:CannotOpenCsv', '无法打开 CSV：%s', filePath);
-end
-if fileInfo.bytes == 0
-    error('converter:io:NoNumericData', 'CSV 文件为空：%s', filePath);
-end
-headerRowCount = countCsvHeaderRows(filePath);
-try
-    numericData = dlmread(filePath, ',', headerRowCount, 0); %#ok<DLMRD>
-catch readError
-    % dlmread cannot consume hexadecimal ADC words.  Fall back to a small,
-    % dependency-free CSV parser which accepts decimal and hexadecimal
-    % fields while preserving the original column layout.
-    try
-        numericData = readTextNumericCsv(filePath, headerRowCount, dataColumn);
-    catch fallbackError
-        error('converter:io:NonNumericData', ...
-            'CSV 数值区包含文字或列数不一致：%s\n%s\n%s', ...
-            filePath, readError.message, fallbackError.message);
-    end
-end
-end
-
-function headerRowCount = countCsvHeaderRows(filePath)
-fileId = fopen(filePath, 'r');
-if fileId < 0
-    error('converter:io:CannotOpenCsv', '无法打开 CSV：%s', filePath);
-end
-cleanupObject = onCleanup(@() fclose(fileId));
-if isempty(cleanupObject)
-    error('converter:io:CleanupInitFailed', '无法建立 CSV 文件清理器。');
-end
-headerRowCount = 0;
-while true
-    currentLine = fgetl(fileId);
-    if ~ischar(currentLine)
-        break;
-    end
-    fields = strsplit(strtrim(currentLine), ',');
-    if isNumericCsvLine(fields)
-        break;
-    end
-    headerRowCount = headerRowCount + 1;
-end
-end
-
-function numericData = readTextNumericCsv(filePath, headerRowCount, dataColumn)
-% Use textscan so the 131072-sample capture is parsed in compiled chunks
-% instead of invoking strsplit/regexp once per field.
-fileId = fopen(filePath, 'r');
-if fileId < 0
-    error('converter:io:CannotOpenCsv', '无法打开 CSV：%s', filePath);
-end
-cleanupObject = onCleanup(@() fclose(fileId));
-if isempty(cleanupObject)
-    error('converter:io:CleanupInitFailed', '无法建立 CSV 文件清理器。');
-end
-for rowIndex = 1:headerRowCount
-    if ~ischar(fgetl(fileId))
-        error('converter:io:NoNumericData', 'CSV 文件没有数值数据：%s', filePath);
-    end
-end
-firstDataLine = fgetl(fileId);
-if ~ischar(firstDataLine)
-    numericData = zeros(0, 0);
-    return;
-end
-firstFields = strsplit(strtrim(firstDataLine), ',');
-columnCount = numel(firstFields);
-frewind(fileId);
-formatSpec = repmat('%s', 1, columnCount);
-tokens = textscan(fileId, formatSpec, 'Delimiter', ',', ...
-    'HeaderLines', headerRowCount, 'ReturnOnError', false, ...
-    'CollectOutput', false);
-rowCount = numel(tokens{1});
-if rowCount == 0
-    numericData = zeros(0, columnCount);
-    return;
-end
-numericData = NaN(rowCount, columnCount);
-if dataColumn == 0
-    dataColumn = columnCount;
-end
-for columnIndex = 1:columnCount
-    columnTokens = tokens{columnIndex};
-    % When the selected ADC column caused dlmread to fail, interpret the
-    % entire selected column as hexadecimal words.  This matters for tokens
-    % containing only digits (e.g. ``8000``), which are valid hex but would
-    % otherwise be mistaken for decimal 8000.
-    if columnIndex == dataColumn
-        try
-            values = hex2dec(columnTokens);
-        catch
-            values = str2double(columnTokens);
-        end
+% Keep selective-column textscan and vectorized conversion from the
+% existing performance fix; unrelated bus columns are not converted.
+format = repmat({'%*s'},1,columnCount);
+format(keepColumns) = {'%s'};
+fid = fopen(filePath,'r');
+if fid < 0, error('converter:io:CannotOpenCsv','无法打开CSV：%s',filePath); end
+cleanup = onCleanup(@() fclose(fid));
+tokens = textscan(fid,[format{:}],'Delimiter',',','HeaderLines',headerRows, ...
+    'ReturnOnError',false,'Whitespace',' \b\t','EndOfLine','\n','CollectOutput',false);
+adcTokens = strtrim(tokens{find(keepColumns == column,1)});
+if isempty(adcTokens), error('converter:io:NoNumericData','CSV没有数据行：%s',filePath); end
+[radix,source] = converter.io.resolveAdcInputRadix(adcTokens,headers,column,config,filePath);
+adcCode = parseTokens(adcTokens,radix,filePath);
+sourceCount = numel(adcCode);
+peak = 2^(config.adcBits-1);
+if strcmpi(config.adcCodeFormat,'signed')
+    if strcmp(radix,'hex')
+        conversionRule = 'raw >= 2^(bits-1): code = raw - 2^bits; otherwise code = raw';
+        if any(adcCode < 0 | adcCode >= 2*peak), rangeError(filePath); end
+        adcCode(adcCode >= peak) = adcCode(adcCode >= peak)-2*peak;
+    elseif any(adcCode < -peak | adcCode >= peak)
+        rangeError(filePath);
     else
-        values = str2double(columnTokens);
+        conversionRule = 'signed decimal code retained without remapping';
     end
-    hexIndices = find(isnan(values));
-    if ~isempty(hexIndices)
-        try
-            values(hexIndices) = hex2dec(columnTokens(hexIndices));
-        catch
-            error('converter:io:NonNumericData', ...
-                'CSV 数值区包含无法解析的十六进制字段。');
-        end
-    end
-    numericData(:, columnIndex) = values;
+elseif strcmpi(config.adcCodeFormat,'unsigned')
+    conversionRule = 'analysis code = unsigned raw - 2^(bits-1)';
+    if any(adcCode < 0 | adcCode >= 2*peak), rangeError(filePath); end
+    adcCode = adcCode-peak;
+else
+    error('converter:io:InvalidCodeFormat','adcCodeFormat只能是signed或unsigned。');
 end
+if filterValid
+    valid = parseTokens(strtrim(tokens{find(keepColumns == config.validDataColumn,1)}), ...
+        'decimal',filePath);
+    if numel(valid) ~= sourceCount || any(valid ~= 0 & valid ~= 1)
+        error('converter:io:InvalidValidStrobe','有效标志列必须逐行对应且仅包含0/1。');
+    end
+    adcCode = adcCode(valid == 1);
+    if isempty(adcCode), error('converter:io:NoValidStrobeSamples','有效标志列没有为1的数据行。'); end
+end
+metadata = struct('filePath',char(filePath),'inputRadix',radix, ...
+    'inputRadixSource',source,'adcDataColumn',column,'adcBits',config.adcBits, ...
+    'conversionRule',conversionRule, ...
+    'adcCodeFormat',config.adcCodeFormat,'sourceSampleCount',sourceCount, ...
+    'retainedSampleCount',numel(adcCode));
 end
 
-function tf = isNumericCsvLine(fields)
-tf = true;
-for fieldIndex = 1:numel(fields)
-    token = strtrim(fields{fieldIndex});
-    if isempty(token)
-        tf = false;
-        return;
+function values = parseTokens(tokens,radix,filePath)
+if any(cellfun('isempty',tokens))
+    error('converter:io:NonNumericData','CSV所选列存在缺失值：%s',filePath);
+end
+joined = strjoin(tokens,' ');
+if strcmp(radix,'hex')
+    pattern = '^(?:(?:0[xX])?[0-9A-Fa-f]+)(?: (?:0[xX])?[0-9A-Fa-f]+)*$';
+    if isempty(regexp(joined,pattern,'once'))
+        error('converter:io:NonNumericData','CSV所选列不是合法十六进制整数：%s',filePath);
     end
-    value = str2double(token);
-    if isnan(value) && isempty(regexp(token, '^[0-9A-Fa-f]+$', 'once'))
-        tf = false;
-        return;
+    values = hex2dec(regexprep(tokens,'^0[xX]',''));
+else
+    number = '[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?';
+    if isempty(regexp(joined,['^' number '(?: ' number ')*$'],'once'))
+        error('converter:io:NonNumericData','CSV所选列不是有限十进制数：%s',filePath);
     end
+    values = sscanf(joined,'%f');
+end
+if numel(values) ~= numel(tokens) || any(~isfinite(values) | values ~= fix(values))
+    error('converter:io:NonNumericData','ADC码必须是有限整数，不能丢弃非法样点：%s',filePath);
+end
+values = double(values(:));
+end
+
+function rangeError(filePath)
+error('converter:io:CodeOutOfRange','ADC码超出所配置位宽/码制范围：%s',filePath);
+end
+
+function [count,fields,headers] = inspectHeader(filePath)
+fid = fopen(filePath,'r');
+if fid < 0, error('converter:io:CannotOpenCsv','无法打开CSV：%s',filePath); end
+cleanup = onCleanup(@() fclose(fid));
+count = 0; headers = {}; hasColumnHeader = false;
+while true
+    line = fgetl(fid);
+    if ~ischar(line), error('converter:io:NoNumericData','CSV为空或没有数据区：%s',filePath); end
+    candidate = strtrim(strsplit(line,',','CollapseDelimiters',false));
+    % Vivado first column is the sample index. A malformed selected ADC
+    % token in that first data row must not be skipped as another header.
+    firstNumeric = ~isempty(regexp(candidate{1}, ...
+        '^(?:[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?|0[xX][0-9a-fA-F]+|[0-9a-fA-F]+)$','once'));
+    declaration = ~isempty(regexpi(line, ...
+        'radix|^\s*(?:hex(?:adecimal)?|decimal|signed|unsigned)(?:\s*,|\s*$)','once'));
+    if firstNumeric && ~declaration
+        fields = candidate; return;
+    end
+    if ~isempty(strtrim(line)) && ~declaration
+        if hasColumnHeader
+            fields = candidate; return;
+        end
+        hasColumnHeader = true;
+    end
+    headers{end+1} = line; %#ok<AGROW>
+    count = count+1;
 end
 end

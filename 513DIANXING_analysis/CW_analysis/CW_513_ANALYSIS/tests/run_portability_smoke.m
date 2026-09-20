@@ -31,12 +31,15 @@ writeAdcSmokeCsv(fullfile(adcData, 'X3G_1MHz.csv'), false);
 writeAdcSmokeCsv(fullfile(adcData, 'YB_1MHz.csv'), true);
 addpath(fullfile(repositoryRoot, '9245_hy'));
 adc9245 = adc_sfdr_analysis(adcData, {'X3G_1MHz.csv'}, ...
-    fullfile(smokeFolder, 'ad9245_results'));
+    fullfile(smokeFolder, 'ad9245_results'), struct( ...
+    'sampleRate',25e6,'sfdrSampleStride',5, ...
+    'sfdrAnalysisSampleRateHz',5e6,'inputRadix','decimal'));
 rmpath(fullfile(repositoryRoot, '9245_hy'));
 clear adc_sfdr_analysis;
 addpath(fullfile(repositoryRoot, '2208_hy'));
 adc2208 = adc_sfdr_analysis(adcData, {'YB_1MHz.csv'}, ...
-    fullfile(smokeFolder, 'ad2208_results'));
+    fullfile(smokeFolder, 'ad2208_results'), ...
+    struct('sampleRate',25e6,'inputRadix','decimal'));
 rmpath(fullfile(repositoryRoot, '2208_hy'));
 addpath(fullfile(repositoryRoot, '766_hy'));
 files = {'scale_code_10000.mat','scale_code_20000.mat'};
@@ -50,9 +53,9 @@ pair = struct('driven_file', fullfile(dataFolder, 'scale_code_10000.mat'), ...
 isolation = dac_isolation_analysis(dataFolder, pair, ...
     fullfile(smokeFolder, 'isolation_results'));
 
-assert(isfile(fullfile(scale.outputFolder, 'STATUS_SUCCESS.txt')));
-assert(isfile(fullfile(noise.outputFolder, 'STATUS_SUCCESS.txt')));
-assert(isfile(fullfile(isolation.outputFolder, 'STATUS_SUCCESS.txt')));
+assert(isfile(converter.runtime.evidencePath(scale.outputFolder, 'STATUS_SUCCESS.txt')));
+assert(isfile(converter.runtime.evidencePath(noise.outputFolder, 'STATUS_SUCCESS.txt')));
+assert(isfile(converter.runtime.evidencePath(isolation.outputFolder, 'STATUS_SUCCESS.txt')));
 assert(~isempty(adc9245)); assert(~isempty(adc2208));
 assertContained(requiredFiles('9245_hy/adc_sfdr_analysis.m', repositoryRoot), repositoryRoot);
 assertContained(requiredFiles('2208_hy/adc_sfdr_analysis.m', repositoryRoot), repositoryRoot);

@@ -14,6 +14,9 @@ fitR2 = NaN(fileCount, 1);
 fitResidualRmsCode = NaN(fileCount, 1);
 frequencyMismatchFlag = false(fileCount, 1);
 clippingFlag = false(fileCount, 1);
+illConditionedFitFlag = false(fileCount, 1);
+recordCycles = NaN(fileCount, 1);
+nyquistFlag = false(fileCount, 1);
 fullScalePeakCode = 2^(config.adcBits - 1);
 [marginLowCode, marginHighCode] = railMargins(config);
 
@@ -48,6 +51,11 @@ for fileIndex = 1:fileCount
     codePp(fileIndex) = metrics.fit.codePp;
     fitR2(fileIndex) = metrics.fit.r2;
     fitResidualRmsCode(fileIndex) = metrics.fit.residualRmsCode;
+    recordCycles(fileIndex) = numel(adcCode) * fitFrequencyHz(fileIndex) / config.sampleRate;
+    nyquistFlag(fileIndex) = isfinite(fileFrequencyHz(fileIndex)) && ...
+        fileFrequencyHz(fileIndex) >= config.sampleRate / 2;
+    illConditionedFitFlag(fileIndex) = metrics.fit.designCondition > 1e8 || ...
+        codePp(fileIndex) > 2 * fullScalePeakCode;
     clippingFlag(fileIndex) = ...
         min(adcCode) <= -fullScalePeakCode + marginLowCode || ...
         max(adcCode) >= fullScalePeakCode - 1 - marginHighCode;
@@ -62,10 +70,19 @@ fitR2 = fitR2(sortIndex);
 fitResidualRmsCode = fitResidualRmsCode(sortIndex);
 frequencyMismatchFlag = frequencyMismatchFlag(sortIndex);
 clippingFlag = clippingFlag(sortIndex);
+illConditionedFitFlag = illConditionedFitFlag(sortIndex);
+recordCycles = recordCycles(sortIndex);
+nyquistFlag = nyquistFlag(sortIndex);
+minimumRecordCycles = 0;
+if isfield(config, 'minimumRecordCycles')
+    minimumRecordCycles = config.minimumRecordCycles;
+end
+insufficientCyclesFlag = recordCycles < max(2, minimumRecordCycles);
 validForBandwidth = isfinite(codePp) & codePp > 0 & ...
     isfinite(fitR2) & fitR2 >= config.minimumFitR2 & ...
     isfinite(frequencyHz) & isfinite(fileFrequencyHz) & ...
-    fileFrequencyHz > 0 & ~clippingFlag;
+    fileFrequencyHz > 0 & ~clippingFlag & ~illConditionedFitFlag & ...
+    ~nyquistFlag & recordCycles >= minimumRecordCycles;
 if isfield(config, 'rejectFrequencyMismatch') && config.rejectFrequencyMismatch
     validForBandwidth = validForBandwidth & ~frequencyMismatchFlag;
 end
@@ -134,6 +151,10 @@ results = table(string(fileNames(:)), fileFrequencyHz, frequencyHz, ...
     'ClippingFlag', 'CodePp', 'RelativeDb', 'FitR2', ...
     'FitResidualRmsCode', 'ValidForBandwidth', 'ReferencePoint', ...
     'Bandwidth3dBHz', 'CoverageStatus', 'Conclusion'});
+results.RecordCycles = recordCycles;
+results.InsufficientCyclesFlag = insufficientCyclesFlag;
+results.NyquistOrAboveFlag = nyquistFlag;
+results.IllConditionedFitFlag = illConditionedFitFlag;
 details = struct('bandwidth3dBHz', bandwidth3dBHz, ...
     'referenceCodePp', referenceCodePp, ...
     'coverageStatus', coverageStatus, 'conclusion', conclusion, ...

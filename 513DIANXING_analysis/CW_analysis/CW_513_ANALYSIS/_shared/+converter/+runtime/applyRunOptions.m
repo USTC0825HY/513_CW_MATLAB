@@ -24,4 +24,9 @@ end
 if ~isempty(override)
     config = converter.runtime.mergeConfig(config, override);
 end
+if isfield(config, 'inputRadix') && ...
+        (~(ischar(config.inputRadix) || (isstring(config.inputRadix) && isscalar(config.inputRadix))) || ...
+        ~ismember(lower(char(config.inputRadix)), {'auto', 'hex', 'decimal'}))
+    error('converter:io:InvalidInputRadix', 'inputRadix只能是auto、hex或decimal。');
+end
 end

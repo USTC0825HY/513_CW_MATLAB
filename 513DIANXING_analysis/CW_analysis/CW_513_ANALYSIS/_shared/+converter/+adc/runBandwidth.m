@@ -12,7 +12,7 @@ fileFrequencyHz = cellfun(@converter.io.parseFrequencyHz, fileNames).';
 runContext = converter.runtime.createRun( ...
     config, dataFolder, fileNames, outputFolder);
 try
-    adcCodeList = readAllCodes(dataFolder, fileNames, config);
+    adcCodeList = readAllCodes(dataFolder, fileNames, config, runContext.folder);
     [results, details] = converter.adc.calculateBandwidth( ...
         adcCodeList, fileNames, fileFrequencyHz, config);
     converter.report.writeTable(results, ...
@@ -20,8 +20,6 @@ try
     analysisParameters = createParameterTable(config);
     converter.report.writeTable(analysisParameters, ...
         fullfile(runContext.folder, 'analysis_parameters.csv'));
-    converter.report.writeTable(analysisParameters, ...
-        fullfile(runContext.folder, 'ADC_bandwidth_analysis_parameters.csv'));
     bandwidth3dBHz = details.bandwidth3dBHz;
     referenceCodePp = details.referenceCodePp;
     sampleRate = config.sampleRate;
@@ -50,13 +48,14 @@ catch analysisError
 end
 end
 
-function adcCodeList = readAllCodes(dataFolder, fileNames, config)
+function adcCodeList = readAllCodes(dataFolder, fileNames, config, runFolder)
 adcCodeList = cell(numel(fileNames), 1);
 for fileIndex = 1:numel(fileNames)
     fprintf('[%d/%d] 正在读取：%s\n', ...
         fileIndex, numel(fileNames), fileNames{fileIndex});
-    adcCodeList{fileIndex} = converter.io.readAdcCsv( ...
+    [adcCodeList{fileIndex}, decoding] = converter.io.readAdcCsv( ...
         converter.io.resolveInputPath(dataFolder, fileNames{fileIndex}), config);
+    converter.runtime.recordInputDecoding(runFolder, decoding);
 end
 end
 

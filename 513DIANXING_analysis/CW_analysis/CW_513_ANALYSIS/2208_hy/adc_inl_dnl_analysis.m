@@ -1,5 +1,5 @@
 function results = adc_inl_dnl_analysis(dataFolder, selectedFiles, ...
-        outputFolder, recordsAreSampleContiguous)
+        outputFolder, recordsAreSampleContiguous, runOptions)
 %ADC_INL_DNL_ANALYSIS Analyze one folder of AD2208 sine-code-density data.
 %   With no SELECTEDFILES, an interactive multi-file chooser opens at
 %   DATAFOLDER. Pass SELECTEDFILES to run an explicit subset without UI.
@@ -14,6 +14,9 @@ if nargin < 2, selectedFiles = []; end
 if nargin < 3, outputFolder = []; end
 if nargin < 4, recordsAreSampleContiguous = []; end
 config = ad2208Config('inl_dnl');
+if nargin < 5, runOptions = struct(); end
+[config, ~] = converter.runtime.applyRunOptions(config, runOptions);
+config.allowRadixPrompt = isempty(selectedFiles);
 if ~isempty(recordsAreSampleContiguous)
     if ~isscalar(recordsAreSampleContiguous) || ...
             ~(islogical(recordsAreSampleContiguous) || ...
@@ -23,6 +26,9 @@ if ~isempty(recordsAreSampleContiguous)
     end
     config.recordsAreSampleContiguous = logical(recordsAreSampleContiguous);
 end
+[config, selectedFiles, dataFolder, radixCancelled] = converter.io.prepareAdcRadix( ...
+    config, dataFolder, selectedFiles);
+if radixCancelled, results = []; return; end
 results = converter.adc.runInlDnl(config, ...
     dataFolder, selectedFiles, outputFolder);
 end

@@ -11,6 +11,13 @@ else
     runConfig = localMergeDefaults(localDefaultConfig(), runConfig);
 end
 
+validateattributes(runConfig.fpgaGain, {'numeric'}, {'real','scalar','finite','nonzero'});
+validateattributes(runConfig.asdCheckHz, {'numeric'}, {'real','scalar','finite','positive'});
+validateattributes(runConfig.welch.targetResolutionHz, {'numeric'}, {'real','scalar','finite','positive'});
+validateattributes(runConfig.welch.overlapRatio, {'numeric'}, {'real','scalar','finite','>=',0,'<',1});
+if ~strcmpi(runConfig.welch.windowType, 'hann') || ~strcmpi(runConfig.baselineMode, 'none')
+    error('cw513:UnsupportedNoiseMethod', '当前联合噪声只实现Hann窗和不扣除本底模式。');
+end
 runFolder = localCreateRunFolder(runConfig.outputRoot, runConfig.analysisId);
 runConfig.outputFolder = runFolder;
 mkdir(runFolder);
@@ -56,18 +63,13 @@ for k = 1:numel(runConfig.entries)
     row.file_size_bytes = fileInfo.bytes;
     row.source_sha256 = string(converter.runtime.sha256File(entry.matFile));
     manifest(end + 1) = localManifestRow(entry.matFile, "raw", row.source_sha256); %#ok<AGROW>
-    [complete, integrityNote] = localCheckMatCompleteness(entry.matFile, ...
-        localPickWaveVariable(entry.matFile));
-    if ~complete
-        row.formal_state = "暂不能判定";
-        row.note = string(integrityNote);
-        rows(k) = row;
-        continue;
-    end
-
     try
-        waveVariable = localPickWaveVariable(entry.matFile);
+        waveVariable = runConfig.waveVariable;
+        if isfield(entry, 'waveVariable'), waveVariable = entry.waveVariable; end
+        % MATLAB load validates the actual compressed payload. Disk size is
+        % not comparable to a variable's uncompressed byte count.
         capture = converter.io.loadPicoMat(entry.matFile, waveVariable, 1, true);
+        row.wave_variable = string(capture.variableName);
         [frequencyHz, psdPico, asdPico, setup] = localWelch( ...
             capture.voltage, capture.sampleRateHz, runConfig.welch);
         asdInput_nV = sqrt(max(psdPico, 0)) * row.scale_adc_in_per_dac_out * 1e9;
@@ -86,6 +88,10 @@ for k = 1:numel(runConfig.entries)
         row.welch_segment_count = setup.segmentCount;
         row.asd_check_requested_hz = runConfig.asdCheckHz;
         row.asd_check_actual_hz = actualHz;
+        row.asd_bin_relative_error = abs(actualHz - runConfig.asdCheckHz) / runConfig.asdCheckHz;
+        row.asd_coverage_adequate = setup.segmentCount >= runConfig.minimumAsdSegmentCount && ...
+            setup.resolutionHz <= runConfig.welch.targetResolutionHz * (1 + 1e-6) && ...
+            row.asd_bin_relative_error <= runConfig.maximumAsdBinRelativeError;
         row.pico_asd_at_check_v_per_sqrt_hz = asdPico(idx);
         row.input_asd_at_check_n_v_per_sqrt_hz = asdInput_nV(idx);
         row.segment_asd_min_n_v_per_sqrt_hz = min(segmentAsd, [], 'omitnan');
@@ -99,6 +105,10 @@ for k = 1:numel(runConfig.entries)
         else
             row.formal_state = "未测试";
             row.note = "按校准斜率折算；未扣除 PICO/DAC 本底。";
+        end
+        if ~row.asd_coverage_adequate
+            row.formal_state = "暂不能判定";
+            row.note = "1 Hz频点/目标分辨率/分段数量覆盖不足；数值仅供诊断，未扣本底。";
         end
 
         safeStem = regexprep(sprintf('%s_%s', char(entry.device), ...
@@ -134,8 +144,8 @@ for k = 1:numel(runConfig.entries)
         plotConfig.showLegend = false;
         plotConfig.checkFrequencyHz = actualHz;
         plotConfig.checkValue = asdInput_nV(idx) / 1e3;
-        plotConfig.checkValueLabel = sprintf('1 Hz: %.3f µV/√Hz', ...
-            asdInput_nV(idx) / 1e3);
+        plotConfig.checkValueLabel = sprintf('%.6g Hz: %.3f µV/√Hz', ...
+            actualHz, asdInput_nV(idx) / 1e3);
         plotConfig.annotationText = '';
         converter.report.plotSpectrum(frequencyHz(2:end), ...
             asdInput_nV(2:end) / 1e3, ...
@@ -155,12 +165,13 @@ converter.report.writeTable(localParametersTable(runConfig, calibration), ...
 converter.report.writeTable(struct2table(manifest), ...
     fullfile(runFolder, 'source_manifest.csv'));
 localWriteReadme(runFolder, runConfig, calibration, summary);
-save(fullfile(runFolder, 'adc_input_equiv_noise_result.mat'), ...
-    'runConfig', 'calibration', 'summary', 'manifest', '-v7.3');
 localWriteRunInfo(runFolder, runConfig, summary);
 result = struct('runFolder', runFolder, 'summary', summary, ...
     'calibration', calibration, 'manifest', manifest, 'config', runConfig);
 save(fullfile(runFolder, 'result.mat'), 'result', '-v7.3');
+converter.runtime.writeSourceManifest(runFolder);
+converter.runtime.finalizeBundle(runFolder, runConfig);
+result = converter.runtime.refreshResultPaths(result, runFolder);
 fprintf('Saved ADC input-equivalent noise bundle: %s\n', runFolder);
 end
 
@@ -173,6 +184,9 @@ cfg.outputRoot = fullfile('F:', '01_Laser', '0_20260727_513test', ...
 cfg.baselineMode = 'none';
 cfg.fpgaGain = 128;
 cfg.asdCheckHz = 1;
+cfg.waveVariable = '';
+cfg.minimumAsdSegmentCount = 4;
+cfg.maximumAsdBinRelativeError = 0.25;
 cfg.referencePlane = 'ADC external board input';
 cfg.plotDpi = 180;
 cfg.calibrationWorkbook = fullfile('F:', '01_Laser', ...
@@ -290,28 +304,6 @@ end
 row = matches(1);
 end
 
-function [complete, note] = localCheckMatCompleteness(matFile, waveVariable)
-complete = true; note = "";
-try
-    info = whos('-file', matFile);
-    a = info(strcmp({info.name}, waveVariable));
-    if isempty(a)
-        complete = false;
-        note = "MAT 文件没有 " + string(waveVariable) + " 波形变量。";
-        return;
-    end
-    fileInfo = dir(matFile);
-    if fileInfo.bytes < a.bytes
-        complete = false;
-        note = sprintf('MAT 文件疑似截断：文件 %.0f bytes，小于 A 变量声明 %.0f bytes。', ...
-            fileInfo.bytes, a.bytes);
-    end
-catch exception
-    complete = false;
-    note = "MAT 文件完整性检查失败：" + string(exception.message);
-end
-end
-
 function [frequencyHz, psd, asd, setup] = localWelch(y, fs, cfg)
 n = numel(y);
 windowLength = max(16, min(n, floor(fs / cfg.targetResolutionHz)));
@@ -331,19 +323,6 @@ function [actualHz, index] = localNearestBin(frequencyHz, requestedHz)
 actualHz = frequencyHz(index);
 end
 
-function waveVariable = localPickWaveVariable(matFile)
-%LOCALPICKWAVEVARIABLE Prefer Pico channel A, fall back to B/C/D.
-%   Some PicoScope exports store the waveform under channel B (for example
-%   the jiaqiang AD677 X3/X13 captures were recorded on Pico channel B).
-matVars = whos('-file', matFile);
-present = matVars(ismember({matVars.name}, {'A', 'B', 'C', 'D'}));
-if isempty(present)
-    error('cw513:PicoWaveformMissing', ...
-        'MAT文件中没有A/B/C/D波形变量：%s', matFile);
-end
-waveVariable = present(1).name;
-end
-
 function values = localSegmentAsdAtBin(y, fs, setup, index, scale)
 step = setup.windowLength - setup.overlapLength;
 starts = 1:step:(numel(y) - setup.windowLength + 1);
@@ -359,6 +338,8 @@ end
 
 function row = localEmptyRow()
 row = struct('device', "", 'interface', "", 'input_file', "", ...
+    'wave_variable', "", 'asd_bin_relative_error', NaN, ...
+    'asd_coverage_adequate', false, ...
     'input_path', "", 'file_size_bytes', NaN, 'source_sha256', "", ...
     'calibration_workbook', "", 'calibration_data_group', "", ...
     'k_adc_v_per_code', NaN, 'adc_intercept_v', NaN, 'adc_r2', NaN, ...
@@ -403,7 +384,8 @@ parameter = ["analysis_id"; "version"; "formula"; "baseline_mode"; ...
     "welch_target_resolution_hz"; "welch_overlap_ratio"; ...
     "adc_calibration_source"; "adc_calibration_source_sha256"; ...
     "dac_calibration_summary"; "dac_summary_sha256"; ...
-    "k_dac_v_per_code"; "dac_intercept_v"; "dac_fit_r2"];
+    "k_dac_v_per_code"; "dac_intercept_v"; "dac_fit_r2"; ...
+    "requested_wave_variable"; "minimum_asd_segment_count"; "maximum_asd_bin_relative_error"];
 value = [string(cfg.analysisId); string(cfg.version); ...
     "S_in=S_PICO*(k_ADC/(abs(G_FPGA)*k_DAC))^2"; string(cfg.baselineMode); ...
     string(cfg.fpgaGain); string(cfg.referencePlane); string(cfg.asdCheckHz); ...
@@ -411,7 +393,8 @@ value = [string(cfg.analysisId); string(cfg.version); ...
     string(calibration.workbookPath); string(calibration.workbookSha256); ...
     string(calibration.dacSummaryPath); string(calibration.dacSummarySha256); ...
     string(calibration.kDac); string(calibration.dacIntercept); ...
-    string(calibration.dacR2)];
+    string(calibration.dacR2); string(cfg.waveVariable); ...
+    string(cfg.minimumAsdSegmentCount); string(cfg.maximumAsdBinRelativeError)];
 tableValue = table(parameter, value);
 end
 
@@ -422,8 +405,8 @@ fprintf(fileId, '- 正式入口：`%s`\n', mfilename('fullpath'));
 fprintf(fileId, '- 参考面：%s；FPGA 增益 G=%g。\n', cfg.referencePlane, cfg.fpgaGain);
 fprintf(fileId, '- 公式：`S_in(f)=S_PICO(f)*(k_ADC/(abs(G_FPGA)*k_DAC))^2`。\n');
 fprintf(fileId, '- 本次明确不扣除 PICO/DAC 本底；结果是总测量链路的 ADC 输入等效 ASD。\n');
-fprintf(fileId, '- Welch：Hann 窗、50%% 重叠、目标分辨率约 %.6g Hz、去均值。\n', ...
-    cfg.welch.targetResolutionHz);
+fprintf(fileId, '- Welch：Hann 窗、%.6g%% 重叠、目标分辨率约 %.6g Hz、去均值。\n', ...
+    cfg.welch.overlapRatio * 100, cfg.welch.targetResolutionHz);
 fprintf(fileId, '- AD 斜率/R² 来自 `%s`；DA JG18 斜率 %.12g Vpp/CodePp，R² %.12g，来源 `%s`。\n', ...
     calibration.workbookPath, calibration.kDac, calibration.dacR2, calibration.dacSummaryPath);
 fprintf(fileId, '\n## 数据完整性\n\n');
@@ -442,43 +425,14 @@ fprintf(fileId, 'Analysis: %s\nVersion: %s\nStartedAt: %s\n', ...
 fprintf(fileId, 'OutputFolder: %s\nFormula: S_in=S_PICO*(k_ADC/(abs(G_FPGA)*k_DAC))^2\n', folder);
 fprintf(fileId, 'BaselineMode: %s\n', cfg.baselineMode);
 fclose(fileId);
-fileId = fopen(fullfile(folder, 'STATUS_SUCCESS.txt'), 'w');
+completedCount = sum(strlength(summary.spectrum_file) > 0);
+statusFile = 'STATUS_SUCCESS.txt';
+if completedCount == 0, statusFile = 'STATUS_FAILED.txt';
+elseif completedCount < height(summary), statusFile = 'STATUS_PARTIAL.txt'; end
+fileId = fopen(fullfile(folder, statusFile), 'w');
 fprintf(fileId, 'CompletedAt: %s\nSuccessful captures: %d/%d\n', ...
-    datestr(now, 31), sum(strlength(summary.spectrum_file) > 0), height(summary));
+    datestr(now, 31), completedCount, height(summary));
 fclose(fileId);
-end
-
-function localSaveWhiteFigure(fig, stem, dpi)
-% Export report figures with a deterministic white canvas and axes.
-% Headless MATLAB renderers may otherwise apply a dark theme to axes even
-% when the figure/axes Color properties are set to white.
-set(fig, 'Color', [1 1 1], 'InvertHardcopy', 'on');
-axesHandles = findall(fig, 'Type', 'axes');
-for idx = 1:numel(axesHandles)
-    ax = axesHandles(idx);
-    set(ax, 'Color', [1 1 1], 'XColor', [0 0 0], 'YColor', [0 0 0], ...
-        'ZColor', [0 0 0], 'GridColor', [0.70 0.70 0.70], ...
-        'MinorGridColor', [0.85 0.85 0.85]);
-    children = findall(ax);
-    for childIdx = 1:numel(children)
-        if isprop(children(childIdx), 'Color')
-            tag = get(children(childIdx), 'Tag');
-            if strcmpi(tag, 'legend')
-                set(children(childIdx), 'Color', [1 1 1], ...
-                    'TextColor', [0 0 0]);
-            end
-        end
-    end
-end
-pngPath = [stem '.png'];
-try
-    exportgraphics(fig, pngPath, 'Resolution', dpi, ...
-        'BackgroundColor', 'white');
-catch
-    % Fallback for older MATLAB releases without exportgraphics.
-    print(fig, pngPath, '-dpng', sprintf('-r%d', dpi), '-opengl');
-end
-savefig(fig, [stem '.fig']);
 end
 
 function folder = localCreateRunFolder(root, analysisId)

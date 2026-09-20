@@ -9,6 +9,10 @@ config = ad2208Config('isolation');
 if nargin >= 4 && ~isempty(configOverride)
     config = converter.runtime.mergeConfig(config, configOverride);
 end
+config.allowRadixPrompt = isempty(selectedFiles);
+[config, selectedFiles, dataFolder, radixCancelled] = converter.io.prepareAdcRadix( ...
+    config, dataFolder, selectedFiles);
+if radixCancelled, results = []; return; end
 results = converter.adc.runIsolation(config, ...
     dataFolder, selectedFiles, outputFolder);
 end

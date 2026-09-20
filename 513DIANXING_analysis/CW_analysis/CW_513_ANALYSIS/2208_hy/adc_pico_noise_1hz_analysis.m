@@ -4,10 +4,10 @@ function result = adc_pico_noise_1hz_analysis(dataFolder, selectedFiles, outputF
 %   RESULT = ADC_PICO_NOISE_1HZ_ANALYSIS(FOLDER, FILE, OUTPUT, OPTIONS)
 %   requires OPTIONS.interface, e.g. 'ADC6_JG24', when FILE is supplied.
 %   OPTIONS also accepts fpgaGain, calibrationWorkbook,
-%   referencePlane, asdCheckHz, plotDpi and a partial welch struct.
+%   referencePlane, waveVariable, asdCheckHz, plotDpi and a partial welch struct.
 %   One capture per run prevents overwriting the core's interface-named files.
-%   PICO variable A, unity analog gain, mean removal and no baseline subtraction
-%   are fixed. Sampling rate is read from the MAT, never inferred from its name.
+%   A single PICO waveform can be selected automatically; multichannel MAT
+%   requires waveVariable. Unity analog gain and no baseline subtraction are fixed.
 arguments
     dataFolder (1,1) string = ""
     selectedFiles = []
@@ -22,7 +22,7 @@ end
 interactive = isempty(selectedFiles);
 if interactive
     [fileName, folder] = uigetfile(fullfile(dataFolder, '*.mat'), ...
-        '选择一份 AD2208 PICO MAT（A 通道；确认 FPGA 增益，默认128）');
+        '选择一份 AD2208 PICO MAT（单通道；确认 FPGA 增益，默认128）');
     if isequal(fileName, 0), return; end
     dataFolder = string(folder);
     selectedFiles = {fileName};
@@ -76,6 +76,8 @@ cfg.matlabVersion = version;
 addpath(fullfile(formalRoot, 'noise_chain_hy'));
 result = adc_input_equiv_noise_analysis(cfg);
 localWriteEntryEvidence(result);
+converter.runtime.finalizeBundle(result.runFolder, result.config);
+result = converter.runtime.refreshResultPaths(result, result.runFolder);
 fprintf('DA9726 fixed calibration: k_DAC = %.15g V/CodePp (no DAC CSV read)\n', ...
     result.calibration.kDac);
 disp(result.summary(:, {'interface','sample_rate_hz','duration_s', ...
@@ -85,14 +87,14 @@ end
 function cfg = localConfig(~, options)
 cfg = struct('analysisId', 'ad2208_pico_noise_1hz', 'version', '1.2.0', ...
     'baselineMode', 'none', 'fpgaGain', 128, 'asdCheckHz', 1, ...
-    'referencePlane', 'AD2208 external board input', 'plotDpi', 180, ...
+    'referencePlane', 'AD2208 external board input', 'plotDpi', 180, 'waveVariable', '', ...
     'calibrationWorkbook', which('converter.calibration.reportCalibration'));
 % User-pinned DA9726 JG18 slope. Do not locate or read DAC calibration CSVs.
 cfg.kDacVPerCodePp = 1.01451391294771e-4;
 cfg.dacCalibrationSource = 'Fixed configuration: DA9726 JG18; user-pinned k_DAC = 1.01451391294771e-4 V/CodePp';
 cfg.welch = struct('targetResolutionHz', 0.2, 'overlapRatio', 0.5, 'windowType', 'hann');
 allowed = {'interface','fpgaGain','asdCheckHz','referencePlane','plotDpi', ...
-    'calibrationWorkbook','welch'};
+    'calibrationWorkbook','welch','waveVariable'};
 names = fieldnames(options);
 if ~all(ismember(names, allowed))
     error('ad2208:PicoUnknownOption', '存在不支持的 runOptions 字段。请查 README。');

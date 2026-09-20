@@ -1,6 +1,6 @@
 # AD2208 分析脚本使用说明
 
-更新：2026-09-09。
+更新：2026-09-20。
 
 在 MATLAB 编辑器中打开对应脚本并点击 Run，也可以在命令窗口输入函数名。不带参数运行时，按弹窗选择原始文件。程序只处理选中的文件；在文件、接口或测量条件对话框中取消，均不生成结果。
 
@@ -22,6 +22,7 @@ dataRoot = 'F:/01_Laser/0_20260727_513test/CW_Data/513_CW_DATA';
 - 相对文件名以给定的数据目录为准；也支持绝对路径。传入非空文件列表或有效配对清单时直接运行，不弹选择框。
 - 不改写原始数据。省略输出目录时，输入目录名为 `raw` 就写到它旁边的 `results`，否则写到该目录内的 `results`。 PICO 1 Hz 入口保留原规则：总是写入所选目录内部的 `results`，包括 `raw/results`。
 - 每次创建新的 `run_日期_时间_项目` 子目录；同一秒再次运行会加序号。命令窗口打印完整路径，历史结果保留。
+- 新结果目录外层只保留 `结果汇总.xlsx` 和 PNG 图。逐点 CSV、结果 MAT、可编辑 FIG、参数、哈希、日志和状态放在 `evidence` 子目录。本文提到的 CSV 均在该子目录；旧结果不自动搬动。
 - 重复文件或会生成同名图谱的文件会报错，避免相互覆盖。通道、参考面、增益和负载以测量记录为准，文件名不能代替这些记录。
 
 ## 脚本与数据
@@ -82,11 +83,35 @@ r = adc_isolation_analysis(d, files, out, options);
 
 | 函数 | 参数顺序 | 本次可改参数 |
 |---|---|---|
-| `adc_sfdr_analysis` | `(d,files,out)` | 无第四参数；修改 private 中 sfdr 设置 |
+| `adc_sfdr_analysis` | `(d,files,out,runOptions)` | 第四参数覆盖本次设置，例如 inputRadix |
 | `adc_bandwidth_analysis` | `(d,files,out,runOptions)` | 直接字段或 `configOverride` 子结构 |
 | `adc_power_scale_analysis` | `(d,files,out,runOptions)` | 同上；另支持 `powerSetpoints` |
 | `adc_isolation_analysis` | `(d,files,out,configOverride)` | 驱动通道、频率、参考面、inputChannels 等 |
-| `adc_inl_dnl_analysis` | `(d,files,out,recordsAreSampleContiguous)` | 第四参数仅为跨文件连续性布尔值 |
+| `adc_inl_dnl_analysis` | `(d,files,out,recordsAreSampleContiguous,runOptions)` | 第四参数仍为连续性布尔值；第五参数传本次设置 |
+
+### CSV 是十六进制还是十进制
+
+`adcCodeFormat='signed'` 表示补码解释，`inputRadix` 表示 CSV 文本用哪种进制，两者不同。
+按 ILA 导出设置选择 `inputRadix='hex'` 或 `'decimal'`，不要根据数字外观猜。
+默认 `auto` 优先读取 CSV 的进制声明；没有充分证据时，交互运行让你选择，显式运行报错要求补参数。
+
+```matlab
+options = struct('inputRadix','hex'); % 本次ILA确实导出了十六进制
+r = adc_sfdr_analysis(d, files, [], options);
+r = adc_power_scale_analysis(d, files, [], options);
+r = adc_inl_dnl_analysis(d, files, [], false, options);
+```
+
+实际采用的进制、数据列、保留点数写入 `evidence/input_decoding.csv`。表头不能确认接口时，
+还需在 options 中填写与文件逐一对应的 `inputChannels`。INL/DNL 只允许合并同一接口；不同接口必须分开运行。
+
+### 指标怎样解读
+
+- SFDR 保留 Hann 窗峰值频点法；同样的音调落在不同 FFT 栅格位置，结果可能略有变化。现在先排除 DC 再找基波，Nyquist 频点仍参与杂散搜索；基波与 DC 排除区重叠时明确报错。
+- THD 改为 `10*log10(谐波功率/基波功率)`。例如谐波幅度为基波的 1%，THD 为 −40 dB。旧版输出的 +40 dB 是相反比值，不能直接混用。
+- 带宽明细保留所有频点。达到或超过 Nyquist、拟合退化或拟合幅值超出码域的点不参与带宽。`InsufficientCyclesFlag=true` 表示记录少于两个周期，应补长记录核对；能算出交点也不代表正式满足。
+- 隔离度 `IsolationDb` 是 ADC 码幅比，未自动补偿不同接口的模拟增益。`ThresholdMet` 只表示数值过阈值；`Pass` 还要求驱动质量、频率及参考条件通过，并显式允许正式判定。参考条件不全时看 `FormalConclusion=暂不能判定`，不能把 `Pass=false` 简单理解为器件不合格。
+- INL/DNL 是公共有效码域的码密度结果，INL 去除一阶最佳拟合直线。未命中的码可能来自缺码，也可能来自采样相位不足；`IncompleteCodeCoverage` 要补充记录核查。全覆盖也只标 `Computed_MethodValidationRequired`，不自动宣称方法或器件已合格。
 
 ## ILA 高频噪声
 
@@ -134,9 +159,9 @@ r = adc_pico_noise_1hz_analysis(d, ...
     'JG24_128_250ksps_20s_2Vdiv.mat', [], options);
 ```
 
-函数签名是 `(d,selectedFiles,out,runOptions)`。显式文件必须填写 `runOptions.interface`，缺少接口会报错而不是弹窗。默认PICO变量A、模拟增益1、去均值；采样率读MAT的Tinterval或fs；FPGA增益128；1 Hz读数；Hann-Welch目标0.2 Hz、50%重叠。这里保留PICO的分段设置，ILA的单段变更不影响PICO。
+函数签名是 `(d,selectedFiles,out,runOptions)`。显式文件必须填写 `runOptions.interface`，缺少接口会报错而不是弹窗。默认只自动识别唯一PICO波形变量，多通道需填写waveVariable；模拟增益1、去均值；采样率读MAT的Tinterval或fs；FPGA增益128；1 Hz读数；Hann-Welch目标0.2 Hz、50%重叠。这里保留PICO的分段设置，ILA的单段变更不影响PICO。
 
-参数在该入口的 `localConfig`；本次可覆盖 `fpgaGain/asdCheckHz/referencePlane/plotDpi/calibrationWorkbook` 和 `welch` 子字段。ADC刻度默认读取上述代码配置，不需要另传工作簿；仅在显式提供 `calibrationWorkbook` 时读取指定旧工作簿，用于复现旧结果。DA9726 JG18斜率固定为 1.01451391294771e-4 V/CodePp，不寻找、不读取DAC刻度CSV；`dacSummaryPath` 已停用。
+参数在该入口的 `localConfig`；本次可覆盖 `fpgaGain/asdCheckHz/referencePlane/plotDpi/calibrationWorkbook/waveVariable` 和 `welch` 子字段。ADC刻度默认读取上述代码配置，不需要另传工作簿；仅在显式提供 `calibrationWorkbook` 时读取指定旧工作簿，用于复现旧结果。DA9726 JG18斜率固定为 1.01451391294771e-4 V/CodePp，不寻找、不读取DAC刻度CSV；`dacSummaryPath` 已停用。
 
 默认结果在所选目录内部 `results/run_时间_ad2208_pico_noise_1hz`；返回 `r.runFolder`。看 `input_equiv_noise_summary.csv` 的 `input_asd_at_check_n_v_per_sqrt_hz`（nV/√Hz，除1000为µV/√Hz），同时看formal_state和note。当前整条链未扣除PICO/DAC本底，不能据此声称ADC本征噪声合格。
 
@@ -149,3 +174,21 @@ r = adc_pico_noise_1hz_analysis(d, ...
 ## 报告刻度配置
 
 本器件的报告刻度由 `private` 配置中的 `reportCalibration` 字段加载，统一保存在 `_shared/+converter/+calibration/reportCalibration.m`。完整数值、单位和缺失项见 [CALIBRATION.md](../CALIBRATION.md)。刻度分析入口仍根据所选数据重新拟合，不会用报告数值替换新测量结果。
+
+## PICO MAT里有多个波形通道时怎么办
+
+这里的“ADC接口”与“PICO波形变量”是两件事：interface指定板上的输入接口；waveVariable指定MAT里的A、B、C或D。
+
+- MAT只有一个A/B/C/D波形时，不需要填写waveVariable，程序会记录实际变量名。
+- MAT有多个波形时，在第四参数runOptions中写明`'waveVariable','A'`（按实际采集选择A/B/C/D）。程序不会默认挑第一个。
+- 如果明确指定A，但MAT只有B，程序会报错，不会悄悄换到B。核对采集记录后再修改参数。
+
+例如，在已有参数结构options上增加：
+
+```matlab
+options.waveVariable = 'B';  % 仅在本次采集确实保存在B时这样写
+r = adc_pico_noise_1hz_analysis(dataFolder, {'本次原始文件.mat'}, outputFolder, options);
+```
+
+options.interface仍须按本次真实板卡接口填写，其他增益、刻度和Welch参数不因选择B而改变。输出摘要中的wave_variable记录实际分析了哪个PICO变量。
+0.2 Hz频点间隔对应每段约5秒；这只够一段。默认覆盖检查还要求至少4段，50%重叠时通常需要至少12.5秒总记录。摘要中的asd_coverage_adequate只表示频率和分段覆盖满足配置，不代表器件性能已通过验收。

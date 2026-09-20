@@ -271,3 +271,19 @@ DA9726 JG18斜率固定为1.01451391294771e-4 V/CodePp。2208入口版本1.1.0�
 ## 2026-09-17 MAT纯切分入口
 
 split_dac_isolation_channels v0.2.0只切分A/B/C/D并记录接口、时基和哈希；移除驱动接口、目录频率、正弦拟合及配对模板生成。保留文件名JG顺序/显式channelMapping映射。真实JG25-1M目录中四通道文件单独切分4路、单D文件单独切分1路均通过；波形/时基/源哈希一致；checkcode零问题，3项相关回归通过（含另行显式构建配对后的隔离度计算）。证据：F:/01_Laser/.codex_work/20260917-jg25-isolation/pure_split.log。原始数据和历史结果不改，方法审计状态不升级。
+
+## 2026-09-20 准确性修订、十六进制兼容和精简输出
+
+| 范围 | 有证据状态 | 证据与限制 |
+|---|---|---|
+| ADC CSV进制读取 | 定向测试通过；真实十/十六进制等价 | 23项测试覆盖歧义/边界/非法/valid/131072点及双通道所选列识别；AD677 X3两种表示逐字段一致。仅选定ADC列转换 |
+| 精简XLSX和evidence布局 | 结构与数值类型验证通过 | `summaryWorkbookTest`、MATLAB/readcell及openpyxl均可读；报告层不重算指标，历史结果不迁移 |
+| ADC方法门控 | 合成/集成验证通过，方法仍有限制 | THD/SFDR、带宽、隔离度、INL/DNL门控见本次报告；无真实数据的入口不升级方法状态 |
+| 噪声和DAC | 定向回归通过；DA9726刻度真实复现 | 噪声增益100只补偿一次；PICO通道/覆盖严格；实际噪声和隔离度硬件条件未全面复跑 |
+| 全库回归 | 首轮176项中174通过、2项输出整理失败；修复后定向补跑 | 两项为解码表追加及空隔离工作簿，不是算法数值失败；最终定向结果见implementation/final_targeted*.csv |
+| AD9245真实黄金回归 | 已运行，未通过旧签名 | 显式固定十进制/25 MHz/全点SFDR后四入口均执行；最终`converter:test:GoldenMismatch`。本轮字段和状态已变，历史黄金CSV未修改，证据见implementation/golden_regression_2.log及golden_regression_error.txt |
+| 清单与文档 | 已核对 | 144个`.m`、25正式入口；脚本矩阵即时SHA-256零漂移 |
+
+正式报告：`F:/01_Laser/code/matlab/513DIANXING_analysis/CW_analysis/CW_513_ANALYSIS/docs/20260920_revision/AUDIT_REPORT.md`。脚本矩阵：同目录`SCRIPT_MATRIX.csv`；入口说明：`ENTRYPOINTS.md/ENTRYPOINTS.csv`。测试证据：`F:/01_Laser/.codex_work/20260920-cw513-current-audit/implementation`。真实AD677证据：`F:/01_Laser/0_20260727_513test/20260919_data/JIAQIANGJIAN/AD677/SCALE/ad677_X3_scale_1kHz_amplitude_sweep_20260919_110838_838458/results/cw513_revision_20260920_222108`；真实DA9726证据：`F:/01_Laser/0_20260727_513test/20260919_data/results/20260920_script_audit/DA9726/run_20260920_222659_scale`。
+
+方法状态没有因为测试通过而自动升级。参考面、负载、正式限值、全部25入口真实复跑、ADC全码域INL/DNL和DAC INL/DNL仍未闭环。原始数据、历史结果和黄金基线未修改；未提交/推送Git。

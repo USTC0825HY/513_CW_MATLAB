@@ -51,7 +51,8 @@ try
     adcCodeList = cell(fileCount, 1);
     for fileIndex = 1:fileCount
         filePath = converter.io.resolveInputPath(dataFolder, fileNames{fileIndex});
-        adcCodeList{fileIndex} = converter.io.readAdcCsv(filePath, config);
+        [adcCodeList{fileIndex}, decoding] = converter.io.readAdcCsv(filePath, config);
+        converter.runtime.recordInputDecoding(runContext.folder, decoding);
     end
     [results, details] = converter.adc.calculateIsolation( ...
         adcCodeList, channelNames, drivenChannel, config);

@@ -18,6 +18,7 @@ if nargin < 3, outputFolder = []; end
 if nargin < 4, runOptions = []; end
 [config, ~] = converter.runtime.applyRunOptions( ...
     ad677Config('bandwidth'), runOptions);
+config.allowRadixPrompt = isempty(dataFolder) && isempty(selectedFiles);
 if isempty(dataFolder) && isempty(selectedFiles)
     [selectedFiles, dataFolder] = converter.io.selectCsvFiles( ...
         dataFolder, selectedFiles, '选择同一AD677通道的扫频CSV（可多选）');
@@ -31,6 +32,9 @@ end
 if isempty(selectedFiles)
     error('ad677:NoCsvFiles', '数据目录中没有CSV文件：%s', dataFolder);
 end
+[config, selectedFiles, dataFolder, radixCancelled] = converter.io.prepareAdcRadix( ...
+    config, dataFolder, selectedFiles);
+if radixCancelled, results = []; return; end
 frequencies = cellfun(@converter.io.parseFrequencyHz, selectedFiles);
 if any(~isfinite(frequencies) | frequencies <= 0)
     error('ad677:FrequencyMissing', '文件名须含Hz/kHz/MHz注入频率。');
@@ -40,13 +44,13 @@ if isempty(outputFolder)
 end
 validateattributes(config.ilaClockHz, {'numeric'}, ...
     {'scalar', 'real', 'finite', 'positive'}, mfilename, 'ilaClockHz');
-strobeInfo = readStrobeInfo(dataFolder, selectedFiles, config);
-validSampleCounts = strobeInfo.validSampleCounts;
 if isfinite(config.sampleRate)
     effectiveSampleRate = config.sampleRate;
     fprintf('使用配置覆盖的采样率：%.9g Hz（未从vld选通重新推导）。\n', ...
         effectiveSampleRate);
 else
+    strobeInfo = readStrobeInfo(dataFolder, selectedFiles, config);
+    validSampleCounts = strobeInfo.validSampleCounts;
     effectiveSampleRate = config.ilaClockHz / strobeInfo.strobePeriod;
     fprintf(['ILA记录时钟 %.9g Hz，adc_data_vld 每 %d 个ILA周期选通一次，' ...
         '有效数据率 %.9g Hz（%.6g kS/s），每文件约 %d 个有效样本。\n'], ...

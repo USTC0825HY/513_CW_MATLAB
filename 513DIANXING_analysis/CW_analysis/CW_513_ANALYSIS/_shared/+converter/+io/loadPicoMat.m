@@ -3,6 +3,7 @@ function capture = loadPicoMat(filePath, requestedVariable, hardwareGain, remove
 if nargin < 2 || isempty(requestedVariable), requestedVariable = ''; end
 if nargin < 3 || isempty(hardwareGain), hardwareGain = 1; end
 if nargin < 4, removeMean = true; end
+validateattributes(hardwareGain, {'numeric'}, {'real','scalar','finite','positive'});
 try
     data = load(filePath);
 catch exception
@@ -19,9 +20,15 @@ end
 sampleRate = localSampleRate(data, filePath);
 variableName = localVariable(data, requestedVariable, filePath);
 rawValue = data.(variableName);
+validateattributes(rawValue, {'numeric'}, {'real','vector','nonempty'}, ...
+    mfilename, 'waveform');
 raw = double(rawValue(:));
 valid = isfinite(raw);
-voltage = raw(valid) ./ hardwareGain;
+if ~all(valid)
+    error('converter:io:NonfiniteWaveform', ...
+        '波形包含 %d 个非有限点，不能删除样点后压缩时基：%s', nnz(~valid), filePath);
+end
+voltage = raw ./ hardwareGain;
 if removeMean, voltage = voltage - mean(voltage); end
 capture = struct('filePath', filePath, 'variableName', variableName, ...
     'sampleRateHz', sampleRate, 'rawSampleCount', numel(raw), ...
@@ -47,18 +54,6 @@ function variableName = localVariable(data, requestedVariable, filePath)
 requestedVariable = char(requestedVariable);
 picoChannels = {'A', 'B', 'C', 'D'};
 present = picoChannels(cellfun(@(name) isfield(data, name), picoChannels));
-% Single-channel exports occasionally save the waveform under a different
-% channel letter (the jiaqiang X3/X13 captures were recorded on Pico
-% channel B).  When the requested channel letter is missing but exactly one
-% other Pico channel is present, fall back to it instead of failing.
-if ~isempty(strtrim(requestedVariable)) && ...
-        ismember(upper(requestedVariable), picoChannels) && ...
-        ~isfield(data, requestedVariable) && numel(present) == 1
-    fprintf('PICO 波形不在通道%s，改用变量 %s：%s\n', ...
-        upper(requestedVariable), present{1}, filePath);
-    variableName = present{1};
-    return;
-end
 if ~isempty(strtrim(requestedVariable))
     if ~isfield(data, requestedVariable)
         error('converter:io:VariableMissing', ...

@@ -17,29 +17,24 @@ config.minimumFitSamples = 1024;
 config.saveFigures = true;
 config.showFigures = false;
 
-% AD9245 conversion clock is externally injected at 20 MHz, but these CSV
-% records are exported by the ILA clocked from clk_25m_cp.  Frequency- and
-% time-domain analysis must therefore use the ILA record interval (40 ns),
-% rather than the ADC conversion-clock period (50 ns).
+% Current user-selected ILA record rate. Historical 25 MHz captures must
+% explicitly override this value; the ADC conversion clock is separate.
 ilaCaptureSampleRateHz = 20e6;
 config.adcConversionClockHz = 20e6;
-config.ilaCaptureClock = 'clk_25m_cp';
+config.ilaCaptureClock = 'configured ILA capture clock; verify against acquisition';
 config.ilaCaptureSampleRateHz = ilaCaptureSampleRateHz;
-config.sampleRateSource = 'AD9245 ILA capture clock clk_25m_cp';
+config.sampleRateSource = 'configured AD9245 ILA record rate; verify against capture';
 
 switch config.analysisId
     case 'sfdr'
         config.version = '1.2.0';
         config.sampleRate = ilaCaptureSampleRateHz;
-        % Legacy 25 MHz ILA captures observe the 20 MHz ADC register with
-        % held codes. Keep one fixed-phase ILA row out of every five. The
-        % resulting sequence advances by four ADC conversions per point
-        % and is uniformly interpreted at 5 MHz.
+        % Keep the user's stride of five. At the configured 20 MHz this
+        % yields 4 MHz; historical 25 MHz captures yield 5 MHz when overridden.
         config.sfdrSampleStride = 5;
         config.sfdrAnalysisSampleRateHz = ...
             ilaCaptureSampleRateHz / config.sfdrSampleStride;
-        config.sfdrSamplingMode = 'legacy_25mhz_ila_keep_one_of_five';
-        config.sfdrResultUse = '旧25 MHz ILA数据抽样估算';
+        config.sfdrSamplingMode = 'fixed_stride_keep_one_of_five';
         config.nfft = 128 * 1024;
         config.dcSpan = 16;
         config.signalSpan = 16;

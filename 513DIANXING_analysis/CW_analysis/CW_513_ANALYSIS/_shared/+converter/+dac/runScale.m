@@ -51,7 +51,8 @@ measurements.included_in_fit = fitMask;
 measurements.exclusion_reason(~fitMask) = "质量或码值范围不满足拟合门槛";
 valid = fitMask & isfinite(measurements.code_vpp) & ...
     isfinite(measurements.output_vpp_v);
-if nnz(valid) >= 2
+canFit = numel(unique(measurements.code_vpp(valid))) >= 2;
+if canFit
     coefficient = polyfit(measurements.code_vpp(valid), ...
         measurements.output_vpp_v(valid), 1);
     fitted = polyval(coefficient, measurements.code_vpp(valid));
@@ -65,6 +66,9 @@ summary = table(string(config.deviceId), string(config.analysisId), ...
     coefficient(1), coefficient(2), fitR2, nnz(valid), string(status), ...
     'VariableNames', {'device','analysis','slope_v_per_code_vpp', ...
     'intercept_v','fit_r_squared','fit_point_count','status'});
+summary.code_axis_definition = string(codeInfos{1}.codeVppDefinition);
+summary.formal_conclusion = "暂不能判定";
+if ~canFit, summary.formal_conclusion = "未测试"; end
 converter.report.writeTable(measurements, fullfile(runContext.folder, ...
     'dac_scale_measurements.csv'));
 converter.report.writeTable(summary, fullfile(runContext.folder, ...
@@ -74,13 +78,18 @@ converter.report.writeTable(localParameters(config), fullfile(runContext.folder,
 figureHandle = figure('Visible', 'off', 'Color', 'w');
 plot(measurements.code_vpp, measurements.output_vpp_v, 'ko', ...
     'MarkerFaceColor', [0.1 0.4 0.8]); grid on; hold on;
-if nnz(valid) >= 2
+if canFit
     x = linspace(min(measurements.code_vpp(valid)), ...
         max(measurements.code_vpp(valid)), 200);
     plot(x, polyval(coefficient, x), 'r-', 'LineWidth', 1.2);
     legend('测量点', '线性拟合', 'Location', 'best');
 end
-xlabel('DAC code Vpp (code)'); ylabel('Output Vpp (V)');
+if strcmp(codeInfos{1}.codeVppDefinition, 'raw_unsigned_code')
+    xlabel('DAC raw unsigned amplitude code (code)');
+else
+    xlabel('DAC CodePp = 2|signed amplitude code| (code)');
+end
+ylabel('Output Vpp (V)');
 title(sprintf('%s DAC scale', config.deviceId), 'Interpreter', 'none');
 converter.report.saveFigure(figureHandle, fullfile(runContext.folder, ...
     'dac_scale_fit'), 180); close(figureHandle);
@@ -88,6 +97,7 @@ result = struct('config', config, 'measurements', measurements, ...
     'summary', summary, 'outputFolder', runContext.folder);
 save(fullfile(runContext.folder, 'dac_scale_result.mat'), 'result');
 converter.runtime.finishRun(runContext, true, 'DA刻度分析完成');
+result = converter.runtime.refreshResultPaths(result, runContext.folder);
 catch exception
     converter.runtime.finishRun(runContext, false, exception.message);
     rethrow(exception);
@@ -156,13 +166,13 @@ switch lower(formatName)
             signedCode = rawCode;
         end
     case 'signed_decimal'
-        token = regexp(fileName, '(?i)code_(-?\d+)', 'tokens', 'once');
+        token = regexp(fileName, '(?i)code_(-?\d+)(?=[_-]|\.mat$)', 'tokens', 'once');
         if isempty(token)
             error('converter:dac:CodeMissing', ...
                 '文件名必须包含code_有符号十进制整数：%s', fileName);
         end
         signedCode = str2double(token{1});
-        if abs(signedCode) > 2^(bits - 1)
+        if signedCode < -2^(bits - 1) || signedCode > 2^(bits - 1) - 1
             error('converter:dac:CodeInvalid', ...
                 '码值超出配置位数：%s', fileName);
         end

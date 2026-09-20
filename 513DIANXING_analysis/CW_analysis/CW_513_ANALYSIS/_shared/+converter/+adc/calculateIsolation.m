@@ -26,12 +26,16 @@ end
 drivenIndex = find(drivenMask, 1);
 drivenFrequencyHz = converter.adc.estimateFrequency( ...
     adcCodeList{drivenIndex}, config.sampleRate);
+drivenFrequencyHz = converter.adc.refineSineFrequency( ...
+    adcCodeList{drivenIndex}, drivenFrequencyHz, config.sampleRate, ...
+    config.fitCycles, config.minimumFitSamples);
 frequencyMismatchFlag = ...
     abs(drivenFrequencyHz - config.isolationFrequencyHz) / ...
     max(config.isolationFrequencyHz, eps) > config.frequencyMismatchTolerance;
 codePp = NaN(fileCount, 1);
 fitR2 = NaN(fileCount, 1);
 fitResidualRmsCode = NaN(fileCount, 1);
+fitCondition = NaN(fileCount, 1);
 fitConfig = config;
 fitConfig.fitMode = 'known';
 fitConfig.knownFrequencyHz = drivenFrequencyHz;
@@ -40,13 +44,39 @@ for fileIndex = 1:fileCount
     codePp(fileIndex) = metrics.fit.codePp;
     fitR2(fileIndex) = metrics.fit.r2;
     fitResidualRmsCode(fileIndex) = metrics.fit.residualRmsCode;
+    fitCondition(fileIndex) = metrics.fit.designCondition;
 end
 
 drivenCodePp = codePp(drivenMask);
 quietChannels = channelNames(quietMask);
 quietCodePp = codePp(quietMask);
 isolationDb = 20 * log10(drivenCodePp ./ quietCodePp);
-pass = isolationDb >= config.minimumIsolationDb;
+thresholdMet = isolationDb >= config.minimumIsolationDb;
+minimumDrivenFitR2 = 0.98;
+if isfield(config, 'minimumDrivenFitR2')
+    minimumDrivenFitR2 = config.minimumDrivenFitR2;
+end
+drivenCode = adcCodeList{drivenIndex};
+fullScalePeakCode = 2^(config.adcBits - 1);
+drivenClipping = any(drivenCode <= -fullScalePeakCode | ...
+    drivenCode >= fullScalePeakCode - 1);
+drivenValid = ~frequencyMismatchFlag && ~drivenClipping && ...
+    fitR2(drivenMask) >= minimumDrivenFitR2 && ...
+    fitCondition(drivenMask) < 1e8 && isfinite(drivenCodePp) && drivenCodePp > 0;
+measurementValid = drivenValid & isfinite(isolationDb) & ...
+    quietCodePp > 0 & fitCondition(quietMask) < 1e8;
+referencePlane = "未提供";
+if isfield(config, 'referencePlane') && ~isempty(config.referencePlane)
+    referencePlane = string(config.referencePlane);
+end
+% Code ratios are not input-voltage isolation unless channel gains are
+% independently shown to be equivalent. A recorded reference plane alone
+% does not establish that equivalence.
+referenceConfirmed = isfield(config, 'isolationReferenceConfirmed') && ...
+    isequal(config.isolationReferenceConfirmed, true) && ...
+    strlength(strtrim(referencePlane)) > 0 && referencePlane ~= "未提供";
+formalEnabled = isfield(config, 'formalEnabled') && isequal(config.formalEnabled, true);
+pass = thresholdMet & measurementValid & referenceConfirmed & formalEnabled;
 quietCount = nnz(quietMask);
 results = table( ...
     repmat(drivenChannel, quietCount, 1), quietChannels, ...
@@ -61,7 +91,17 @@ results = table( ...
     'VariableNames', {'DrivenChannel', 'QuietChannel', 'ExpectedFrequencyHz', ...
     'FrequencyHz', 'FrequencyErrorHz', 'FrequencyErrorPercent', ...
     'FrequencyMismatchFlag', 'DrivenCodePp', 'QuietCodePp', 'IsolationDb', ...
-    'QuietFitR2', 'QuietResidualRmsCode', 'Pass'});
+        'QuietFitR2', 'QuietResidualRmsCode', 'Pass'});
+results.ThresholdMet = thresholdMet;
+results.MeasurementValid = measurementValid;
+results.DrivenFitR2 = repmat(fitR2(drivenMask), quietCount, 1);
+results.DrivenClippingFlag = repmat(drivenClipping, quietCount, 1);
+results.RatioBasis = repmat("ADC code amplitude ratio; channel gain not corrected", quietCount, 1);
+results.ReferencePlane = repmat(referencePlane, quietCount, 1);
+results.FormalConclusion = repmat("暂不能判定", quietCount, 1);
+formalMask = measurementValid & referenceConfirmed & formalEnabled;
+results.FormalConclusion(formalMask & thresholdMet) = "满足";
+results.FormalConclusion(formalMask & ~thresholdMet) = "不满足";
 details = struct('drivenFrequencyHz', drivenFrequencyHz, ...
     'minimumIsolationDb', config.minimumIsolationDb, ...
     'worstIsolationDb', min(isolationDb));

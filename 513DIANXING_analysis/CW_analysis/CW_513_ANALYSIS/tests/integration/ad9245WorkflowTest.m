@@ -25,8 +25,13 @@ classdef ad9245WorkflowTest < matlab.unittest.TestCase
     methods (Test)
         function runsSfdrEntry(testCase)
             files = {'X3G_1MHz.csv'};
+            options = struct('configOverride', struct('inputRadix','decimal', ...
+                'sampleRate',25e6, 'ilaCaptureSampleRateHz',25e6, ...
+                'sfdrSampleStride',5, 'sfdrAnalysisSampleRateHz',5e6, ...
+                'sfdrSamplingMode','legacy_25mhz_ila_keep_one_of_five', ...
+                'sfdrResultUse','旧25 MHz ILA数据抽样估算'));
             results = adc_sfdr_analysis(testCase.DataFolders.sfdr, files, ...
-                testCase.OutputFolders.sfdr);
+                testCase.OutputFolders.sfdr, options);
             testCase.verifyEqual(height(results), 1);
             testCase.verifyEqual(results.SourceSampleCount, 8192);
             testCase.verifyEqual(results.AnalysisSampleCount, ceil(8192 / 5));
@@ -42,7 +47,7 @@ classdef ad9245WorkflowTest < matlab.unittest.TestCase
         end
 
         function runsSfdrWithoutDecimationForSynchronousCapture(testCase)
-            files = {'X3G_1MHz.csv'};
+            files = {'X3G_1MHz_20MHzCapture.csv'};
             options = struct('configOverride', struct( ...
                 'sampleRate', 20e6, 'ilaCaptureSampleRateHz', 20e6, ...
                 'sfdrSampleStride', 1, ...
@@ -74,7 +79,9 @@ classdef ad9245WorkflowTest < matlab.unittest.TestCase
                 'DRIVE_X3G_CAPTURE_X3G_1MHz.csv', ...
                 'DRIVE_X3G_CAPTURE_X4G_1MHz.csv'};
             results = adc_isolation_analysis(testCase.DataFolders.isolation, ...
-                files, testCase.OutputFolders.isolation);
+                files, testCase.OutputFolders.isolation, ...
+                struct('sampleRate',25e6,'isolationFrequencyHz',1e6, ...
+                'inputRadix','decimal'));
             testCase.verifyEqual(height(results), 3);
             testCase.verifyTrue(ad9245WorkflowTest.hasSuccessRun( ...
                 testCase.OutputFolders.isolation, 'ADC_isolation_summary.csv'));
@@ -84,7 +91,9 @@ classdef ad9245WorkflowTest < matlab.unittest.TestCase
             files = {'X3G_-10dBm_1MHz.csv', 'X3G_-5dBm_1MHz.csv', ...
                 'X3G_0dBm_1MHz.csv', 'X3G_5dBm_1MHz.csv'};
             results = adc_power_scale_analysis(testCase.DataFolders.power, ...
-                files, testCase.OutputFolders.power);
+                files, testCase.OutputFolders.power, ...
+                struct('sampleRate',25e6,'testFrequencyHz',1e6, ...
+                'inputRadix','decimal'));
             testCase.verifyEqual(height(results), 4);
             testCase.verifyTrue(all(isfinite(results.InputVoltageVpp)));
             testCase.verifyTrue(all(isfinite(results.CalibrationSlopeVppPerCodePp)));
@@ -100,7 +109,8 @@ classdef ad9245WorkflowTest < matlab.unittest.TestCase
         function runsInlDnlEntry(testCase)
             files = {'X3G_1MHz.csv'};
             results = adc_inl_dnl_analysis(testCase.DataFolders.inl, files, ...
-                testCase.OutputFolders.inl);
+                testCase.OutputFolders.inl, struct('sampleRate',25e6, ...
+                'inputRadix','decimal','inputChannels',{{'X3G'}}));
             testCase.verifyEqual(height(results), 1);
             testCase.verifyTrue(ad9245WorkflowTest.hasSuccessRun( ...
                 testCase.OutputFolders.inl, 'ADC_inl_dnl_summary.csv'));
@@ -129,6 +139,9 @@ classdef ad9245WorkflowTest < matlab.unittest.TestCase
             code = round(4000*sin(2*pi*1e6*time) + ...
                 40*sin(2*pi*2.3e6*time));
             ad9245WorkflowTest.writeCsv(folder, 'X3G_1MHz.csv', code, 2);
+            time = (0:8191)' / 20e6;
+            code = round(4000*sin(2*pi*1e6*time) + 40*sin(2*pi*2.3e6*time));
+            ad9245WorkflowTest.writeCsv(folder, 'X3G_1MHz_20MHzCapture.csv', code, 2);
         end
 
         function buildBandwidth(folder)
@@ -192,9 +205,9 @@ classdef ad9245WorkflowTest < matlab.unittest.TestCase
         end
 
         function success = hasSuccessRun(outputFolder, summaryFile)
-            statusFiles = dir(fullfile(outputFolder, 'run_*', 'STATUS_SUCCESS.txt'));
-            summaryFiles = dir(fullfile(outputFolder, 'run_*', summaryFile));
-            manifests = dir(fullfile(outputFolder, 'run_*', 'run_manifest.csv'));
+            statusFiles = dir(fullfile(outputFolder, 'run_*', 'evidence', 'STATUS_SUCCESS.txt'));
+            summaryFiles = dir(fullfile(outputFolder, 'run_*', 'evidence', summaryFile));
+            manifests = dir(fullfile(outputFolder, 'run_*', 'evidence', 'run_manifest.csv'));
             success = ~isempty(statusFiles) && ~isempty(summaryFiles) && ...
                 ~isempty(manifests);
         end

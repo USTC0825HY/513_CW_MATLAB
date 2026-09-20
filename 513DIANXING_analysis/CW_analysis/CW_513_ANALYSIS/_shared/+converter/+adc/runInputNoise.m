@@ -31,10 +31,12 @@ try
     writeExcludedInputNote(runContext.folder);
 
     summary = table();
+    channelResults = cell(numel(files),1);
     for k = 1:numel(files)
         channel = char(channels(k));
         cal = resolveCalibration(calibration, channel);
         one = analyzeOne(files{k}, channel, cal, config, runContext.folder);
+        channelResults{k} = one;
         summary = [summary; one.summary]; %#ok<AGROW>
     end
 
@@ -43,6 +45,8 @@ try
         [deviceStem '_input_noise_summary.csv']));
     writeFullRecordAsdSummary(runContext.folder, summary, deviceStem);
     writeReadme(runContext.folder, config, files);
+    save(fullfile(runContext.folder, [deviceStem '_input_noise_result.mat']), ...
+        'summary','channelResults','config','calibration','-v7.3');
     converter.runtime.finishRun(runContext, true, ...
         sprintf('%s direct ILA input-equivalent noise completed', config.deviceId));
     results = struct('runFolder', runContext.folder, 'summary', summary, ...
@@ -71,9 +75,9 @@ cal = calibration(match);
 end
 
 function result = analyzeOne(filePath, channel, cal, config, runFolder)
-readConfig = struct('adcDataColumn', config.adcDataColumn, ...
-    'adcBits', config.adcBits, 'adcCodeFormat', config.adcCodeFormat);
-signedCode = converter.io.readAdcCsv(filePath, readConfig);
+readConfig = config;
+[signedCode, decoding] = converter.io.readAdcCsv(filePath, readConfig);
+converter.runtime.recordInputDecoding(runFolder, decoding);
 signedCode = signedCode(:);
 if numel(signedCode) < 16
     error('converter:adc:TooFewSamples', '有效码流点数不足：%s', filePath);
@@ -184,6 +188,11 @@ summary = table({channel}, {filePath}, {sourceSha256}, n, config.sampleRate, dur
     'FullRecordSpurMaxFrequencyHz', 'AsdLimitNvPerSqrtHz', ...
     'FormalStatus', 'StatusNote'});
 result.summary = summary;
+result.spectrum = table(frequencyHz, psdV2PerHz, asdNvPerSqrtHz, ...
+    'VariableNames',{'FrequencyHz','PsdV2PerHz','AsdNvPerSqrtHz'});
+result.fullRecordSpectrum = table(fullFrequency, fullPsd, fullAsd, ...
+    'VariableNames',{'FrequencyHz','PsdV2PerHz','AsdNvPerSqrtHz'});
+converter.report.writeTable(result.spectrum,fullfile(runFolder,[safeName '_PSD_ASD.csv']));
 end
 
 function writeFullRecordAsdSummary(runFolder, summary, deviceStem)

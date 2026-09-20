@@ -144,8 +144,6 @@ maxAbsDnl = NaN;
 maxAbsInl = NaN;
 maxAbsInlMid = NaN;
 curveTable = emptyCurveTable();
-statusText = "OK";
-
 if validCaptureCount == 0 || ...
         validCaptureFraction < config.minimumValidCaptureFraction
     statusText = "CaptureQualityBelowMinimum";
@@ -210,6 +208,15 @@ else
         maxAbsInlMid = max(abs(inl(midMask)));
     end
     coverageRatio = sum(measuredCounts > 0) / numel(measuredCounts);
+    % An unhit code cannot be distinguished from insufficient phase/sample
+    % coverage by this histogram alone. Keep the curve but withhold OK.
+    if coverageRatio < 1
+        statusText = "IncompleteCodeCoverage";
+    elseif min(theoreticalCounts) < 1
+        statusText = "InsufficientExpectedCounts";
+    else
+        statusText = "Computed_MethodValidationRequired";
+    end
     curveTable = table(codeAxis, measuredCounts, theoreticalCounts, ...
         measuredProbability, theoreticalProbability, dnl, inl, ...
         'VariableNames', {'Code','MeasuredCount','TheoreticalCount', ...

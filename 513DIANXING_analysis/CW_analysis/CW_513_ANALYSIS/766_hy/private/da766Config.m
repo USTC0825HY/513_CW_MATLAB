@@ -11,7 +11,9 @@ config.outputFolder = '';
 config.filePattern = '*.mat';
 config.inputFiles = {};
 config.dataVariables = {};
-config.hardwareGain = 1;
+config.hardwareGain = 100;
+% The user's 100x amplifier applies to noise captures only.
+if ~strcmp(config.analysisId, 'noise'), config.hardwareGain = 1; end
 config.removeMean = true;
 config.sampleRate = 250e3;
 config.dacBits = 16;

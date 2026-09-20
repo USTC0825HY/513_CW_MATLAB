@@ -39,9 +39,20 @@ fftData = fft(signal .* window);
 oneSidedLength = floor(fftLength / 2) + 1;
 oneSidedFft = fftData(1:oneSidedLength);
 frequencyHz = (0:oneSidedLength - 1)' * sampleRate / fftLength;
-levelDb = 20 * log10(abs(oneSidedFft) + eps);
-
-[fundamentalLevelDb, fundamentalIndex] = max(levelDb);
+oneSidedWeight = 2 * ones(oneSidedLength, 1);
+oneSidedWeight(1) = 1;
+if mod(fftLength, 2) == 0, oneSidedWeight(end) = 1; end
+amplitudeSpectrum = oneSidedWeight .* abs(oneSidedFft) / sum(window);
+levelDb = 20 * log10(max(amplitudeSpectrum, realmin));
+dcIndices = 1:min(config.dcSpan, oneSidedLength);
+fundamentalSearch = levelDb;
+fundamentalSearch(dcIndices) = -Inf;
+[fundamentalLevelDb, fundamentalIndex] = max(fundamentalSearch);
+if ~isfinite(fundamentalLevelDb) || ...
+        (mod(fftLength, 2) == 0 && fundamentalIndex == oneSidedLength)
+    error('converter:adc:UnresolvedFundamental', ...
+        '基波位于排除区或Nyquist退化频点，不能可靠估计动态指标。');
+end
 lowIndex = max(2, fundamentalIndex - config.signalSpan);
 highIndex = min(oneSidedLength - 1, fundamentalIndex + config.signalSpan);
 [~, accurateIndex] = converter.adc.findAccuratePeak(levelDb, lowIndex, highIndex);
@@ -51,16 +62,20 @@ fitSampleCount = requestedFitSampleCount( ...
 fit = converter.adc.fitSine(adcCode, fundamentalFrequencyHz, ...
     config.sampleRate, fitSampleCount);
 
-powerSpectrum = abs(oneSidedFft).^2 / fftLength / sampleRate;
-dcIndices = 1:min(config.dcSpan, oneSidedLength);
+powerSpectrum = oneSidedWeight .* abs(oneSidedFft).^2 / ...
+    (sampleRate * sum(window.^2));
 signalIndices = max(1, fundamentalIndex-config.signalSpan): ...
     min(oneSidedLength, fundamentalIndex+config.signalSpan);
+if ~isempty(intersect(dcIndices, signalIndices))
+    error('converter:adc:OverlappingSpectrumMasks', ...
+        '基波窗口与DC排除区重叠，请增加记录长度或调整跨度。');
+end
 harmonicIndices = findHarmonicIndices(fundamentalIndex, fftLength, ...
     oneSidedLength, config);
 harmonicIndices = setdiff(harmonicIndices, [dcIndices signalIndices]);
 
 spurSpectrum = levelDb;
-spurSpectrum([dcIndices signalIndices oneSidedLength]) = min(levelDb);
+spurSpectrum([dcIndices signalIndices]) = -Inf;
 [largestSpurLevelDb, largestSpurIndex] = max(spurSpectrum);
 totalPower = sum(powerSpectrum);
 dcPower = sum(powerSpectrum(dcIndices));
@@ -89,7 +104,7 @@ metrics.dynamic = struct( ...
     'SFDR', fundamentalLevelDb - largestSpurLevelDb, ...
     'SNR', 10 * log10(signalPower / noisePower), ...
     'SINAD', 10 * log10(signalPower / sinadPower), ...
-    'THD', 10 * log10(max(signalPower, eps) / max(harmonicPower, eps)), ...
+    'THD', 10 * log10(max(harmonicPower, realmin) / max(signalPower, realmin)), ...
     'ENOB', (10 * log10(signalPower / sinadPower) - ...
     signalAmplitudeDbfs - 1.76) / 6.02, ...
     'signalAmplitudeDbfs', signalAmplitudeDbfs);

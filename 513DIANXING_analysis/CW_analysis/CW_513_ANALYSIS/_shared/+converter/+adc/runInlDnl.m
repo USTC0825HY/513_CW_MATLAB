@@ -1,6 +1,7 @@
 function results = runInlDnl(config, dataFolder, selectedFileNames, outputFolder)
 %RUNINLDNL Run the complete traceable sine-code-density workflow.
 
+interactive = isempty(selectedFileNames);
 [fileNames, dataFolder] = converter.io.selectCsvFiles( ...
     dataFolder, selectedFileNames, '选择 ADC INL/DNL CSV 文件');
 if isempty(fileNames)
@@ -8,21 +9,28 @@ if isempty(fileNames)
     results = table;
     return;
 end
-fileNames = sort(fileNames);
+[fileNames, order] = sort(fileNames);
+if isfield(config, 'inputChannels') && ~isempty(config.inputChannels)
+    config.inputChannels = config.inputChannels(order);
+end
+channelNames = converter.io.resolveAdcChannels(config, dataFolder, fileNames, interactive);
+if isempty(channelNames), results = table; return; end
+if numel(unique(channelNames)) ~= 1
+    error('converter:adc:MixedInlDnlChannels', ...
+        'INL/DNL只能合并同一采集通道的记录，请分接口运行。');
+end
+channelName = char(channelNames(1));
+config.inputChannels = cellstr(channelNames);
 runContext = converter.runtime.createRun( ...
     config, dataFolder, fileNames, outputFolder);
 try
     adcCodeList = cell(numel(fileNames), 1);
     for fileIndex = 1:numel(fileNames)
         filePath = converter.io.resolveInputPath(dataFolder, fileNames{fileIndex});
-        adcCodeList{fileIndex} = converter.io.readAdcCsv(filePath, config);
+        [adcCodeList{fileIndex}, decoding] = converter.io.readAdcCsv(filePath, config);
+        converter.runtime.recordInputDecoding(runContext.folder, decoding);
         fprintf('INL/DNL 读取：%d/%d  %s\n', ...
             fileIndex, numel(fileNames), fileNames{fileIndex});
-    end
-    firstPath = converter.io.resolveInputPath(dataFolder, fileNames{1});
-    channelName = converter.io.extractChannel(firstPath, config);
-    if isempty(channelName)
-        channelName = 'Unknown';
     end
     [results, details] = converter.adc.calculateInlDnl( ...
         adcCodeList, fileNames, channelName, config);

@@ -53,7 +53,7 @@ r = dac_noise_analysis(d, files, out, settings);
 |---|---|
 | `dataVariables` | 空时要求MAT在A/B/C/D中只有一个波形变量；多个变量时必须明确选择，如 `{'A'}`；一项可共用，也可逐文件给一项 |
 | 时基和单位 | MAT必须有Tinterval或fs，Tinterval优先；波形单位为V。缺时基不会从文件名补猜 |
-| `hardwareGain` | 1。经过已确认40 dB电压放大且尚未补偿时填100；已经补偿过保持1 |
+| `hardwareGain` | 噪声默认100（本批40 dB电压放大）；刻度和隔离度默认1。没有放大或已经补偿过的噪声，第四参数设置为1，避免重复补偿 |
 | `toneFrequencyHz` | 通用刻度1000 Hz，按本次已确认正弦频率修改 |
 | `codeNameFormat` | 通用刻度按signed_decimal，如code_30000；已确认16位十六进制时设置hex_unsigned，支持CODE/COADE |
 | 刻度筛选 | R²≥0.98，CodePp范围512～58982.4；CodePp=2×abs(signedCode) |
@@ -114,10 +114,16 @@ r = dac_isolation_analysis(d, pair, out, struct('hardwareGain',1));
 
 ## 查看结果
 
-先查看 summary CSV 中的数值、状态和说明，再查看 PNG。运行参数记录在 `analysis_parameters.csv`、`run_config.mat` 或结果 MAT 中；输入文件见 `run_manifest.csv` / `source_manifest.csv`。
+先打开结果目录的 `结果汇总.xlsx` 查看数值、状态、参数和来源，再查看同目录PNG。完整CSV、MAT、FIG与追溯清单在 `evidence` 子目录；不再需要逐一寻找散落的CSV。已有历史结果目录不移动。
 
 程序运行成功不代表器件指标合格。SFDR 定义、带宽混叠、隔离度拟合质量和频率检查、噪声参考面等仍需核对；文件选择功能的测试不能替代这些检查。
 
 ## 报告刻度配置
 
 本器件的报告刻度由 `private` 配置中的 `reportCalibration` 字段加载，统一保存在 `_shared/+converter/+calibration/reportCalibration.m`。完整数值、单位和缺失项见 [CALIBRATION.md](../CALIBRATION.md)。刻度分析入口仍根据所选数据重新拟合，不会用报告数值替换新测量结果。
+
+### 噪声参数与通道检查（2026-09-20）
+
+噪声计算先把MAT电压除以hardwareGain，再计算PSD；因此100倍增益只补偿一次：ASD和积分RMS除100，PSD除10000。MAT存在多个A/B/C/D波形时，必须在第四参数dataVariables中选定实际通道；显式指定A但文件只有B会报错，不会自动换通道。未指定通道时只接受唯一波形。遇到NaN/Inf会停止该记录，避免删除样点后把时基压短。
+
+积分频带必须被实际频谱完整覆盖，而且频带内至少有两个频点；未覆盖时保留可计算的部分频带诊断值，但状态为暂不能判定，不能当成完整频带的RMS。窄到只有一个频点时返回NaN，不返回误导性的零。

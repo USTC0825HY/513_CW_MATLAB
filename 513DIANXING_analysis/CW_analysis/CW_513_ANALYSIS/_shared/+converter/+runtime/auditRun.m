@@ -17,15 +17,25 @@ if ~isfolder(runFolder)
     return;
 end
 
-audit.status_file_present = isfile(fullfile(runFolder, 'STATUS_SUCCESS.txt'));
+figureFolder = runFolder;
+modern = isfolder(fullfile(runFolder, 'evidence'));
+if modern, runFolder = fullfile(runFolder, 'evidence'); end
+audit.status_file_present = isfile(fullfile(runFolder, 'STATUS_SUCCESS.txt')) && ...
+    ~isfile(fullfile(runFolder, 'STATUS_FAILED.txt')) && ...
+    ~isfile(fullfile(runFolder, 'STATUS_PARTIAL.txt'));
 audit.required_files_present = audit.status_file_present && ...
     ~isempty(dir(fullfile(runFolder, '*analysis_parameters.csv'))) && ...
-    isfile(fullfile(runFolder, 'run_manifest.csv')) && ...
+    (isfile(fullfile(runFolder, 'run_manifest.csv')) || ...
+    isfile(fullfile(runFolder, 'source_manifest.csv'))) && ...
     isfile(fullfile(runFolder, 'run_info.txt')) && ...
     ~isempty(dir(fullfile(runFolder, '*summary.csv'))) && ...
     ~isempty(dir(fullfile(runFolder, '*result.mat'))) && ...
-    ~isempty(dir(fullfile(runFolder, '*.png'))) && ...
+    ~isempty(dir(fullfile(figureFolder, '*.png'))) && ...
     ~isempty(dir(fullfile(runFolder, '*.fig')));
+if modern
+    audit.required_files_present = audit.required_files_present && ...
+        isfile(fullfile(figureFolder, '结果汇总.xlsx'));
+end
 
 [audit.manifest_input_count, audit.manifest_hashes_match] = ...
     verifyManifest(runFolder);
@@ -48,6 +58,10 @@ function [inputCount, hashesMatch] = verifyManifest(runFolder)
 inputCount = 0;
 hashesMatch = false;
 manifestPath = fullfile(runFolder, 'run_manifest.csv');
+if ~isfile(manifestPath)
+    [inputCount, hashesMatch] = verifyNoiseManifest(runFolder);
+    return;
+end
 runInfoPath = fullfile(runFolder, 'run_info.txt');
 if ~isfile(manifestPath) || ~isfile(runInfoPath)
     return;
@@ -58,6 +72,10 @@ catch
     return;
 end
 inputCount = height(manifest);
+if inputCount == 0 || ~all(ismember({'FileName','SHA256','FileSizeBytes'}, ...
+        manifest.Properties.VariableNames))
+    return;
+end
 runInfo = fileread(runInfoPath);
 token = regexp(runInfo, '(?m)^DataFolder:\s*(.+?)\r?$', 'tokens', 'once');
 if isempty(token)
@@ -67,8 +85,7 @@ dataFolder = strtrim(token{1});
 hashesMatch = true;
 for fileIndex = 1:inputCount
     fileName = tableText(manifest.FileName, fileIndex);
-    if isfile(fileName), filePath = fileName;
-    else, filePath = fullfile(dataFolder, fileName); end
+    filePath = converter.io.resolveInputPath(dataFolder, fileName);
     if ~isfile(filePath)
         hashesMatch = false;
         return;
@@ -94,5 +111,25 @@ if iscell(column)
     value = char(column{rowIndex});
 else
     value = char(string(column(rowIndex)));
+end
+end
+
+function [inputCount, hashesMatch] = verifyNoiseManifest(runFolder)
+inputCount=0; hashesMatch=false;
+manifestPath=fullfile(runFolder,'source_manifest.csv');
+if ~isfile(manifestPath), return; end
+try
+    t=readtable(manifestPath,'TextType','string');
+    if ~all(ismember({'source_type','path','size_bytes','sha256'},t.Properties.VariableNames)), return; end
+    t=t(t.source_type=="raw",:); inputCount=height(t);
+    if inputCount==0, return; end
+    for k=1:inputCount
+        info=dir(t.path(k));
+        if numel(info)~=1 || info.bytes~=t.size_bytes(k) || ...
+                ~strcmpi(converter.runtime.sha256File(t.path(k)),t.sha256(k)), return; end
+    end
+    hashesMatch=true;
+catch
+    hashesMatch=false;
 end
 end

@@ -8,6 +8,7 @@ if nargin < 1, dataFolder = []; end
 if nargin < 2, selectedFiles = []; end
 if nargin < 3, outputFolder = []; end
 if nargin < 4 || isempty(runOptions), runOptions = struct(); end
+interactive = isempty(selectedFiles);
 [dataFolder, selectedFiles, outputFolder] = ad677ResolveInputs( ...
     dataFolder, selectedFiles, outputFolder);
 if isempty(selectedFiles)
@@ -22,6 +23,10 @@ if ~isfield(runOptions, 'powerSetpoints') || ...
 end
 [config, runOptions] = converter.runtime.applyRunOptions( ...
     ad677Config('power_scale'), runOptions);
+config.allowRadixPrompt = interactive;
+[config, selectedFiles, dataFolder, radixCancelled] = converter.io.prepareAdcRadix( ...
+    config, dataFolder, selectedFiles);
+if radixCancelled, results = []; return; end
 results = converter.adc.runPowerScale(config, dataFolder, ...
     selectedFiles, outputFolder, runOptions);
 end
