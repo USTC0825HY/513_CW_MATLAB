@@ -50,26 +50,11 @@ if isfinite(config.sampleRate)
 else
     effectiveSampleRate = deriveStrobeSampleRate(dataFolder, selectedFiles, config);
 end
-nyquistHz = effectiveSampleRate / 2;
-aboveNyquist = frequencies > nyquistHz;
-exactNyquist = abs(frequencies - nyquistHz) <= effectiveSampleRate * 1e-9;
-for k = find(aboveNyquist(:).')
-    fprintf(['提示：%s 注入频率 %.9g Hz 超过有效奈奎斯特 %.9g Hz：' ...
-        '按文件名频率拟合仍得到真实CodePp（混叠像是严格正弦，幅值不失真），' ...
-        '该点不参与-3dB带宽计算。\n'], ...
-        selectedFiles{k}, frequencies(k), nyquistHz);
-end
-for k = find(exactNyquist(:).')
-    fprintf(['剔除：%s 注入频率 %.9g Hz 恰在有效奈奎斯特点，采样退化为交替码，' ...
-        '幅值依赖触发相位且正弦拟合数值。\n'], ...
-        selectedFiles{k}, frequencies(k));
-end
-selectedFiles = selectedFiles(~exactNyquist);
-frequencies = frequencies(~exactNyquist);
-if isempty(selectedFiles)
-    error('adc128:AllFilesUnmeasurable', ...
-        '全部文件频率恰在有效奈奎斯特点，无可分析数据。');
-end
+% All frequency points are processed without filtering: no cycle-coverage,
+% Nyquist, or frequency-mismatch exclusion is applied.  Points above
+% Nyquist produce aliased but valid CodePp readings (the alias of a sine is
+% an exact sine image).  Points at exact Nyquist may have reduced amplitude
+% due to phase-dependent sampling, but the user has elected to keep them.
 if numel(unique(frequencies)) ~= numel(frequencies)
     error('adc128:DuplicateFrequency', '请每个频率选择一份CSV，不要混选多个通道或重复记录。');
 end
