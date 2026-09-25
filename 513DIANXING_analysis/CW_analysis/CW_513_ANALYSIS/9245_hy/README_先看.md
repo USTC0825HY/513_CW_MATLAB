@@ -116,7 +116,7 @@ r = adc_inl_dnl_analysis(d, files, [], options);
 
 - SFDR 仍是 Hann 窗峰值频点法，可能受到音调位于 FFT 栅格中间的影响。DC 先排除再找基波；Nyquist 不再被排除出杂散搜索；重叠的 DC/基波窗口明确报错。
 - THD 现在为谐波功率除以基波功率再取 dB。1%幅度谐波对应 −40 dB，旧版正40 dB是相反比值。旧25 MHz数据的5抽1估算边界保持不变。
-- 带宽保留全部明细，但达到/超过 Nyquist、拟合退化或超码域幅值的点不参与交点计算。少于两周期标 `InsufficientCyclesFlag`；结果一律保留正式“暂不能判定”。
+- 带宽保留全部明细；达到/超过 Nyquist 的点默认保留并参与交点（`NyquistOrAboveFlag` 标注混叠），拟合退化或超码域幅值的点不参与交点计算。如需恢复剔除可传 `struct('rejectNyquistOrAbove',true)`。少于两周期标 `InsufficientCyclesFlag`；结果一律保留正式“暂不能判定”。
 - 隔离度 `IsolationDb` 为未校正通道增益的码幅比。`ThresholdMet` 是数值过阈值；`Pass` 还受频率、驱动质量、已确认参考条件及正式开关限制。条件不足看 `FormalConclusion`，不能将未获准判断的 `Pass=false` 当作不合格。
 - INL/DNL 是各有效记录共有码域的码密度结果，INL 为最佳拟合直线扣除后的结果。码覆盖不足保留曲线但标 `IncompleteCodeCoverage`；全覆盖也不自动证明源纯度、相位统计和非线性真值已验证。
 

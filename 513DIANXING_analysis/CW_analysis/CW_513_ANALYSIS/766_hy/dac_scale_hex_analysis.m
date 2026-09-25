@@ -1,9 +1,16 @@
-function result = dac_scale_hex_analysis(dataFolder, selectedFiles, outputFolder)
+function result = dac_scale_hex_analysis(dataFolder, selectedFiles, outputFolder, toneFrequencyHz)
 %DAC_SCALE_HEX_ANALYSIS Run the DA766 scale analysis for hexadecimal codes.
 %   This device adapter keeps the calculation in converter.dac.runScale,
 %   while fixing the DA766 capture naming and code interpretation:
 %       raw hexadecimal code -> signed 16-bit decimal code
 %       CodePp = 2 * abs(signed code)
+%
+%   TONEFREQUENCYHZ optionally overrides the assumed 1525 Hz tone: the
+%   20260924 retest captures (FTW_2 at the 250 kS/s PICO setting) generate
+%   1525.88 Hz, and a fixed-frequency fit at 1525 Hz degrades R2 below the
+%   quality gate.  Refine the tone from a capture (e.g. via
+%   converter.adc.refineSineFrequency) and pass it here when the batch's
+%   actual tone differs.
 %
 %   The adapter is intentionally separate from dac_scale_analysis so the
 %   original DA766 entry point keeps its existing defaults.
@@ -15,6 +22,7 @@ end
 dataFolder = char(dataFolder);
 if nargin < 2, selectedFiles = {}; end
 if nargin < 3, outputFolder = []; end
+if nargin < 4, toneFrequencyHz = []; end
 
 bootstrapRuntime();
 [selectedFiles, dataFolder] = converter.io.selectMatFiles(dataFolder, selectedFiles, ...
@@ -80,6 +88,14 @@ firstCapture = converter.io.loadPicoMat(firstFile, '', 1, true);
 configOverride.sampleRate = firstCapture.sampleRateHz;
 configOverride.sampleRateSource = ...
     'first selected MAT Tinterval; per-file sample_rate_hz retained in table';
+if ~isempty(toneFrequencyHz)
+    validateattributes(toneFrequencyHz, {'numeric'}, ...
+        {'scalar', 'real', 'finite', 'positive'}, ...
+        'dac_scale_hex_analysis', 'toneFrequencyHz');
+    configOverride.toneFrequencyHz = double(toneFrequencyHz);
+    configOverride.toneFrequencySource = ...
+        sprintf('caller-provided refined tone %.9g Hz', double(toneFrequencyHz));
+end
 
 result = dac_scale_analysis(dataFolder, selectedFiles, outputFolder, configOverride);
 end

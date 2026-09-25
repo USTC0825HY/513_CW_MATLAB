@@ -12,7 +12,12 @@ if nargin < 2, selectedFiles = []; end
 if nargin < 3, outputFolder = []; end
 if nargin < 4, configOverride = struct(); end
 [dataFolder, selectedFiles] = normalizeDa9726Input(dataFolder, selectedFiles);
-defaultFolder = resolveDa9726DataFolder('noise');
+% An explicit folder must not probe obsolete/removable default drives.
+defaultFolder = '';
+if isempty(dataFolder) && ...
+        (~isfield(configOverride, 'dataFolder') || isempty(configOverride.dataFolder))
+    defaultFolder = resolveDa9726DataFolder('noise');
+end
 [config, cancelled] = converter.io.prepareDacInputs( ...
     da9726Config('noise'), dataFolder, selectedFiles, ...
     outputFolder, configOverride, defaultFolder);

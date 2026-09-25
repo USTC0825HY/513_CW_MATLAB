@@ -109,7 +109,7 @@ r = adc_inl_dnl_analysis(d, files, [], false, options);
 
 - SFDR 保留 Hann 窗峰值频点法；同样的音调落在不同 FFT 栅格位置，结果可能略有变化。现在先排除 DC 再找基波，Nyquist 频点仍参与杂散搜索；基波与 DC 排除区重叠时明确报错。
 - THD 改为 `10*log10(谐波功率/基波功率)`。例如谐波幅度为基波的 1%，THD 为 −40 dB。旧版输出的 +40 dB 是相反比值，不能直接混用。
-- 带宽明细保留所有频点。达到或超过 Nyquist、拟合退化或拟合幅值超出码域的点不参与带宽。`InsufficientCyclesFlag=true` 表示记录少于两个周期，应补长记录核对；能算出交点也不代表正式满足。
+- 带宽明细保留所有频点。达到或超过 Nyquist 的点默认保留并参与带宽，`NyquistOrAboveFlag=1` 仅标注混叠（100 MHz采样的Nyquist为50 MHz，更高输入频率需结合混叠解释）；如需恢复剔除可传 `struct('rejectNyquistOrAbove',true)`。拟合退化或拟合幅值超出码域的点不参与带宽。`InsufficientCyclesFlag=true` 表示记录少于两个周期，应补长记录核对；能算出交点也不代表正式满足。
 - 隔离度 `IsolationDb` 是 ADC 码幅比，未自动补偿不同接口的模拟增益。`ThresholdMet` 只表示数值过阈值；`Pass` 还要求驱动质量、频率及参考条件通过，并显式允许正式判定。参考条件不全时看 `FormalConclusion=暂不能判定`，不能把 `Pass=false` 简单理解为器件不合格。
 - INL/DNL 是公共有效码域的码密度结果，INL 去除一阶最佳拟合直线。未命中的码可能来自缺码，也可能来自采样相位不足；`IncompleteCodeCoverage` 要补充记录核查。全覆盖也只标 `Computed_MethodValidationRequired`，不自动宣称方法或器件已合格。
 

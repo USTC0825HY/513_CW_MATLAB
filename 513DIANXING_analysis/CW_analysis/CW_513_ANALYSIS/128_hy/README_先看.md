@@ -28,8 +28,8 @@ r = adc_bandwidth_analysis( ...
 
 文件名须包含注入频率（600Hz、1kHz 等）。当前处理规则：
 
-- **超过有效Nyquist**（例如100 kS/s采样的55 kHz注入）：保留明细，按FFT估计并优化得到的采样域频率拟合，不能把混叠频率当成新的注入频率；该点不参与 −3 dB 带宽。
-- **恰在有效Nyquist**：也保留明细，但不参与带宽。此时正弦幅值依赖采样相位，不能只因R²好就采信。
+- **超过有效Nyquist**（例如100 kS/s采样的55 kHz注入）：保留明细并参与 −3 dB 带宽，按FFT估计并优化得到的采样域混叠频率拟合（正弦的混叠仍是精确正弦），不能把混叠频率当成新的注入频率；`NyquistOrAboveFlag=1` 仅作证据标注。如需恢复剔除行为，运行时传 `struct('rejectNyquistOrAbove',true)`。
+- **恰在有效Nyquist**：同样保留参与。此时正弦幅值依赖采样相位，不能只因R²好就采信。
 - 表内 `NyquistOrAboveFlag`、`IllConditionedFitFlag`、`InsufficientCyclesFlag` 分别提示混叠范围、病态拟合或超码域幅值、少于两周期。所有数值都需连同这些标记查看。
 
 显式传文件时，按真实导出进制设置，例如：

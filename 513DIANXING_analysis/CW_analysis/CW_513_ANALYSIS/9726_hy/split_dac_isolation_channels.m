@@ -5,6 +5,12 @@ function result = split_dac_isolation_channels(dataFolder, selectedFiles, output
 %   No driven channel, folder naming, tone fit or reference plane is required.
 %   OPTIONS.channelMapping optionally supplies source_file, source_variable,
 %   channel_label. No isolation pair manifest is generated.
+%   OPTIONS.codeFromPercent (struct with fullScaleCode, or a scalar) enables
+%   percent-named uniform multi-channel captures: a "-<n>%" token in the
+%   source file name is converted to raw_code = round(n/100*fullScaleCode)
+%   and injected into the output name as CODE_<HEX>, so converter.dac.runScale
+%   can parse the code axis without renaming files by hand.  The conversion
+%   percent, rule, hex token and raw code are recorded in channel_manifest.csv.
 
 bootstrapRuntime();
 if nargin < 1, dataFolder = []; end
@@ -23,25 +29,74 @@ if isempty(selectedFiles)
 end
 
 if ~isfield(options, 'channelMapping'), options.channelMapping = []; end
-channelEntries = localInspectSources(dataFolder, selectedFiles, options);
+codeFromPercent = localCodePercentRule(options);
+channelEntries = localInspectSources(dataFolder, selectedFiles, options, ...
+    codeFromPercent);
 localValidateUniqueLabels(channelEntries);
 if isempty(outputFolder), outputFolder = fullfile(dataFolder, 'split'); end
 runFolder = localCreateRunFolder(outputFolder);
 channelRows = localWriteChannels(channelEntries, runFolder);
 channelManifestPath = fullfile(runFolder, 'channel_manifest.csv');
 converter.report.writeTable(channelRows, channelManifestPath);
-result = struct('version', '0.2.0', 'dataFolder', dataFolder, ...
+result = struct('version', '0.3.0', 'dataFolder', dataFolder, ...
     'outputFolder', runFolder, 'channelManifestPath', channelManifestPath, ...
-    'channelRows', channelRows);
+    'channelRows', channelRows, ...
+    'codeFromPercentRule', codeFromPercent);
 save(fullfile(runFolder, 'channel_split_result.mat'), 'result');
 fprintf('MAT通道切分完成：%s；共%d路。\n', runFolder, height(channelRows));
 end
 
-function entries = localInspectSources(dataFolder, selectedFiles, options)
+function rule = localCodePercentRule(options)
+%CODEPERCENTRULE Optional percent-to-code naming for uniform captures.
+rule = [];
+if ~isfield(options, 'codeFromPercent') || isempty(options.codeFromPercent)
+    return;
+end
+value = options.codeFromPercent;
+if isstruct(value)
+    if ~isfield(value, 'fullScaleCode')
+        error('converter:dac:IsolationPercentRule', ...
+            'options.codeFromPercent必须提供fullScaleCode字段。');
+    end
+    fullScaleCode = value.fullScaleCode;
+else
+    fullScaleCode = value;
+end
+validateattributes(fullScaleCode, {'numeric'}, ...
+    {'scalar', 'integer', 'positive'}, 'split_dac_isolation_channels', ...
+    'codeFromPercent.fullScaleCode');
+rule = struct('fullScaleCode', double(fullScaleCode), ...
+    'ruleText', sprintf('round(percent/100*%d) full-scale percent', ...
+    fullScaleCode));
+end
+
+function [codePercent, codeRule, codeHex, codeRaw] = localPercentCode( ...
+    sourceName, rule, sourcePath)
+codePercent = NaN; codeRule = ''; codeHex = ''; codeRaw = NaN;
+if isempty(rule), return; end
+token = regexp(sourceName, '(?i)-(\d+)%', 'tokens', 'once');
+if isempty(token)
+    error('converter:dac:IsolationPercentMissing', ...
+        'codeFromPercent要求文件名包含-<数字>%%幅值标记：%s', sourcePath);
+end
+codePercent = str2double(token{1});
+codeRaw = round(codePercent / 100 * rule.fullScaleCode);
+if ~isfinite(codeRaw) || codeRaw < 1 || codeRaw > 65535
+    error('converter:dac:IsolationPercentCodeInvalid', ...
+        '百分比%g按规则%s换算出码值%g，超出16位无符号范围：%s', ...
+        codePercent, rule.ruleText, codeRaw, sourcePath);
+end
+codeHex = upper(dec2hex(codeRaw));
+codeRule = rule.ruleText;
+end
+
+function entries = localInspectSources(dataFolder, selectedFiles, options, ...
+    codeFromPercent)
 emptyEntry = struct('sourceFile', '', 'sourceName', '', ...
     'sourceVariable', '', 'channelLabel', '', 'waveform', [], ...
     'sampleCount', NaN, 'sampleRateHz', NaN, 'tstartS', NaN, ...
-    'sourceSha256', '');
+    'sourceSha256', '', 'codePercent', NaN, 'codeRule', '', ...
+    'codeHex', '', 'codeRaw', NaN);
 entries = repmat(emptyEntry, 0, 1);
 for fileIndex = 1:numel(selectedFiles)
     sourcePath = converter.io.resolveInputPath(dataFolder, selectedFiles{fileIndex});
@@ -53,6 +108,8 @@ for fileIndex = 1:numel(selectedFiles)
         error('converter:dac:IsolationWaveformMissing', ...
             'MAT文件不含A/B/C/D波形：%s', sourcePath);
     end
+    [codePercent, codeRule, codeHex, codeRaw] = localPercentCode( ...
+        sourceName, codeFromPercent, sourcePath);
     labels = localSourceLabels(sourcePath, present, options.channelMapping);
     [sampleRateHz, tstartS] = localTimebase(sourceData, sourcePath);
     sourceHash = converter.runtime.sha256File(sourcePath);
@@ -72,6 +129,10 @@ for fileIndex = 1:numel(selectedFiles)
         entry.sampleRateHz = sampleRateHz;
         entry.tstartS = tstartS;
         entry.sourceSha256 = sourceHash;
+        entry.codePercent = codePercent;
+        entry.codeRule = codeRule;
+        entry.codeHex = codeHex;
+        entry.codeRaw = codeRaw;
         entries(end + 1, 1) = entry; %#ok<AGROW>
     end
 end
@@ -142,15 +203,22 @@ end
 end
 
 function localValidateUniqueLabels(entries)
-labels = upper(string({entries.channelLabel}));
-if numel(unique(labels)) ~= numel(labels)
-    error('converter:dac:IsolationDuplicateChannel', ...
-        '切分映射包含重复接口；请检查文件选择或显式映射。');
+% Labels must be unique within each source file; repeated label sets across
+% files are legitimate for same-channel captures at multiple steps.
+sourceFiles = unique(string({entries.sourceFile}), 'stable');
+for s = 1:numel(sourceFiles)
+    mask = string({entries.sourceFile}) == sourceFiles(s);
+    labels = upper(string({entries(mask).channelLabel}));
+    if numel(unique(labels)) ~= numel(labels)
+        error('converter:dac:IsolationDuplicateChannel', ...
+            '同一文件的切分映射包含重复接口：%s', char(sourceFiles(s)));
+    end
 end
-for k = 1:numel(labels)
-    if isempty(regexp(char(labels(k)), '^JG\d+$', 'once'))
+for k = 1:numel(entries)
+    if isempty(regexp(upper(char(string(entries(k).channelLabel))), ...
+            '^JG\d+$', 'once'))
         error('converter:dac:IsolationChannelLabel', ...
-            '接口名必须采用JG加数字的格式：%s', labels(k));
+            '接口名必须采用JG加数字的格式：%s', entries(k).channelLabel);
     end
 end
 end
@@ -177,13 +245,20 @@ function rows = localWriteChannels(entries, runFolder)
 emptyRow = struct('source_file', "", 'source_variable', "", ...
     'channel_label', "", 'output_file', "", 'sample_count', NaN, ...
     'sample_rate_hz', NaN, 'tstart_s', NaN, 'source_sha256', "", ...
-    'output_sha256', "");
+    'output_sha256', "", 'code_percent', NaN, 'code_rule', "", ...
+    'code_hex', "", 'raw_code', NaN);
 rowStructs = repmat(emptyRow, numel(entries), 1);
 for k = 1:numel(entries)
     entry = entries(k);
     safeSourceName = regexprep(entry.sourceName, '[^A-Za-z0-9_.-]', '_');
-    outputName = sprintf('%s__%s__%s.mat', upper(entry.channelLabel), ...
-        safeSourceName, upper(entry.sourceVariable));
+    if isempty(entry.codeHex)
+        outputName = sprintf('%s__%s__%s.mat', upper(entry.channelLabel), ...
+            safeSourceName, upper(entry.sourceVariable));
+    else
+        outputName = sprintf('%s__CODE_%s__%s__%s.mat', ...
+            upper(entry.channelLabel), entry.codeHex, safeSourceName, ...
+            upper(entry.sourceVariable));
+    end
     outputPath = fullfile(runFolder, outputName);
     if isfile(outputPath)
         error('converter:dac:IsolationSplitCollision', ...
@@ -195,7 +270,7 @@ for k = 1:numel(entries)
     outputData.SourceFile = entry.sourceFile;
     outputData.SourceVariable = entry.sourceVariable;
     outputData.ChannelLabel = entry.channelLabel;
-    outputData.SplitVersion = '0.2.0';
+    outputData.SplitVersion = '0.3.0';
     save(outputPath, '-struct', 'outputData', '-v7');
 
     rowStructs(k).source_file = string(entry.sourceFile);
@@ -207,6 +282,10 @@ for k = 1:numel(entries)
     rowStructs(k).tstart_s = entry.tstartS;
     rowStructs(k).source_sha256 = string(entry.sourceSha256);
     rowStructs(k).output_sha256 = string(converter.runtime.sha256File(outputPath));
+    rowStructs(k).code_percent = entry.codePercent;
+    rowStructs(k).code_rule = string(entry.codeRule);
+    rowStructs(k).code_hex = string(entry.codeHex);
+    rowStructs(k).raw_code = entry.codeRaw;
 end
 rows = struct2table(rowStructs);
 end

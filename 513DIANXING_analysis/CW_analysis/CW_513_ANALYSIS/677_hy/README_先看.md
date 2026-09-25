@@ -89,7 +89,8 @@ ILA 以 100 MHz 记录，但 `adc_data` 只在 `adc_data_vld`（第5列）选通
 不再固定写成2/4/6 kHz。短记录即使R²很高也可能幅值不稳定，少于两周期的明细现在标
 `InsufficientCyclesFlag=true`；正式结论仍为“暂不能判定”，建议补采更长记录。
 如本次需要两周期门槛，可传 `struct('minimumRecordCycles',2)`。所有点保留在表中，
-但达到/超过有效Nyquist、拟合矩阵病态或拟合峰峰值超出码域的点不参与带宽。
+达到/超过有效Nyquist的点默认保留并参与带宽，仅以NyquistOrAboveFlag标注（如需剔除可传
+`rejectNyquistOrAbove=true`）；拟合矩阵病态或拟合峰峰值超出码域的点不参与带宽。
 Nyquist取本次有效采样率的一半，不能固定使用历史41.7 kHz。
 
 **结果目录**：带宽入口默认写入数据目录同级的 `results`（不在数据目录内部，也不在

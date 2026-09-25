@@ -10,7 +10,7 @@
 - 寻找基波前先屏蔽DC；Nyquist保留在杂散搜索内。DC/基波窗口重叠时拒绝计算，避免功率重复扣除。THD现为`10log10(P_harmonic/P_fundamental)`；旧版相反比值的正值不能直接沿用。
 - ADC隔离度仍为`20log10(CodePp_driven/CodePp_quiet)`，没有使用各接口V/code刻度补偿。新增RatioBasis明确码比口径；ThresholdMet只表示数值达到比较线，Pass还要求驱动R²（默认0.98）、未削顶、频率符合预期、有效拟合、formalEnabled及isolationReferenceConfirmed。后一个开关只有在参考面及通道增益关系有证据时才可启用，不能为了显示满足而打开。
 - INL/DNL在创建运行前核对所有记录的采集通道，不能混合接口。方法为各记录拟合正弦概率加权合并，在共有有效码域计算DNL，再累计并去除最佳拟合直线得到INL。覆盖不足标IncompleteCodeCoverage；理论每码期望命中不足1标InsufficientExpectedCounts；其余标Computed_MethodValidationRequired。缺码与相位/样本不足仍需额外证据区分，FormalConclusion保持暂不能判定。
-- 带宽保留每个频点明细，达到/超过Nyquist、病态拟合或拟合CodePp超过合法码域跨度不参与交点。InsufficientCyclesFlag提示少于两个周期；minimumRecordCycles仍由器件配置控制，不静默改变用户参数。少周期的高R²不能证明幅值准确；所有带宽正式结论仍为暂不能判定。
+- 带宽保留每个频点明细，病态拟合或拟合CodePp超过合法码域跨度不参与交点；达到/超过Nyquist的点默认保留并参与交点，仅以NyquistOrAboveFlag标注，只有器件配置`rejectNyquistOrAbove=true`时才剔除（当前无器件启用）。InsufficientCyclesFlag提示少于两个周期；minimumRecordCycles仍由器件配置控制，不静默改变用户参数。少周期的高R²不能证明幅值准确；所有带宽正式结论仍为暂不能判定。
 
 ## AD9245 ILA采样率与分析配置
 
@@ -54,7 +54,7 @@ AD刻度默认按随代码发布的报告配置匹配器件/接口，显式指�
 
 ## ADC128 带宽
 
-入口位于 `128_hy`，12 bit unsigned，默认CSV第5列为ADC码、第4列为valid。ILA时钟50 MHz，sampleRate默认NaN，从均匀valid选通间隔推导有效采样率；显式有限sampleRate可覆盖。读取原始码后减2048，不改变CodePp。FFT估频并优化，再联合拟合正弦/余弦/直流项，`CodePp=2*hypot(a,b)`。最低频3个有效点幅值中位数作参考；响应为20log10幅值比，−3 dB在log10频率轴插值。R²门槛0.99，频率匹配检查启用。当前下轨余量−1意味着触及原始0码不会被削顶筛选排除，上轨余量1仍生效；该放宽需连同原波形审查，不能表示无削顶风险。达到或超过有效Nyquist的点保留明细但不参与带宽。源阻抗去嵌规则默认未启用，输出为实测带宽；无刻度时为CodePp而非Vpp，无正式验收限值，结论为“暂不能判定”。
+入口位于 `128_hy`，12 bit unsigned，默认CSV第5列为ADC码、第4列为valid。ILA时钟50 MHz，sampleRate默认NaN，从均匀valid选通间隔推导有效采样率；显式有限sampleRate可覆盖。读取原始码后减2048，不改变CodePp。FFT估频并优化，再联合拟合正弦/余弦/直流项，`CodePp=2*hypot(a,b)`。最低频3个有效点幅值中位数作参考；响应为20log10幅值比，−3 dB在log10频率轴插值。R²门槛0.99，频率匹配检查启用。当前下轨余量−1意味着触及原始0码不会被削顶筛选排除，上轨余量1仍生效；该放宽需连同原波形审查，不能表示无削顶风险。达到或超过有效Nyquist的点默认保留并参与带宽，仅以NyquistOrAboveFlag标注（内核仅在器件配置rejectNyquistOrAbove=true时剔除，ADC128未启用）。源阻抗去嵌规则默认未启用，输出为实测带宽；无刻度时为CodePp而非Vpp，无正式验收限值，结论为“暂不能判定”。
 
 ## AD677
 

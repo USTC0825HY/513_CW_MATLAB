@@ -104,6 +104,13 @@ r = dac_noise_analysis(d, files, out, settings);
 
 文件名中的JG接口按顺序对应实际存在的A/B/C/D。例如 `JG18-JG20-JG21-JG23-200K-2ms.mat` 切成4路，只有D变量的 `JG25-200K-2ms.mat` 切成1路。接口数与波形数不符时需通过第四参数的 `channelMapping` 指定映射（source_file、source_variable、channel_label）。
 
+文件名幅值是百分比（如 `...-1MHz-10%.mat`）的四通道合测刻度数据，可加 `options.codeFromPercent` 让切分输出直接带上刻度入口需要的码值标记：换算规则为 `raw_code = round(百分比/100 × fullScaleCode)`，输出名注入 `CODE_<HEX>`，并在 `channel_manifest.csv` 记录百分比、规则、十六进制和码值。不传该选项时行为与旧版完全一致：
+
+```matlab
+r = split_dac_isolation_channels(d, files, [], ...
+    struct('codeFromPercent', struct('fullScaleCode', 65535)));
+```
+
 ```matlab
 % 直接弹窗选择要切分的MAT，不必选入驱动参考。
 split_dac_isolation_channels
@@ -179,3 +186,44 @@ r = dac_isolation_analysis(d, pair, out, struct('hardwareGain',1));
 积分频带必须被实际频谱完整覆盖，而且频带内至少有两个频点；未覆盖时保留可计算的部分频带诊断值，但状态为暂不能判定，不能当成完整频带的RMS。窄到只有一个频点时返回NaN，不返回误导性的零。
 
 刻度的横轴是本批文件名中的原始无符号十六进制幅度码（例如E000=57344），不能理解成实测DAC波形峰峰码。为兼容旧程序，CSV仍沿用code_vpp和slope_v_per_code_vpp字段名；请同时查看code_axis_definition=raw_unsigned_code。图已明确标注原始幅度码。至少两个不同码幅且各自正弦拟合合格，才给出刻度斜率；只有重复同一码值时状态为未测试。
+
+## 2026-09-22 JG18噪声实跑与路径检查
+
+指定文件 jg18_2MSPS_20S_CH1_G_100.mat 已用正式入口处理成功，未复现计算异常。实际A通道39556968点，Tinterval对应1977848.15998275 Hz、20.000002427秒。Length/RequestedLength为39556964，ExtraSamples=0，数组多4点，来源未明确；本次保留实际数组且没有删点。
+
+按显式hardwareGain=100，Hann/0.2 Hz/50%重叠共7段：实际频点0.999999979767279 Hz的ASD为2.18227522136936 µV/√Hz，1～100 kHz积分为34.5675720224396 µVrms。负载和参考条件尚未闭环，正式状态暂不能判定。
+
+入口已改为明确传入数据目录时不再查询旧默认盘符；公共噪声流程增加读取、Welch、完整频谱导出和结果整理进度。只改路径查找和提示，不改公式。完整频谱约494万行、CSV约385 MB，导出需要等待。
+
+```matlab
+cd('F:/01_Laser/code/matlab/513DIANXING_analysis/CW_analysis/CW_513_ANALYSIS/9726_hy');
+d = 'I:/513_CW_test/CW_Data/513_CW_DATA_jianding/DA9726/20260922/9726 NOISE';
+r = dac_noise_analysis(d, {'jg18_2MSPS_20S_CH1_G_100.mat'}, ...
+    fullfile(d,'results'), struct('dataVariables',{{'A'}},'hardwareGain',100));
+```
+
+真实结果：该数据目录下 results/run_20260922_175311_noise/结果汇总.xlsx。诊断记录：F:/01_Laser/.codex_work/20260922-9726-noise。原始MAT的SHA-256为0AEFB4BE0961B940129D0A390005A29EF81DEB75051C88EDF4376810CB0F0E9B，运行前后保持一致。
+
+## 四通道合测百分比命名刻度数据：先切分、再逐通道刻度（2026-09-22）
+
+`9726-Retest/scale` 这批数据是4个DAC通道统一码值配置同时采集：每个MAT含A/B/C/D四路波形，文件名幅值为百分比（10%～99%，1 MHz）。scale 入口一次只拟合一条直线，且要求文件名含 `CODE/COADE` 十六进制码值，因此必须先切分成单通道、再按通道分别运行刻度，不能把4路混进一次拟合。
+
+标准链路（以20260922鉴定复测数据为例）：
+
+```matlab
+d = 'F:/01_Laser/0_20260727_513test/513_test_data_0922/jianding/9726-Retest/scale';
+% 1) 切分：百分比按满量程换算为码值（raw_code = round(pct/100*65535)）
+r = split_dac_isolation_channels(d, [], [], ...
+    struct('codeFromPercent', struct('fullScaleCode', 65535)));
+% 2) 逐通道刻度：从 r.channelManifestPath 或 channel_manifest.csv 按接口挑文件，
+%    每通道10档单独拟合；toneFrequencyHz 按实际输出频率覆盖（本批为1 MHz）。
+scaleDir = r.outputFolder;
+ch1 = dir(fullfile(scaleDir, 'JG20__CODE_*.mat'));
+files = {ch1.name};
+r1 = dac_scale_analysis(scaleDir, files, ...
+    fullfile(d, 'results', 'CH1_JG20'), struct('toneFrequencyHz', 1000000));
+```
+
+通道与接口按文件名顺序对应（A=CH1/JG20、B=CH2/JG21、C=CH3/JG23、D=CH4/JG25），映射关系仍须与实际接线记录核对。切分manifest的 `raw_code` 列即刻度横轴：10%→6554(0x199A)、50%→32768(0x8000)、99%→64880(0xFD70)。
+
+默认拟合上限 `maximumCodeVpp=0.9×2^16` 会把99%档（0xFD70）保留测量但不纳入直线拟合；确需纳入时在第四参数显式覆盖 `maximumCodeVpp` 并在测试记录中说明。某档4路波形均无1 MHz正弦（逐点拟合R²接近0）时，该档会被质量门槛自动排除出拟合，保留在measurements并注明原因；这类采集应核对DDS配置后重测，不能用拟合结果反推。

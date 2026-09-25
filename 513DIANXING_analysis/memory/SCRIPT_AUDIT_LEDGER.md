@@ -287,3 +287,20 @@ split_dac_isolation_channels v0.2.0只切分A/B/C/D并记录接口、时基和�
 正式报告：`F:/01_Laser/code/matlab/513DIANXING_analysis/CW_analysis/CW_513_ANALYSIS/docs/20260920_revision/AUDIT_REPORT.md`。脚本矩阵：同目录`SCRIPT_MATRIX.csv`；入口说明：`ENTRYPOINTS.md/ENTRYPOINTS.csv`。测试证据：`F:/01_Laser/.codex_work/20260920-cw513-current-audit/implementation`。真实AD677证据：`F:/01_Laser/0_20260727_513test/20260919_data/JIAQIANGJIAN/AD677/SCALE/ad677_X3_scale_1kHz_amplitude_sweep_20260919_110838_838458/results/cw513_revision_20260920_222108`；真实DA9726证据：`F:/01_Laser/0_20260727_513test/20260919_data/results/20260920_script_audit/DA9726/run_20260920_222659_scale`。
 
 方法状态没有因为测试通过而自动升级。参考面、负载、正式限值、全部25入口真实复跑、ADC全码域INL/DNL和DAC INL/DNL仍未闭环。原始数据、历史结果和黄金基线未修改；未提交/推送Git。
+
+## 2026-09-22 JG18噪声实跑与路径检查
+
+指定文件 jg18_2MSPS_20S_CH1_G_100.mat 已用正式入口处理成功，未复现计算异常。实际A通道39556968点，Tinterval对应1977848.15998275 Hz、20.000002427秒。Length/RequestedLength为39556964，ExtraSamples=0，数组多4点，来源未明确；本次保留实际数组且没有删点。
+
+按显式hardwareGain=100，Hann/0.2 Hz/50%重叠共7段：实际频点0.999999979767279 Hz的ASD为2.18227522136936 µV/√Hz，1～100 kHz积分为34.5675720224396 µVrms。负载和参考条件尚未闭环，正式状态暂不能判定。
+
+入口已改为明确传入数据目录时不再查询旧默认盘符；公共噪声流程增加读取、Welch、完整频谱导出和结果整理进度。只改路径查找和提示，不改公式。完整频谱约494万行、CSV约385 MB，导出需要等待。
+
+```matlab
+cd('F:/01_Laser/code/matlab/513DIANXING_analysis/CW_analysis/CW_513_ANALYSIS/9726_hy');
+d = 'I:/513_CW_test/CW_Data/513_CW_DATA_jianding/DA9726/20260922/9726 NOISE';
+r = dac_noise_analysis(d, {'jg18_2MSPS_20S_CH1_G_100.mat'}, ...
+    fullfile(d,'results'), struct('dataVariables',{{'A'}},'hardwareGain',100));
+```
+
+真实结果：该数据目录下 results/run_20260922_175311_noise/结果汇总.xlsx。诊断记录：F:/01_Laser/.codex_work/20260922-9726-noise。原始MAT的SHA-256为0AEFB4BE0961B940129D0A390005A29EF81DEB75051C88EDF4376810CB0F0E9B，运行前后保持一致。

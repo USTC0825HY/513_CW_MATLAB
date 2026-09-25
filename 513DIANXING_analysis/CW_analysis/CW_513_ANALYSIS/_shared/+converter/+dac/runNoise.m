@@ -9,6 +9,7 @@ fileNames = arrayfun(@(f) fullfile(f.folder, f.name), files, 'UniformOutput', fa
 % makes an incomplete PicoScope export fail as an input error instead of
 % leaving a run folder that contains no analysis evidence.
 firstPath = fullfile(files(1).folder, files(1).name);
+fprintf('正在读取噪声MAT：%s\n', firstPath);
 firstCapture = converter.io.loadPicoMat(firstPath, localVariable(config, 1), ...
     config.hardwareGain, config.removeMean);
 runContext = converter.runtime.createRun(config, config.dataFolder, ...
@@ -23,6 +24,8 @@ for k = 1:numel(files)
         capture = converter.io.loadPicoMat(path, localVariable(config, k), ...
             config.hardwareGain, config.removeMean);
     end
+    fprintf('[%d/%d] Welch计算：%d点，实际采样率%.9g Hz，电压增益%g\n', ...
+        k, numel(files), capture.sampleCount, capture.sampleRateHz, config.hardwareGain);
     [frequencyHz, psd, asd, setup] = localSpectrum(capture.voltage, ...
         capture.sampleRateHz, config);
     [~, checkIndex] = min(abs(frequencyHz - config.asdCheckHz));
@@ -56,6 +59,7 @@ for k = 1:numel(files)
             integratedJudgment = "暂不能判定";
         end
     end
+    fprintf('正在导出%d个频点的完整频谱CSV及图片，请等待。\n', numel(frequencyHz));
     [spectrumFile, plotFile] = localEvidence(config, runContext.folder, ...
         files(k).name, frequencyHz, psd, asd, actualCheckHz, asdValue);
     rows(k) = localRow(path, files(k).name, capture, setup, actualCheckHz, ...
@@ -70,6 +74,7 @@ converter.report.writeTable(localParameters(config), fullfile(runContext.folder,
 result = struct('config', config, 'summary', summary, ...
     'outputFolder', runContext.folder);
 save(fullfile(runContext.folder, 'dac_noise_result.mat'), 'result');
+fprintf('正在整理结果汇总.xlsx及evidence目录。\n');
 converter.runtime.finishRun(runContext, true, 'DA噪声分析完成');
 result = converter.runtime.refreshResultPaths(result, runContext.folder);
 catch exception
