@@ -82,9 +82,15 @@ validForBandwidth = isfinite(codePp) & codePp > 0 & ...
     isfinite(fitR2) & fitR2 >= config.minimumFitR2 & ...
     isfinite(frequencyHz) & isfinite(fileFrequencyHz) & ...
     fileFrequencyHz > 0 & ~clippingFlag & ~illConditionedFitFlag & ...
-    ~nyquistFlag & recordCycles >= minimumRecordCycles;
+    recordCycles >= minimumRecordCycles;
 if isfield(config, 'rejectFrequencyMismatch') && config.rejectFrequencyMismatch
     validForBandwidth = validForBandwidth & ~frequencyMismatchFlag;
+end
+% All swept points participate in the -3 dB crossing by default;
+% NyquistOrAboveFlag stays a reported evidence column. Excluding
+% at-or-above-Nyquist points is opt-in per device configuration.
+if isfield(config, 'rejectNyquistOrAbove') && config.rejectNyquistOrAbove
+    validForBandwidth = validForBandwidth & ~nyquistFlag;
 end
 if isfield(config, 'bandwidthFrequencySource') && ...
         strcmpi(config.bandwidthFrequencySource, 'file')

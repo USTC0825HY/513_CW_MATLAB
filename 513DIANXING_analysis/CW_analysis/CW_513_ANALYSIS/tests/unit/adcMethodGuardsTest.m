@@ -65,18 +65,33 @@ classdef adcMethodGuardsTest < matlab.unittest.TestCase
             testCase.verifyEqual(r.Status, "IncompleteCodeCoverage");
         end
 
-        function nyquistBandwidthPointRetainedButExcluded(testCase)
+        function nyquistBandwidthPointRetainedByDefault(testCase)
             c = adcMethodGuardsTest.config();
             c.adcBits = 16; c.minimumFitR2 = .9;
             c.referencePointCount = 3; c.frequencyMismatchTolerance = .02;
             c.clippingMarginCode = 1; c.rejectFrequencyMismatch = false;
-            c.fitFrequencySource = 'file';
             n = (0:1023)';
-            x = 1000*cos(pi*n);
-            r = converter.adc.calculateBandwidth({x}, {'50kHz.csv'}, 50000, c);
+            x = 1000*sin(2*pi*41*n/1024);  % ~3994 Hz alias of a 60 kHz input
+            r = converter.adc.calculateBandwidth({x}, {'60kHz.csv'}, 60000, c);
             testCase.verifyEqual(height(r), 1);
             testCase.verifyTrue(r.NyquistOrAboveFlag);
+            testCase.verifyTrue(r.ValidForBandwidth);
+            testCase.verifyEqual(r.RelativeDb, 0, 'AbsTol', 1e-9);
+            testCase.verifyTrue(isnan(r.Bandwidth3dBHz));
+        end
+
+        function nyquistBandwidthPointExcludedOnlyWhenConfigured(testCase)
+            c = adcMethodGuardsTest.config();
+            c.adcBits = 16; c.minimumFitR2 = .9;
+            c.referencePointCount = 3; c.frequencyMismatchTolerance = .02;
+            c.clippingMarginCode = 1; c.rejectFrequencyMismatch = false;
+            c.rejectNyquistOrAbove = true;
+            n = (0:1023)';
+            x = 1000*sin(2*pi*41*n/1024);  % ~3994 Hz alias of a 60 kHz input
+            r = converter.adc.calculateBandwidth({x}, {'60kHz.csv'}, 60000, c);
+            testCase.verifyTrue(r.NyquistOrAboveFlag);
             testCase.verifyFalse(r.ValidForBandwidth);
+            testCase.verifyTrue(isnan(r.RelativeDb));
             testCase.verifyTrue(isnan(r.Bandwidth3dBHz));
         end
     end

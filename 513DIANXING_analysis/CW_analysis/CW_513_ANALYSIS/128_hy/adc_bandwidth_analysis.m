@@ -8,13 +8,12 @@ function results = adc_bandwidth_analysis(dataFolder, selectedFiles, outputFolde
 %   clock 50 MHz, ADC code in column 5, data_128_vld strobe in column 4.
 %   The effective sample rate is derived from the strobe spacing
 %   (50 MHz / 500 = 100 kS/s on the 20260917 captures); rows between
-%   strobes are held codes and are excluded. Files above the effective
-%   Nyquist stay in the run and are fitted at the filename frequency,
-%   which recovers the true CodePp (the alias of a sine is an exact sine
-%   image) while the shared frequency check keeps them out of the -3 dB
-%   math. A file exactly at the Nyquist frequency is dropped: its samples
-%   degenerate into an alternating code whose fitted amplitude is
-%   phase-dependent and numerically singular.
+%   strobes are held codes and are excluded. All frequency points are
+%   processed without filtering: no cycle-coverage, Nyquist, or
+%   frequency-mismatch exclusion is applied, so at/above-Nyquist files
+%   stay in the run and in the -3 dB math with NyquistOrAboveFlag set
+%   as evidence (the shared kernel only excludes them when a device
+%   config sets rejectNyquistOrAbove=true, which ADC128 does not).
 bootstrapRuntime();
 if nargin < 1, dataFolder = []; end
 if nargin < 2 || isempty(selectedFiles), selectedFiles = []; end
