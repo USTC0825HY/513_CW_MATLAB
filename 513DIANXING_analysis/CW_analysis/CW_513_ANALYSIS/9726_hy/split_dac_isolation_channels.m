@@ -1,10 +1,19 @@
 function result = split_dac_isolation_channels(dataFolder, selectedFiles, outputFolder, options)
 %SPLIT_DAC_ISOLATION_CHANNELS Split Pico MAT waveforms without drive analysis.
-%   Maps filename JG labels to present A/B/C/D variables in order, saves
-%   each waveform as A, and preserves acquisition metadata and source hashes.
-%   No driven channel, folder naming, tone fit or reference plane is required.
-%   OPTIONS.channelMapping optionally supplies source_file, source_variable,
-%   channel_label. No isolation pair manifest is generated.
+%   Maps filename interface labels to the variables actually present in each
+%   MAT (A/B/C/D; 1~4 channel captures all work), saves each waveform as A,
+%   and preserves acquisition metadata and source hashes.  No driven channel,
+%   folder naming, tone fit or reference plane is required.
+%   Label sources, in priority order:
+%     1. OPTIONS.channelMapping (source_file, source_variable, channel_label)
+%        - explicit rows are required only for the variables present.
+%     2. Filename CH<n>_<label> tokens (e.g. CH1_X7-CH2_X9-...): token n maps
+%        to variable A/B/C/D by position, so partial-channel captures (e.g.
+%        CH1+CH3 only) stay correctly aligned; "_" inside a token becomes "-".
+%     3. Filename JG<d+> tokens in file order (legacy rule, unchanged).
+%   Interface labels must start with a letter and may contain letters, digits,
+%   "-" and "_" (JG15, X11-5, X77_8 are all valid) and must be unique within
+%   each source file.  No isolation pair manifest is generated.
 %   OPTIONS.codeFromPercent (struct with fullScaleCode, or a scalar) enables
 %   percent-named uniform multi-channel captures: a "-<n>%" token in the
 %   source file name is converted to raw_code = round(n/100*fullScaleCode)
@@ -145,11 +154,32 @@ if ~isempty(explicitMapping)
         presentVariables, explicitMapping);
     return;
 end
+% Rule 1: CH<n>_<label> tokens align to A/B/C/D by channel position, so
+% partial-channel captures (CH1+CH3, CH2 only, ...) stay correctly mapped.
+chTokens = regexp(sourceName, '(?i)CH([1-4])_([A-Za-z][A-Za-z0-9]*(?:_[A-Za-z0-9]+)*)', 'tokens');
+if ~isempty(chTokens)
+    allVariables = {'A', 'B', 'C', 'D'};
+    labels = cell(1, numel(presentVariables));
+    aligned = true;
+    for k = 1:numel(presentVariables)
+        variableIndex = find(strcmp(allVariables, presentVariables{k}));
+        hit = chTokens(cellfun(@(tk) str2double(tk{1}) == variableIndex, chTokens));
+        if isscalar(hit)
+            token = upper(hit{1}{2});
+            labels{k} = strrep(token, '_', '-');
+        else
+            aligned = false;
+            break;
+        end
+    end
+    if aligned, return; end
+end
+% Rule 2 (legacy): JG tokens in file order.
 labels = regexp(sourceName, '(?i)JG\d+', 'match');
 labels = cellfun(@upper, labels, 'UniformOutput', false);
 if numel(labels) ~= numel(presentVariables)
     error('converter:dac:IsolationChannelMapAmbiguous', ...
-        ['文件名中的JG接口数与A/B/C/D波形数不一致：%s。' ...
+        ['文件名中的接口标签与实际波形变量不一致：%s。' ...
         '请提供options.channelMapping。'], sourcePath);
 end
 end
@@ -216,9 +246,10 @@ for s = 1:numel(sourceFiles)
 end
 for k = 1:numel(entries)
     if isempty(regexp(upper(char(string(entries(k).channelLabel))), ...
-            '^JG\d+$', 'once'))
+            '^[A-Z][A-Z0-9]*([_-][A-Z0-9]+)*$', 'once'))
         error('converter:dac:IsolationChannelLabel', ...
-            '接口名必须采用JG加数字的格式：%s', entries(k).channelLabel);
+            ['接口名必须以字母开头，仅含字母、数字、"-"、"_"（如JG15、X11-5）：%s'], ...
+            entries(k).channelLabel);
     end
 end
 end
