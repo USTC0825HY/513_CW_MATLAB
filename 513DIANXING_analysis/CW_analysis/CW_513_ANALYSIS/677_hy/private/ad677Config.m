@@ -82,7 +82,7 @@ switch config.analysisId
             'run_manifest amplitude/source readback, validated against filename Vpp';
         config.scaleRequirement = 'not supplied';
     case 'input_noise'
-        config.version = '0.3.0';
+        config.version = '0.4.0';
         config.referencePlane = ...
             'AD677 external board input; physical board/ADC-pin plane unverified';
         config.sampleRate = 100e6;
@@ -117,16 +117,23 @@ end
 
 function rows = localNoiseCalibration()
 % Noise conversion removes the mean, so amplitude-fit intercepts are unused.
+% 20260928 revision: slopes updated from the 20260919 JIAQIANGJIAN 1 kHz
+% amplitude sweeps (0.25-2.5 Vpp), processed 20260920 by adc_power_scale:
+%   677_1 1.53251359250316e-4 V/code (10 pts, R2 0.9999966)
+%   677_2 1.7033712511134e-4  V/code (9 pts,  R2 0.9999868)
+% Previous 20260902 values (1.536050e-4 / 1.695154e-4, from the 20260820
+% sweeps) remain in git history for traceability of all pre-20260928 runs.
 template = struct('device', 'AD677', 'channel', '', ...
     'slopeVPerCode', NaN, 'interceptV', NaN, 'fitR2', NaN, ...
     'calibrationFrequencyHz', NaN, 'pointCount', NaN, ...
     'unit', 'V/code', 'configurationStatus', 'fixed', ...
-    'sourceDocument', 'User-fixed AD677 noise calibration', ...
+    'sourceDocument', ['20260919 JIAQIANGJIAN AD677 scale sweeps; ' ...
+    'processed 20260920 (cw513_revision_20260920_222108 / run_20260920_172452)'], ...
     'sourceSection', '677_hy/private/ad677Config.m', ...
     'definition', 'InputNoiseV=(Code-mean(Code))*slopeVPerCode');
 rows = repmat(template, 2, 1);
 rows(1).channel = '677_1';
-rows(1).slopeVPerCode = 1.536050e-4;
+rows(1).slopeVPerCode = 1.53251359250316e-4;
 rows(2).channel = '677_2';
-rows(2).slopeVPerCode = 1.695154e-4;
+rows(2).slopeVPerCode = 1.70337125111340e-4;
 end

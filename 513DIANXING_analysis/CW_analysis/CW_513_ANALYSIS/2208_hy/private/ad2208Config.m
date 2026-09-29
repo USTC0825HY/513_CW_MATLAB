@@ -51,7 +51,7 @@ switch config.analysisId
     case 'isolation'
         config.isolationFrequencyHz = 1e6;
         config.frequencyMismatchTolerance = 0.02;
-        config.drivenChannel = 'ADC2_JG17';
+        config.drivenChannel = 'ADC5_JG22';
         config.minimumIsolationDb = 40;
     case 'power_scale'
         config.version = '1.4.1';
