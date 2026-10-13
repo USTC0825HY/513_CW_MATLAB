@@ -1,0 +1,56 @@
+{
+  "sheets": [
+    {
+      "sheet": "鉴定件",
+      "rows": 27,
+      "sourceSha256": "32e41e1bceea267a38cfd7f68d499a56c65e48bf4d909040f43d9092737951c6",
+      "dataAndDefaultsMatch": true,
+      "dateAndSourceLocationsMatch": true
+    },
+    {
+      "sheet": "电性加强件",
+      "rows": 28,
+      "sourceSha256": "9a5f29a59a52aeff3ec681adaaa7ce1de0220469ed14c2c6038ae77846487239",
+      "dataAndDefaultsMatch": true,
+      "dateAndSourceLocationsMatch": true
+    }
+  ],
+  "workbookSha256": "11769a6167c283e42de82a98f7c36590575654f666fde2dcc3d7389c38cf53b4",
+  "wordRowsVerified": 55,
+  "unchangedMatlabAndCatalogFiles": 170,
+  "skillFilesSynced": 4,
+  "printPages": [
+    {
+      "page": 1,
+      "sizePt": [
+        1190.5511474609375,
+        841.8897705078125
+      ],
+      "textLength": 1709
+    },
+    {
+      "page": 2,
+      "sizePt": [
+        1190.5511474609375,
+        841.8897705078125
+      ],
+      "textLength": 1745
+    },
+    {
+      "page": 3,
+      "sizePt": [
+        1190.5511474609375,
+        841.8897705078125
+      ],
+      "textLength": 1586
+    },
+    {
+      "page": 4,
+      "sizePt": [
+        1190.5511474609375,
+        841.8897705078125
+      ],
+      "textLength": 1681
+    }
+  ]
+}

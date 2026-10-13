@@ -12,3 +12,15 @@
 buildDeviceRelease('AD9245')
 buildDeviceRelease('DA9726', '0.1.0')
 ```
+
+## 刻度归档生成
+
+`exportCalibrationArchive.mjs`从公共CSV生成两表单XLSX，`calibrationArchivePrint.py`补充筛选、打印区域和重复表头。只读输入CSV，默认输出到docs/20261012_board_calibration/两套板卡刻度归档_20261004.xlsx；重生成前保留所需旧归档。
+
+依赖：Node.js、`@oai/artifact-tool`和Python标准库。在可解析该Node包的工作目录运行（Codex环境使用load_workspace_dependencies返回的Node和node_modules，临时工作目录建立junction；不在源码库安装依赖）：
+
+```powershell
+& '<Node可执行文件>' '<分析库>/tools/exportCalibrationArchive.mjs' --python '<Python可执行文件>' --preview '<任务预览目录>'
+```
+
+`--preview`可省略；`--output`可指定独立的归档文件路径。两份20261004报告对应55条数据，工具检查总数和板型行数；报告版本更新时先核对目录表与来源，再调整归档版本和数量。默认标记按接口优先after，否则取唯一记录，数据区数值保持数值类型。验证应读回XLSX并核对报告；成功导出本身不代表来源核对完成。

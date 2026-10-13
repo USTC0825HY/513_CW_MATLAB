@@ -1,6 +1,6 @@
 # CW_513_ANALYSIS 资源与 Skill 索引
 
-- 状态日期：2026-08-31
+- 结构与刻度索引更新：2026-10-13；后文手册状态保留其原记录日期。
 本页列出维护时使用的 skill，以及数据、细则、手册和报告的位置。
 
 ## Skill 路由
@@ -96,7 +96,19 @@ AD/DA 指标汇总集中在：
 ## 版本选择规则
 
 1. 数据和仪器 manifest 优先于文件夹命名。
-2. 当前器件配置优先于旧 README 和旧报告。
+2. 运行参数以当前器件配置及显式覆盖为准；内置刻度以公共目录所绑定的20261004报告刻度表为依据，噪声段旧系数不覆盖该表。
 3. 手册版本以总索引为准，不以时间戳为准。
 4. 细则冲突时保留两个来源和差异，不擅自选值。
 5. 只有审计过的 MATLAB 结果包可以进入正式报告。
+
+## 当前软件和刻度入口
+
+- [当前结构与26入口](../CW_analysis/CW_513_ANALYSIS/docs/20261013_structure_governance/STRUCTURE.md)
+- [参数覆盖规则](../CW_analysis/CW_513_ANALYSIS/CONFIGURATION.md)
+- [板型刻度及自定义来源](../CW_analysis/CW_513_ANALYSIS/CALIBRATION.md)
+- [两套板卡刻度XLSX](../CW_analysis/CW_513_ANALYSIS/docs/20261012_board_calibration/两套板卡刻度归档_20261004.xlsx)
+- [55条报告对照与验证](../CW_analysis/CW_513_ANALYSIS/docs/20261012_board_calibration/REPORT.md)
+
+鉴定件报告位于报告根的01_jianding/SZSD_YCQD_adda指标测试/鉴定件_SZSD_YCQD_20261004.docx；加强件报告位于02_jiaqiang/电性加强件_SZSD_YCQD_20261004.docx。具体SHA-256见刻度目录；这些报告是本次刻度归档来源，后续测量不自动套用其采集条件。
+
+旧数据/手册路径为历史定位线索；实际处理前验证目标存在及对应批次。当前手册从用户指定版本或总索引进入，不把本页2026-08-10状态升级为今天的板测状态。

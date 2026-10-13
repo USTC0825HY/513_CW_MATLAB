@@ -6,7 +6,7 @@
 
 `F:\01_Laser\code\matlab\513DIANXING_analysis\CW_analysis\CW_513_ANALYSIS`
 
-当前器件范围为 AD2208、AD9245、AD677、DA9726 和 DA766。除非用户明确要求做历史对比，不得把 `legacy`、`_release`、`Matlab_AND_ExampleData_lyp`、`CW_analysis/MATLAB_Scripts/GS_Data_Analysis`、旧 `laser_analysis/01_workflows` 或外部历史脚本当作正式算法入口。
+当前器件范围为 AD2208、AD9245、AD677、ADC128、DA9726 和 DA766。除非用户明确要求做历史对比，不得把 `legacy`、`_release`、`Matlab_AND_ExampleData_lyp`、`CW_analysis/MATLAB_Scripts/GS_Data_Analysis`、旧 `laser_analysis/01_workflows` 或外部历史脚本当作正式算法入口。
 
 ## 新任务启动顺序
 
@@ -137,3 +137,14 @@
 - DA766 是本分析库/数据目录名称；操作手册中常使用 AD766 名称。引用时必须同时写清对象和来源，不能静默混用。
 - AD677 当前没有独立正式操作手册。
 - 更新项目事实后，先更新 `memory/PROJECT_MEMORY.md`；新增或复核脚本后同步更新审计台账。
+
+## 2026-10-13 当前结构和刻度规则
+
+- 当前26个正式单项入口及辅助代码分类，以[源码结构](CW_analysis/CW_513_ANALYSIS/docs/20261013_structure_governance/STRUCTURE.md)为准。677批处理/FFT/审计、9726切分、Phase_delay及tools不并入正式入口数量。
+- 需要电压刻度的2208/677 ILA和2208/9245/677 PICO噪声按boardType选择jianding或jiaqiang；交互每次选择，显式文件调用须给板型。calibrationState=current优先after，否则取唯一原状态；before/after须有对应记录。
+- 公共CSV为内置刻度配置，归档XLSX从CSV生成；维护位置、来源和自定义调用见[CALIBRATION.md](CW_analysis/CW_513_ANALYSIS/CALIBRATION.md)。两份20261004报告刻度表为该目录的指定依据，优先于报告噪声段旧系数。仪器条件仍按对应采集记录核验。
+- PICO采用同板型ADC和DA9726 JG18刻度；显式自定义来源标记user，保留冲突校验和完整配置复跑。DAC电压噪声不额外应用码值刻度；扫描刻度始终由输入拟合。
+- 斜率展示单位V/code；ADC的CodePp、DA9726设定码、DA766码幅定义分别保存。旧兼容字段名称不因展示单位变化改名。
+- 最终配置及evidence保存实际选择记录、报告与目录表哈希；XLSX只显示必要板型与版本。9726直流输出保留原CSV/PNG/MAT布局。
+- 默认→分支默认→用户覆盖→派生与校验；非空位置参数优先。保留9245 PICO三参数、766hex第四参数数值频率和2208 INL五参数接口。
+- MEMORY当前摘要优先于历史段落；审计只记实际完成检查。更新刻度归档时核对55条记录与缺项，不推导未知日期/R²。代码验证与板级结论分别记录。

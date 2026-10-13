@@ -130,3 +130,7 @@ r = adc_pico_noise_1hz_analysis(dataFolder,'capture.mat',outputFolder,o);
 `结果汇总.xlsx`上方简要列板型及各接口版本。ILA在`evidence/report_calibration_rows.csv`和结果MAT中保存完整刻度；PICO在`evidence/selected_adc_calibration.csv`、`selected_dac_calibration.csv`和`result.mat`保存实际记录。最终配置的`calibrationSelection`含来源及选中记录。两份报告SHA-256、表/行定位与代码内目录表哈希保留用于追溯。
 
 更改板型或系数后重新计算，噪声值会按上述比例变化。历史报告、历史输出保持原样。配置选择与合成数据回归验证的是软件行为，板级测量条件仍按各批记录解释。
+
+## 两套刻度归档工作簿
+
+[两套板卡刻度归档](docs/20261012_board_calibration/两套板卡刻度归档_20261004.xlsx)分鉴定件27条、电性加强件28条，含全部改焊版本、默认采用标记、V/code斜率和来源。CSV继续作为代码配置；编辑XLSX不会自动修改分析系数。生成工具及依赖见[工具说明](tools/README.md)。归档保留未知信息空白，不补造R²、日期或测量条件。

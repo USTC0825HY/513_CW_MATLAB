@@ -64,3 +64,5 @@ result = adc_ila_noise_analysis(dataFolder,selectedFiles,outputFolder,options);
 - [2026-10-12刻度修订与验证](513DIANXING_analysis/CW_analysis/CW_513_ANALYSIS/docs/20261012_board_calibration/REPORT.md)
 
 当前26个入口以各器件README及源码签名为准。2026-10-12回归分批汇总228个不同测试的最近一次结果全部通过，最后两批30/30、13/13；55条报告刻度逐行核对通过。本次README更新未重新执行数值回归；历史大批数据未按新刻度全面重算。
+
+项目协作规则及当前目录分类见[源码结构](513DIANXING_analysis/CW_analysis/CW_513_ANALYSIS/docs/20261013_structure_governance/STRUCTURE.md)，两套板卡刻度可查看[归档工作簿](513DIANXING_analysis/CW_analysis/CW_513_ANALYSIS/docs/20261012_board_calibration/两套板卡刻度归档_20261004.xlsx)。

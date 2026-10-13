@@ -1,5 +1,18 @@
 # CW_513_ANALYSIS 项目记忆
 
+## 当前状态（2026-10-13）
+
+- 六器件26个正式入口：2208=7、9245=6、677=4、128=1、9726=4、766=4。分类、签名及哈希见[源码结构](../CW_analysis/CW_513_ANALYSIS/docs/20261013_structure_governance/STRUCTURE.md)。
+- 内置刻度为20261004报告的55条记录（鉴定件27、加强件28），按板型/接口/改焊状态选择。CSV是代码配置，XLSX是同源归档，见[刻度说明](../CW_analysis/CW_513_ANALYSIS/CALIBRATION.md)。旧20条混合表和固定DAC系数仅对应历史版本。
+- current优先改焊后，否则取唯一原状态；PICO选择同板DA9726 JG18；显式自定义刻度标记user。扫描刻度和DAC电压噪声保留各自原计算方式。
+- 2026-10-12分批回归228项最近一次结果通过；本轮仅文档、技能、结构及XLSX检查，未新增数值/板测验证。历史大型实测批次未按新刻度全面复跑。
+- GitHub仓库USTC0825HY/513_CW_MATLAB，工作分支codex/ad677-noise-sync；现有云端基线6640d27。后续提交以Git记录为准。
+- 数据目录按用户本次选择核验；I盘后续复测、历史批次和F盘历史根分别使用，不根据目录名推定板型、增益和参考面。
+
+## 历史记录与适用版本
+
+以下按原日期保留处理记录和当时配置；涉及“当前”“默认”的文字仅适用于该条记录对应版本。运行前采用上方当前摘要和实际源码。
+
 2026-09-28（鉴定件 JG17 PICO 补入）：JG17 改焊后 PICO 复测（`02_1Hz_PICO\ADC2_JG17\raw\JG17_NOISE_250KSPS_CH1_MULT128-retest.mat`，0922 采集，与加强件不同批）入报告——已有 run_20260922_212400 复用（k=4.43806e-5 恰与鉴定件报告刻度一致，无需重算），**1 Hz ASD=4.092 µV/√Hz**、分段 2.770~6.938，满足。PICO 表 4 行（JG17 后蓝 / JG24 后蓝 / JG24 前红灰）、图11 JG17+图12 JG24、结果说明合并两路、溯源行补 run。**重大坑（已修）**：`xml.rindex('<w:p',…)` 会误匹配段落内部 `<w:pPr` 前缀——图段插入点必须用段落级正则数组定位（找题注段索引后向前找含 <w:drawing> 的完整段），否则图被插进另一段落中间形成非法嵌套、LibreOffice 静默丢弃该图（XML 层题注计数正常但渲染缺图，postcheck 难以发现——渲染层图号抽查必要）。另：「DA9726/PICO」连写在窄列易被断词，改「DA9726 与 PICO」。交付 md5 ec84a82f。
 
 2026-09-28（鉴定件 PICO 1Hz 更新）：JG24 改焊后 PICO 复测（`02_1Hz_PICO\ADC6_JG24\retest\JG24_250K_CH1\JG24_250K_CH1_1.mat`，与加强件不同批 sha256 不同）分析完成——**k_adc 经 calibrationWorkbook 选项注入**（新建最小 xlsx `F:/01_Laser/.codex_work/20260929-jd-pico/jd_ad2208_cal_20260924.xlsx`，Sheet=刻度参数，含鉴定件 0924 报告 5 行刻度，JG24=3.788345e-5；loadAdcCalibration 接受函数路径或此格式 xlsx，注意根目录 20260822 旧 xlsx 含重复行会触发唯一性校验失败不可直接用），run=同目录 results\run_20260928_134711。**1 Hz ASD=3.908 µV/√Hz（改焊前 5.249）**，分段 0.499~4.742，满足。报告更新：误差路方法段补 k 说明；小节重排为 spec 序（方法→要求→ILA表→PICO表→结果说明：标签→两段说明→图）；PICO 对比表（改焊后蓝 3.908/改焊前红灰 5.249/— ）；旧 PICO 图换新 run 图（图11）；溯源行补两 run 路径。排版坑：**双行对防拆须给配对首行（改焊后行）全部段落加 <w:keepNext/>**（cantSplit 只防单行内拆）；整表被推页后注意「结果说明：」标签段别孤悬页底（同样 keepNext 或确认位置）。交付 md5 6d2bbd15。
@@ -336,3 +349,12 @@ split_dac_isolation_channels v0.2.0只切分A/B/C/D并记录接口、时基和�
 - 仓库README更新为26个入口，补充两套板型刻度、参数调用、输出位置及2026-10-12验证范围；分析库README同步。
 - 当前513分析源码、配置、测试、刻度CSV、审计文档和Phase_delay辅助源码上传至GitHub USTC0825HY/513_CW_MATLAB的codex/ad677-noise-sync分支。主体提交f91f26e；本条及辅助脚本随补充提交保存。
 - 原始采集、运行结果、ZIP和其他独立工程保留本地。本次检查README链接、Git差异及上传范围，数值回归沿用2026-10-12记录。
+
+
+## 2026-10-13 规则、技能与刻度归档
+
+- AGENTS补齐六器件、26入口及辅助代码边界；记忆开头增加当前摘要，原历史记录保留版本边界；RESOURCE_INDEX及README链接统一。
+- 两套板卡刻度归档_20261004.xlsx：鉴定件27条、加强件28条，保留前后版本、默认采用标记、V/code及来源。55条斜率/截距与当前Word原表核对，XLSX与CSV的数值、日期、状态和来源一致；未知字段留空。CSV继续供代码读取。
+- 169份现有MATLAB源码及刻度CSV共170文件SHA-256不变。新增生成工具采用artifact-tool导出，XML辅助仅补筛选/打印设置；两表单渲染及4页A3横向分页检查通过。
+- laser-electrical-data-analysis的SKILL及3份引用同步至Codex/ZCode，两侧哈希一致，技能验证器通过。本次未新增数值回归或硬件验证。
+- 交付见CW_analysis/CW_513_ANALYSIS/docs/20261013_structure_governance/REPORT.md和SOURCE_STRUCTURE.csv；项目文档、工作簿及工具同步现有codex/ad677-noise-sync分支，技能本地同步。

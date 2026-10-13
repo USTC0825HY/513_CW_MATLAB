@@ -211,3 +211,5 @@ result = adc_ila_noise_analysis(dataFolder,selectedFiles,outputFolder,options);
 长期系数集中维护在[`report_calibrations_20261004.csv`](_shared/+converter/+calibration/report_calibrations_20261004.csv)，共55条。PICO同步选择同板DA9726 JG18。自定义刻度、工作簿及来源冲突规则见[CALIBRATION.md](CALIBRATION.md)。
 
 结果汇总.xlsx上方显示板型和版本；evidence保存实际系数、报告哈希及表格定位。切换板型后重算噪声会相应变化。DAC电压噪声、扫描刻度拟合及不使用电压刻度的指标保留原计算方式。
+
+当前规则和完整脚本分类见[2026-10-13源码结构](docs/20261013_structure_governance/STRUCTURE.md)；两套板卡的刻度见[归档工作簿](docs/20261012_board_calibration/两套板卡刻度归档_20261004.xlsx)。

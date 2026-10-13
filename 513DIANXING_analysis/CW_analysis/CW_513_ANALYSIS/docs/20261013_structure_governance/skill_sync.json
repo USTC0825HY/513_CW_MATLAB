@@ -1,0 +1,22 @@
+[
+  {
+    "file": "SKILL.md",
+    "codexSha256": "e36281d780d6832aab5ac9471f8316ca630912aa25d229b57d9d2d5f51b697b3",
+    "zcodeSha256": "e36281d780d6832aab5ac9471f8316ca630912aa25d229b57d9d2d5f51b697b3"
+  },
+  {
+    "file": "references/script-routing.md",
+    "codexSha256": "35f095da97040702b3635afdc24914063f0a2b77471372f72bba8876e7e4e9a5",
+    "zcodeSha256": "35f095da97040702b3635afdc24914063f0a2b77471372f72bba8876e7e4e9a5"
+  },
+  {
+    "file": "references/workspace-map.md",
+    "codexSha256": "96623194fc9bc1bd99eee440af70299ac48604d8b447029a4c8fa663c89f9797",
+    "zcodeSha256": "96623194fc9bc1bd99eee440af70299ac48604d8b447029a4c8fa663c89f9797"
+  },
+  {
+    "file": "references/calibration-workflow.md",
+    "codexSha256": "4c77623da97ac6adab037e309197ded45c10d822c622c7900155f1b9a352dd8a",
+    "zcodeSha256": "4c77623da97ac6adab037e309197ded45c10d822c622c7900155f1b9a352dd8a"
+  }
+]

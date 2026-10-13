@@ -344,3 +344,12 @@ r = dac_noise_analysis(d, {'jg18_2MSPS_20S_CH1_G_100.mat'}, ...
 - R2025b分批回归228个不同测试的最近一次结果全部通过；最后针对性30/30、导出13/13。含板型/版本/取消/缺参/冲突、ASD/RMS/PSD和联合链路比例、历史显式刻度、CSV含换行读回及3份新PICO结果包。初轮215/226与后续修复记录保留，非单次全套通过。
 - 新系数可能改变重算噪声。Word、原始数据和历史结果保持原样；没有提交/推送Git。合成与夹具验证不替代真实硬件条件核验；未全面重跑历史大数据、未运行R2018或重制发布包。
 - 交付：CW_analysis/CW_513_ANALYSIS/docs/20261012_board_calibration/REPORT.md、刻度逐行对照.csv、regression_latest.csv及来源/输出核验JSON。完整日志和派生结果在F:/01_Laser/.codex_work/20261012-board-calibration。
+
+
+## 2026-10-13 规则、技能与刻度归档
+
+- AGENTS补齐六器件、26入口及辅助代码边界；记忆开头增加当前摘要，原历史记录保留版本边界；RESOURCE_INDEX及README链接统一。
+- 两套板卡刻度归档_20261004.xlsx：鉴定件27条、加强件28条，保留前后版本、默认采用标记、V/code及来源。55条斜率/截距与当前Word原表核对，XLSX与CSV的数值、日期、状态和来源一致；未知字段留空。CSV继续供代码读取。
+- 169份现有MATLAB源码及刻度CSV共170文件SHA-256不变。新增生成工具采用artifact-tool导出，XML辅助仅补筛选/打印设置；两表单渲染及4页A3横向分页检查通过。
+- laser-electrical-data-analysis的SKILL及3份引用同步至Codex/ZCode，两侧哈希一致，技能验证器通过。本次未新增数值回归或硬件验证。
+- 交付见CW_analysis/CW_513_ANALYSIS/docs/20261013_structure_governance/REPORT.md和SOURCE_STRUCTURE.csv；项目文档、工作簿及工具同步现有codex/ad677-noise-sync分支，技能本地同步。

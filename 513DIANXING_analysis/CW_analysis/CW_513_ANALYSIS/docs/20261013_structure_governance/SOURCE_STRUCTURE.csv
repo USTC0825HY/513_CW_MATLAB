@@ -1,0 +1,180 @@
+﻿相对路径,分类,函数签名,SHA256
+128_hy/adc_bandwidth_analysis.m,正式单项入口,"function results = adc_bandwidth_analysis(dataFolder, selectedFiles, outputFolder, runOptions)",ee3906d96a9b82c4db7507b5ea019d883d24e6622bc081d94186b6fd273811ef
+128_hy/private/adc128Config.m,private配置/辅助,function config = adc128Config(),d8a2e9f72219141b42bfd5c8d685e46ede3f52112438b451edff354e00988fa4
+128_hy/private/bootstrapRuntime.m,private配置/辅助,function bootstrapRuntime(),df7804d4074c0b018063cc24d93ad37b70c42190233efba78d5980749f345075
+2208_hy/adc_bandwidth_analysis.m,正式单项入口,"function results = adc_bandwidth_analysis(dataFolder, selectedFiles, outputFolder, runOptions)",40174bf781c36eb55423dbdd83a010f426b64bd294f17b363a0c291512889b0c
+2208_hy/adc_ila_noise_analysis.m,正式单项入口,"function results = adc_ila_noise_analysis(dataFolder, selectedFiles, outputFolder, runOptions)",49d75014bda75e9598369a6dd8a348431895e0b9841fd10705d4565f57f997e3
+2208_hy/adc_inl_dnl_analysis.m,正式单项入口,"function results = adc_inl_dnl_analysis(dataFolder, selectedFiles, ...",30952bf6fa55567ceea2fbb7e2903c1c221e7e8b8a877f096e11c0cf6ec7aa3b
+2208_hy/adc_isolation_analysis.m,正式单项入口,"function results = adc_isolation_analysis(dataFolder, selectedFiles, outputFolder, configOverride)",d56f3581abbcbd257ccea3bd2c2636f0d86db14d4928ce5973947d2b0acdb438
+2208_hy/adc_pico_noise_1hz_analysis.m,正式单项入口,"function result = adc_pico_noise_1hz_analysis(dataFolder, selectedFiles, outputFolder, runOptions)",abdd53a0437a3482cb3bca4a66b11d7cc192579547476588f524e35741d49d5c
+2208_hy/adc_power_scale_analysis.m,正式单项入口,"function results = adc_power_scale_analysis(dataFolder, selectedFiles, outputFolder, runOptions)",916bb046ae6026b85b713e5d59f6219407d8b84f281a6779400f7c3334bad561
+2208_hy/adc_sfdr_analysis.m,正式单项入口,"function results = adc_sfdr_analysis(dataFolder, selectedFiles, outputFolder, runOptions)",9c56d80f02dc50835b1e0c63562f82eb906dc14ee7490b37e953935904d4ccc9
+2208_hy/private/ad2208Config.m,private配置/辅助,function config = ad2208Config(analysisId),ded8bcd9fdfa7e1987b94e9aea3916c05297a8e8de6b240d098cd1161f4d4ffc
+2208_hy/private/bootstrapRuntime.m,private配置/辅助,function bootstrapRuntime(),ed5bb95178bdd614bfa854bc68e4459aa3114257f2e1b2d9fd095a76118f7fb5
+677_hy/adc_bandwidth_analysis.m,正式单项入口,"function results = adc_bandwidth_analysis(dataFolder, selectedFiles, outputFolder, runOptions)",8f2f736fe50d33da04b071ccadbae8207600e4ddd8ce6771da946d47238a130f
+677_hy/adc_ila_noise_analysis.m,正式单项入口,"function results = adc_ila_noise_analysis(dataFolder, selectedFiles, outputFolder, runOptions)",2ae040ed00b9c107e43b6933ac3446f579b1313bfed882b19bea2d4ae55c0dcb
+677_hy/adc_pico_noise_1hz_analysis.m,正式单项入口,"function result = adc_pico_noise_1hz_analysis(dataFolder, selectedFiles, outputFolder, runOptions)",60542f2e4c76f8fa202158aa1fad11fac656e59ef243743bcc72f41f11f05b1e
+677_hy/adc_power_scale_analysis.m,正式单项入口,"function results = adc_power_scale_analysis(dataFolder, selectedFiles, outputFolder, runOptions)",a4ea5be9b65300e206462b96cb445f9da79cb4bff6237a29632352661f50a71e
+677_hy/audit_ad677_results.m,审计工具,function auditTable = audit_ad677_results(dataRoot),596b1f1b567a93fca584b8c3b3827c912f66fe2a9da156cac55d0cbf70986477
+677_hy/ila_waveform_fft.m,FFT辅助,"function result = ila_waveform_fft(csvFile, opts)",849e0494ac757328dbd4fbb510da60c01280b400bad7073480c8a71356d738c7
+677_hy/private/ad677Config.m,private配置/辅助,function config = ad677Config(analysisId),b4d4ce7dd6df3e8889fd7fc6ecb2b0c24cd825f19405a0862c8538f1e18e08ee
+677_hy/private/ad677PowerSetpoints.m,private配置/辅助,"function setpoints = ad677PowerSetpoints(dataFolder, selectedFiles)",a54331fa1dccc91870c5ebd26a22ce1ce11f4b70426cfc3704cf93d15db835f3
+677_hy/private/ad677ResolveInputs.m,private配置/辅助,"function [dataFolder, selectedFiles, outputFolder] = ad677ResolveInputs( ...",16bd5fae3e4ede1b8c9afa8d3642f764d72aec7829d13b48df9f603cfa83caa6
+677_hy/private/bootstrapRuntime.m,private配置/辅助,function bootstrapRuntime(),be1051cd19aaf90d022ca78c8107c0762185ca15dd40bf86d0f354bf2088e165
+677_hy/run_ad677_batch.m,批处理,function batchSummary = run_ad677_batch(dataRoot),eeafa22ab2af439b94a6e746b726335eb4881220fca71257155f10e7a513be2e
+677_hy/run_ila_waveform_fft.m,FFT辅助,"function results = run_ila_waveform_fft(csvFiles, resultDir, opts)",ef84fd52fd0a38273c9373270426dcb7eb783274b353a197d7215892c7a03cf0
+766_hy/dac_isolation_analysis.m,正式单项入口,"function result = dac_isolation_analysis(dataFolder, pairManifest, outputFolder, configOverride)",9555e0e9d758c8c2a60a68c6773ce7540e63a7abe8272067bfe919d6af7d74cd
+766_hy/dac_noise_analysis.m,正式单项入口,"function result = dac_noise_analysis(dataFolder, selectedFiles, outputFolder, configOverride)",932bfcf400ba15345d32d2c0ee8aac71e05de2682889502a0b44ce02ddd79629
+766_hy/dac_scale_analysis.m,正式单项入口,"function result = dac_scale_analysis(dataFolder, selectedFiles, outputFolder, configOverride)",035066b7717b56bf78fea23de5c570806d42ee503c912f85c61e0e460724ff0a
+766_hy/dac_scale_hex_analysis.m,正式单项入口,"function result = dac_scale_hex_analysis(dataFolder, selectedFiles, outputFolder, toneFrequencyHz)",43be9b2b5bef73c0846547f9ebc9428d54978653957cb112c41accc94a057d04
+766_hy/private/bootstrapRuntime.m,private配置/辅助,function bootstrapRuntime(),af3931e7f67589898bea49542e5ee8e7c71873737a3cf953f714ca81bfa1a829
+766_hy/private/da766Config.m,private配置/辅助,function config = da766Config(analysisId),d691f2cbfcae6b099dc253e349c5d2a97698485aee36c54508d403f6c7774128
+9245_hy/adc_bandwidth_analysis.m,正式单项入口,"function results = adc_bandwidth_analysis(dataFolder, selectedFiles, outputFolder, runOptions)",5f246def53aa6da93a687ac4740d73eb34ba4471f1ae33314d4dd4bdd3cb2a16
+9245_hy/adc_inl_dnl_analysis.m,正式单项入口,"function results = adc_inl_dnl_analysis(dataFolder, selectedFiles, outputFolder, runOptions)",d4b66874d3b7e368a1300784664e10723ec7de6d5417085324c6088e6a03bcab
+9245_hy/adc_input_noise_analysis.m,正式单项入口,"function result = adc_input_noise_analysis(dataFolder, outputFolder, runOptions)",9b5f399b6daf9c6bac475fad224329b454b5290ed15fecf4ca81f8d5ba16c639
+9245_hy/adc_isolation_analysis.m,正式单项入口,"function results = adc_isolation_analysis(dataFolder, selectedFiles, outputFolder, runOptions)",e200c8fc457515092e38eed667581ee2f7ae66d002d2913f8bb30d13cd9be44c
+9245_hy/adc_power_scale_analysis.m,正式单项入口,"function results = adc_power_scale_analysis(dataFolder, selectedFiles, outputFolder, runOptions)",e3c3e30e2eced942cf2540749379c6a046165792873328aea3f446d9e5726c03
+9245_hy/adc_sfdr_analysis.m,正式单项入口,"function results = adc_sfdr_analysis(dataFolder, selectedFiles, outputFolder, runOptions)",7e35b86c8d8c1dcec080ad38212f76824f59c356cc09a2517267e707b2c85240
+9245_hy/private/ad9245Config.m,private配置/辅助,function config = ad9245Config(analysisId),656d524afddd75fa3a5ff5989775af0ba4248affd899d680a66ca3c1188d8f0f
+9245_hy/private/bootstrapRuntime.m,private配置/辅助,function bootstrapRuntime(),0481507a95a544a1c227c0b7d63978d0955b449953c4c514a3c2032bb167c7ba
+9726_hy/dac_isolation_analysis.m,正式单项入口,"function result = dac_isolation_analysis(dataFolder, pairManifest, outputFolder, configOverride)",86d4624d6213387e9f3a06c89e995e35ce769e08e2411129004f96bbf6cd285a
+9726_hy/dac_noise_analysis.m,正式单项入口,"function result = dac_noise_analysis(dataFolder, selectedFiles, outputFolder, configOverride)",eb02ff9eef9b27b30e992c1193568c76da399d0bdf6dc0266e8be9c01e275ffa
+9726_hy/dac_output_voltage_analysis.m,正式单项入口,"function results = dac_output_voltage_analysis(dataFolder, selectedFiles, outputFolder, options)",32a413a6de0f9ba399629b85ba80927329de663617dc602e420adc6449003cdf
+9726_hy/dac_scale_analysis.m,正式单项入口,"function result = dac_scale_analysis(dataFolder, selectedFiles, outputFolder, configOverride)",ec49ecc67eab9e9ec32c1af702b340bd79220babf62d1b790e1eb7b807842abc
+9726_hy/private/bootstrapRuntime.m,private配置/辅助,function bootstrapRuntime(),af3931e7f67589898bea49542e5ee8e7c71873737a3cf953f714ca81bfa1a829
+9726_hy/private/da9726Config.m,private配置/辅助,function config = da9726Config(analysisId),042775e87dfa36a250ece33eb83e44008b06eb17fbee20d97be1e35c922ac949
+9726_hy/private/normalizeDa9726Input.m,private配置/辅助,"function [dataFolder, selectedFiles] = normalizeDa9726Input(dataFolder, selectedFiles)",fae2153db47474ca5119b04ed1092ee814384e796344fe3eca964b40bb3a29fd
+9726_hy/private/resolveDa9726DataFolder.m,private配置/辅助,function folder = resolveDa9726DataFolder(analysisId),d9194b0e88b78af2796cea4203df2d296086ad9244fef43464152dd431c12bad
+9726_hy/split_dac_isolation_channels.m,切分工具,"function result = split_dac_isolation_channels(dataFolder, selectedFiles, outputFolder, options)",c2d1fe60279021843e8af118e87e596c31b0f5faf5b24a837d1962ad1c69b81c
+Phase_delay/Phase_delay/analyze_phase_delay.m,Phase_delay辅助代码,function results = analyze_phase_delay(opts),bb9dbba9ee64c373f4fff15937ffe2fce79fac7bae0b790d1fed2d412cc23063
+Phase_delay/Phase_delay/estimate_threshold_delay.m,Phase_delay辅助代码,"function [result,detail] = estimate_threshold_delay(t,x,y,opts)",e7d58feccc89aa4dd614459a9f12c1761d8570ccd4d1e5ac66ec4d58783efa1c
+Phase_delay/Phase_delay/find_phase_crossings.m,Phase_delay辅助代码,"function frequencies=find_phase_crossings(f,phase,target)",cc57c17e7864239b3eb91ebb3bcd27f95433b98f7ef8f2ac937779b177b89fd8
+Phase_delay/Phase_delay/plot_corrected_bandwidth.m,Phase_delay辅助代码,"function plot_corrected_bandwidth(r,folder,label)",519df1867e38c0cf8c811fa8e7546d4da947d0970a72e4d9fd8b3d86a3728370
+Phase_delay/Phase_delay/psdata_to_mat.py,Phase_delay辅助代码,,3f7251c888a941683342d13f9f097c85622b2c723e1d20b909c51e31e6c30386
+Phase_delay/Phase_delay/read_bode100.m,Phase_delay辅助代码,function data = read_bode100(file),9cbf6243c8bc015dc8a84c04283653a168117d84cf53da646b180168a4d96bbf
+Phase_delay/Phase_delay/read_bode3.m,Phase_delay辅助代码,function data=read_bode3(file),36c8f0e70b95c4eba5b41fe3b688a752e89e7be4769c7b2ebf0cbbd2bec7dadf
+Phase_delay/Phase_delay/read_scope_waveform.m,Phase_delay辅助代码,"function [t,x,y] = read_scope_waveform(file,inputChannel,outputChannel,timeUnit)",0edda69bbc561d0ddaa36bc85c4be665913bc320c467b335e42a499821ca7758
+Phase_delay/Phase_delay/run_JG22_JG18.m,Phase_delay辅助代码,,1dacbd1fda46d9d0de5ee6117e20767bcbe87ed250f95fc4ae519f0c207242a3
+Phase_delay/Phase_delay/run_bandwidth_5pct.m,Phase_delay辅助代码,function summary=run_bandwidth_5pct,fb75b742ea7a13f5f436ada69509d2ed3aa9058450a2fdb7d590cdd91d22a593
+Phase_delay/Phase_delay/run_bandwidth_batch.m,Phase_delay辅助代码,function summary=run_bandwidth_batch,559a232c362f6aeea2978c27a9bb969c14bbd469375fd5cb5db1944768658275
+Phase_delay/Phase_delay/run_bandwidth_cable.m,Phase_delay辅助代码,function summary=run_bandwidth_cable(opts),5f71a0f8282c1c46bb7c27911c49d1b9e27b8379f2e4729307bec2508e2a9949
+Phase_delay/Phase_delay/test_phase_delay.m,Phase_delay辅助代码,function test_phase_delay,d8f87c605a63cf261efb0d8de26f9d33af3443aac232b8f7d279b867cad391cb
+Phase_delay/Phase_delay/相移带宽/JG17_to_JG25.tcl,Phase_delay辅助代码,,d98239d72a93044eb1afe69fc9e5d5ac7791819a31f868bd9993ddbbf5679dfe
+Phase_delay/Phase_delay/相移带宽/JG19_to_JG20.tcl,Phase_delay辅助代码,,cbee5d0fe1045a5ff52894d2a559c574171a7245d5ea656ecf5ef88838ad4554
+Phase_delay/Phase_delay/相移带宽/JG19_to_JG23.tcl,Phase_delay辅助代码,,bc4c4f4420c681b52255a44436dce91ebfab47e8ca3e9a98023776827b838a87
+Phase_delay/Phase_delay/相移带宽/JG22_to_JG21.tcl,Phase_delay辅助代码,,6b34a7c26f666116c02754b7ff88cc4463e28db366e39874ad8d0c5a4b5ceb4e
+Phase_delay/Phase_delay/相移带宽/JG24_to_JG20.tcl,Phase_delay辅助代码,,17439ac1667bb2191673be19a256f26529361a259119356fb00d28990fb35349
+Phase_delay/Phase_delay/相移带宽/JG24_to_JG23.tcl,Phase_delay辅助代码,,78ac8d11ee0819120eae29630c34657074a90b7f923c9f467b70c9d5a104746f
+_shared/+converter/+adc/analyzeDynamicMetrics.m,公共内核,"function metrics = analyzeDynamicMetrics(adcCode, config)",3b1294c87f663b0879104c2d60cc1435c03511d882ebc67aa333d3394b1a0fec
+_shared/+converter/+adc/calculateBandwidth.m,公共内核,"function [results, details] = calculateBandwidth(adcCodeList, fileNames, ...",489268ee8ac0f8e1acf274ad32e9e50d9f25b6fa65962b0d62340b6c4f4c9f74
+_shared/+converter/+adc/calculateInlDnl.m,公共内核,"function [results, details] = calculateInlDnl(adcCodeList, fileNames, ...",d4689d726720dbf737aa7f71a65f218c036b2a14441465c61d6475e9be0f1501
+_shared/+converter/+adc/calculateIsolation.m,公共内核,"function [results, details] = calculateIsolation(adcCodeList, channelNames, ...",cd064506fc9f1da7b74aadd7a8e8fa5f4fa78512ccb4492c040c131c2f05a7fc
+_shared/+converter/+adc/calculatePowerScale.m,公共内核,"function [results, details] = calculatePowerScale(adcCodeList, fileNames, ...",873e938e1e2a720d058c6a07e414dbd57b61b536ef886062cb5205ff07e87b19
+_shared/+converter/+adc/dbmToVpp.m,公共内核,"function vpp = dbmToVpp(inputPowerDbm, referenceImpedanceOhm)",05ceee582d19593570b2bd82acb635fd8ec5caf15d94542ccb3f3cb3d4323f15
+_shared/+converter/+adc/estimateCriticalInput.m,公共内核,"function estimate = estimateCriticalInput(results, calibrationCoefficient, ...",212680407e5dd2527ae3aa4e7197de54ecf3789355132d1c6e5ab4dc49dbabbb
+_shared/+converter/+adc/estimateFrequency.m,公共内核,"function [frequencyHz, peakLevelDb] = estimateFrequency(adcCode, sampleRate)",dd83ba1f126a0c822ef0fc5f687526fa448e2ebee3e9f16f27f8dcb819545160
+_shared/+converter/+adc/findAccuratePeak.m,公共内核,"function [peak, peakIndex] = findAccuratePeak(data, lowIndex, highIndex)",4007637ca931749216196faff45e4ba6d023f5365d4c2f2bfa309b027d4f1fe9
+_shared/+converter/+adc/findThreeDbCrossing.m,公共内核,"function bandwidthHz = findThreeDbCrossing(frequencyHz, relativeDb)",4749e52de87131931b74843b7d19f6dc5a9a5d45f13034720b1693de50d76ba5
+_shared/+converter/+adc/fitSine.m,公共内核,"function fit = fitSine(adcCode, frequencyHz, sampleRate, fitSampleCount)",2d1ace333dc161e0bd341655e2dcb28eb54542c4b794809418a4368333041b75
+_shared/+converter/+adc/refineSineFrequency.m,公共内核,"function frequencyHz = refineSineFrequency(adcCode, initialFrequencyHz, ...",b658818efa42c64771accc8422d89d3453be276ecc88e53c6302c68a03568f83
+_shared/+converter/+adc/runBandwidth.m,公共内核,"function results = runBandwidth(config, dataFolder, selectedFileNames, outputFolder)",e9e8e63973269a6c2f4cde6fd0f5d8a8f0ee2b5b3d5465cc7f0f2f0018e094d1
+_shared/+converter/+adc/runInlDnl.m,公共内核,"function results = runInlDnl(config, dataFolder, selectedFileNames, outputFolder)",47b6bfcb179c797729fe5378e4ef5ba67bc4e75aab45e6788506e4b89a972244
+_shared/+converter/+adc/runInputNoise.m,公共内核,"function results = runInputNoise(config, dataFolder, selectedFiles, outputFolder, calibration)",c2163429ce28e20eb4b80e0372f38ae92895fa6405b976a14bc125321a8800ed
+_shared/+converter/+adc/runIsolation.m,公共内核,"function results = runIsolation(config, dataFolder, selectedFileNames, outputFolder)",647468b8b334f7f09cb437dcfa1ee33f1d59d3f9c32cbbd4e61574c89476188a
+_shared/+converter/+adc/runPowerScale.m,公共内核,"function results = runPowerScale(config, dataFolder, selectedFileNames, outputFolder, runOptions)",1f059cb98c48d66d9f5f08481fa0164a36cc82d7529f3293d4a4df501440e167
+_shared/+converter/+adc/runSfdr.m,公共内核,"function results = runSfdr(config, dataFolder, selectedFileNames, outputFolder)",0b5fa397e4a68990b60f75feb02704c5076d115daccb2424e234a344fc5bf438
+_shared/+converter/+adc/vppToDbm.m,公共内核,"function inputPowerDbm = vppToDbm(vpp, referenceImpedanceOhm)",6b0d1c681b8d8f3569f91135423de1ec49dd08578b367609af9dae1e729819b0
+_shared/+converter/+calibration/calibrationCatalog.m,公共内核,function rows = calibrationCatalog(),c4f7edf18144b74a59add53f2deb350750797c40d8d2943e6dbe039a7b1c1b5b
+_shared/+converter/+calibration/loadAdcCalibration.m,公共内核,"function [rows, sourceType] = loadAdcCalibration(sourcePath)",278b05af4d5f626117968ea605372dbbdc511b6317c8c728099f0c1ed5ffafb5
+_shared/+converter/+calibration/reportCalibration.m,公共内核,"function rows = reportCalibration(device, boardType, calibrationState, channels)",d576b8268e60ffe0285615c7f650c6909747ac2b0de9fedf451a8877fba28467
+_shared/+converter/+calibration/resolveNoiseCalibration.m,公共内核,"function [config, rows, cancelled] = resolveNoiseCalibration(config, device, channels, interactive, pico)",3481a4bc6bd79f8c19206fce78386e102edef96c8e909a64bd96bda3491695a3
+_shared/+converter/+dac/estimateToneFrequency.m,公共内核,"function estimate = estimateToneFrequency(voltage, sampleRateHz, nominalFrequencyHz, searchFraction)",88363a18b86d60edcc944a366bda623096965cd1b4cb4194f9040afc9c2c9810
+_shared/+converter/+dac/fitTone.m,公共内核,"function fit = fitTone(voltage, sampleRateHz, toneFrequencyHz)",a3293a5b6e74419f0a9250968701a2c563464612a365124d4f7f351459253913
+_shared/+converter/+dac/loadPicoMat.m,公共内核,function capture = loadPicoMat(varargin),97303026b14f55df71c14b8ebeaf05258216f693fb265363e45f92b92fa8a410
+_shared/+converter/+dac/runIsolation.m,公共内核,function result = runIsolation(config),5bd39e6404b7c7a35b54870dfd2d618bfe9e93f9b6005a488e5bcc73908a4bdb
+_shared/+converter/+dac/runNoise.m,公共内核,function result = runNoise(config),3e98bec62b718f67c0eae6c8c06027f555b11be5c1f31d98fa443fb50156d4e1
+_shared/+converter/+dac/runScale.m,公共内核,function result = runScale(config),260d0129ee1cea7a819459a4fdcb8eba352d64f0aaecb1e03dcb6cbb51295337
+_shared/+converter/+io/detectChannel.m,公共内核,"function channelName = detectChannel(filePath, fileName, dataFolder, config)",fe9e0907004e5947ef6af18e6d5114e8255fecc4043087b180bb815e14b55d45
+_shared/+converter/+io/extractChannel.m,公共内核,"function channelName = extractChannel(textValue, config)",65af07cfd1807f7f918b0e8bc3cd34c9a1afcbe39513fceba75689754508cf69
+_shared/+converter/+io/loadPicoMat.m,公共内核,"function capture = loadPicoMat(filePath, requestedVariable, hardwareGain, removeMean)",5c112594945ae901fc1cbb9f6795197c2e1a172e17b306bc89f2d6483b5c551d
+_shared/+converter/+io/parseDrivenChannel.m,公共内核,function channelName = parseDrivenChannel(textValue),14a488ee2386012d612c7ad2bf9d77055c9730e6b0127604c0db7d75c87d9026
+_shared/+converter/+io/parseFrequencyHz.m,公共内核,function frequencyHz = parseFrequencyHz(fileName),2cf0b63edce68056cd9eb4df7625c623fea05fcee641eb19d2001c82ed53639b
+_shared/+converter/+io/parsePowerDbm.m,公共内核,function powerDbm = parsePowerDbm(fileName),220dc1e67c715f1db344560a0525e8353cd34b3a35842de3dfaf49dd583975b4
+_shared/+converter/+io/parseVoltageVpp.m,公共内核,function voltageVpp = parseVoltageVpp(fileName),8a0a778a9cc5ffbfd7bcf60bd8ebc6c03050fb395614dd3b10e18069c4495473
+_shared/+converter/+io/prepareAdcRadix.m,公共内核,"function [config,files,dataFolder,cancelled] = prepareAdcRadix(config,dataFolder,files)",1558bdf5a08a36394e7468907e5f03d72149c63e2ef4e84a18e9e5e5312f9f5d
+_shared/+converter/+io/prepareDacInputs.m,公共内核,"function [config, cancelled] = prepareDacInputs(config, dataFolder, files, outputFolder, overrides, defaultFolder)",60ce533c5faab2d8c8821b421250551e2c8c07ba12545a16eab48dd2d49b3dcf
+_shared/+converter/+io/prepareDacIsolation.m,公共内核,"function [config, cancelled] = prepareDacIsolation(config, dataFolder, pairs, outputFolder, overrides, defaultFolder)",81e3216cb568800698196ab725761fd3b4ea0cb14c27ab98c0da747fb229116f
+_shared/+converter/+io/readAdcCsv.m,公共内核,"function [adcCode, metadata] = readAdcCsv(filePath, config)",3e8292a9bce653d31d7e3ffa3d145bbaabaa61e0e40596404267b1f8b6a72012
+_shared/+converter/+io/resolveAdcChannels.m,公共内核,"function channels = resolveAdcChannels(config, dataFolder, files, interactive)",412675dc15ffa26745046f7713653b950f0eb9e42528c39ebecc66df78ec634f
+_shared/+converter/+io/resolveAdcInputRadix.m,公共内核,"function [radix,source] = resolveAdcInputRadix(tokens,headers,column,config,filePath)",65e559ac860d720c060b058943a2d695b5029d66864ae617dc2c446ed6df814c
+_shared/+converter/+io/resolveInputPath.m,公共内核,"function filePath = resolveInputPath(dataFolder, fileName)",024096025fafc06510a580f3c6f9ac893eb60ff03ebb27ce404442056b639604
+_shared/+converter/+io/resolveOutputBase.m,公共内核,"function outputBase = resolveOutputBase(dataFolder, outputFolder)",55ddca35f65633e6fdf1081afc3d2a21681a1fa2fdcd832c0a8dcccac31908ef
+_shared/+converter/+io/selectCaptureFiles.m,公共内核,"function [files, dataFolder] = selectCaptureFiles(dataFolder, selectedFiles, extension, titleText)",fd101204798ccd807754be6a76265958cba3234afa36733e60bc26cfb2a19683
+_shared/+converter/+io/selectCsvFiles.m,公共内核,"function [fileNames, dataFolder] = selectCsvFiles(dataFolder, selectedFileNames, dialogTitle)",087e3ba1753cbd84c88eb91970e92c373fd763ce1801b8a7201c93752579c4c5
+_shared/+converter/+io/selectMatFiles.m,公共内核,"function [fileNames, dataFolder] = selectMatFiles(dataFolder, selectedFileNames, dialogTitle)",52ee45d9b18b13f1ea014ce065b7ccb9838c689827f696146cc32a11595d8898
+_shared/+converter/+report/buildSummarySheets.m,公共内核,"function sheets = buildSummarySheets(folder, config)",1c0445228cca4264a6955e786ae9980a18322235a02c2491fa3e4badf437c635
+_shared/+converter/+report/plotBandwidth.m,公共内核,"function plotBandwidth(results, bandwidthHz, outputFolder, config)",4efcdcf452b3adb34ea075f40828bef4a5b72c6f24d0e9df368c8541b7946f99
+_shared/+converter/+report/plotInlDnl.m,公共内核,"function plotInlDnl(details, outputFolder, config)",0fea1ad8301941b5109c4594ef98f2b792587307489703703c36f9be8e90511a
+_shared/+converter/+report/plotIsolation.m,公共内核,"function plotIsolation(results, drivenChannel, frequencyHz, outputFolder, config)",c31391f825191c7e9e69b9e6d59fc1b61c06788dc48c7e61cda02f483d94fac1
+_shared/+converter/+report/plotPowerScale.m,公共内核,"function plotPowerScale(results, details, outputFolder, config)",f289a41369dae0a4afc04b7e781df51408d84c96654f4cc5dce0e08372840d71
+_shared/+converter/+report/plotSfdrSpectrum.m,公共内核,"function plotSfdrSpectrum(metrics, fileName, outputFolder, config)",ad3f5f483a9d17f502307ba7de2593545ea053de01eca6592cc6fbc47e49b711
+_shared/+converter/+report/plotSfdrSummary.m,公共内核,"function plotSfdrSummary(results, outputFolder, config)",4e368f0ee45cfa0781f12d6411ecf0952a1dc47fec1bd1f6fc589c132337d798
+_shared/+converter/+report/plotSpectrum.m,公共内核,"function plotFile = plotSpectrum(frequencyHz, values, outputStem, config)",6ff97fb8056836666f9eb5eb36cc4b4ec4c62ecba67a37af7364974baeec3850
+_shared/+converter/+report/saveFigure.m,公共内核,"function saveFigure(figureHandle, outputStem, resolutionDpi)",69066848ad6d56122dfa3f925c8a62e5d56e00b41aeb1af9fe4ce756acc95a2f
+_shared/+converter/+report/writeSummaryXlsx.m,公共内核,"function writeSummaryXlsx(filePath, sheets)",8c461ba60c2e8d7b2af496f4aa02cec10825c4d95a5c5ccbdb7305d4f4b372cb
+_shared/+converter/+report/writeTable.m,公共内核,"function writeTable(dataTable, filePath)",faddcec461c3ec71a683670f8034c2e1947fd9437397343c7ed71f5f04169cd1
+_shared/+converter/+runtime/applyRunOptions.m,公共内核,"function [config, options] = applyRunOptions(config, options)",15f78389258a9d72461c94cdbaacd1e10335de8c63b63228d56947094f996dbc
+_shared/+converter/+runtime/auditRun.m,公共内核,"function audit = auditRun(runFolder, expectedInputCount)",abf14dcb6fdb6b794a68d7fbd5bb8e9eb5801a75b1f4cf62682933978d9f4307
+_shared/+converter/+runtime/createRun.m,公共内核,"function runContext = createRun(config, dataFolder, fileNames, outputFolder)",e6a8c591498b2e723e5ae304b7368c5cacd5aba6cf8fc55ab1f9a8d9b61cb64b
+_shared/+converter/+runtime/evidencePath.m,公共内核,"function filePath = evidencePath(runFolder, fileName)",d70a800ea8a9c02943e0a6853518f83e420d887dabb76befa359cf06a7a56d34
+_shared/+converter/+runtime/finalizeBundle.m,公共内核,"function finalizeBundle(runFolder, config)",16b9b498ea861ae61aefcaaa0edeed9bacc055172268707e5547e171b3bff06a
+_shared/+converter/+runtime/finalizeConfig.m,公共内核,"function config = finalizeConfig(defaults, override)",e72663eba037e924f9191f5fd184d69ba53cba7ba6798fe1bee386315aa2dbba
+_shared/+converter/+runtime/finishRun.m,公共内核,"function finishRun(runContext, succeeded, message)",4e4c6ee26e1955fa523f804df51df178b0b5e87c4606eaf95c01a0398627581b
+_shared/+converter/+runtime/getGitRevision.m,公共内核,function revision = getGitRevision(startFolder),13892463d325a3fd342c2d38613f4c7ed3613d67d876efe763f45fad87ea14b1
+_shared/+converter/+runtime/knownConfigFields.m,公共内核,function names = knownConfigFields(),9032eabebcd8c0bc55ae061c0c9dfd136090160e851cf14880987e9dec981b0b
+_shared/+converter/+runtime/mergeConfig.m,公共内核,"function config = mergeConfig(config, override)",af2b54d799c088f5fe2f709ba100bf5d69935d5430230091679f912d086b133c
+_shared/+converter/+runtime/recordInputDecoding.m,公共内核,"function recordInputDecoding(runFolder, metadata)",1a71cfb23711d8b26ff31dd6bc4185f9d7008dfe87ba62f3dc08887b6144d25d
+_shared/+converter/+runtime/refreshResultPaths.m,公共内核,"function value = refreshResultPaths(value, runFolder)",0073a68277b1ff7571f2f20d8dd14cfcf52e20ecc6f104f1e2e80f1d327118f6
+_shared/+converter/+runtime/reportConfiguration.m,公共内核,function reportConfiguration(config),160d8be7b90dc31d3166326c2823d53568574ca559d35b635f77938baa29c39c
+_shared/+converter/+runtime/sha256File.m,公共内核,function hashText = sha256File(filePath),d73b4e6f29567ebcdf3399ecd2418e232237e78b4de002d57820dc46e4bce746
+_shared/+converter/+runtime/validateConfig.m,公共内核,"function validateConfig(config, requiredFields)",7b869ec05c6c8dbcf494763ce3fc3b22614a7bb7a7f2067550d96166a06490d4
+_shared/+converter/+runtime/validateOverrideFields.m,公共内核,"function validateOverrideFields(defaults, override, extraNames)",1e03dfa5a2837c3b9660f185d223f69b416cdeb950655278f88a8682ef313df0
+_shared/+converter/+runtime/valueToText.m,公共内核,function textValue = valueToText(value),0e9735c691ab5f7e1d19dceedcac650cb2be9e2e3b399fc1a787a089800a4c41
+_shared/+converter/+runtime/writeRunManifest.m,公共内核,"function writeRunManifest(runFolder, dataFolder, fileNames)",741b343391f76ec5173e3676f772c48fb3cc4ca6db372445e618bd914bcbbbc5
+_shared/+converter/+runtime/writeSourceManifest.m,公共内核,"function writeSourceManifest(runFolder, fileName)",531118e2df8dcd620f66a29bf1ecbe1b3376770d3dae2448a46cba18e0072912
+noise_chain_hy/adc_input_equiv_noise_analysis.m,联合噪声公共入口,function result = adc_input_equiv_noise_analysis(runConfig),8d70e8fdcc362bf8ddb589719b47bcfa9542b4e915b0ede25db16ff7a304ccd8
+tests/fixtures/file_selection_ui/cw513TestDialog.m,测试,function varargout = cw513TestDialog(varargin),85a9654b4e86ebd0cca876b80df7f1ccc68c1e620d003311abac25ffaf7182e8
+tests/fixtures/file_selection_ui/inputdlg.m,测试,function varargout = inputdlg(varargin),e5b759b88f46733c6deb964b0c3bc14abe277c993554d11daa76b7936018ffc0
+tests/fixtures/file_selection_ui/listdlg.m,测试,function varargout = listdlg(varargin),2f9c51912ca333b191fa481df1e9a95b3ac88a542ba87cd5b52fe055d509dc7c
+tests/fixtures/file_selection_ui/uigetdir.m,测试,function varargout = uigetdir(varargin),eb41a4df2adcba899196bb5ab9ee35d04bb7d68d1f3e2ebb44b17a0428549494
+tests/fixtures/file_selection_ui/uigetfile.m,测试,function varargout = uigetfile(varargin),96cbf10a1fd0ff705c5bd9e5bd8569712976eb628784e5e26d7960bd73809717
+tests/integration/ad2208PowerScaleWorkflowTest.m,测试,,5f10041398bf247eb3ba988f488027ce018fff220e35cf7a3175a5cb56ebc1ba
+tests/integration/ad677WorkflowTest.m,测试,,8514d981e0dfb18528e446fe76319550d43cf722022e0ff597836c6364b375f2
+tests/integration/ad9245WorkflowTest.m,测试,,178ad7310f7ce64da3c24fb4f66326a54f4ac1c3083c5a5143be02b49cebed38
+tests/integration/boardNoiseWorkflowTest.m,测试,,ef8a76d03b0b8dfe89d39126e386c1883a6dce78233d276e076a5b6e001547da
+tests/integration/configProfilesWorkflowTest.m,测试,,2b92ce5b8db3e05cac51cb86c6a807055ab94b47e1adea8169d18bba787a3f38
+tests/integration/dacIsolationManifestCsvTest.m,测试,,a1c2f03e3fdcd3e3da36713db28c2dd597f12a0d6fbcdc50c96bb06819b46f1e
+tests/integration/fileSelectionTest.m,测试,,5777fd2daf39de5f824f2a2302c81553f882d685238bc814e132feb2554d9202
+tests/integration/portabilityTest.m,测试,,d7487cd5f396215c76e87a1f4856fc29dc1a5b25dd0764e6e85e324127a5a348
+tests/run_all_tests.m,测试,function results = run_all_tests(),9c6ca20887ba7700da18f964960a934bdecd103eb55ed33357b556f4f0bf17e3
+tests/run_golden_regression.m,测试,function report = run_golden_regression(dataRoot),a2bf99704ebca55e1a12d6fa1ab27374b4210dffc4bfbf752efe03c74bdd58c4
+tests/run_portability_smoke.m,测试,function report = run_portability_smoke(),37663038c9a089913f5ffad162546cabec8cf0ce6abb238db45b5638180f575c
+tests/unit/ad677ContractTest.m,测试,,dc2afc15510c330227aded737926c33db4b1b935690e24c4484cf9647e56733e
+tests/unit/adcCoreTest.m,测试,,9194730bf0611572348e5224c40f7068bdec0efa5daea89bcbe4f605e5fae6b8
+tests/unit/adcMethodGuardsTest.m,测试,,d380f966c7a81f260b7b8ef054ceafa9571e13d5462d4e74dee510d9bf64128f
+tests/unit/adcRadixTest.m,测试,,d54ff1e275dd14b07ce57fa9e84d2057ee993dc358d3d280328f89ae360fa943
+tests/unit/boardCalibrationTest.m,测试,,8d3dcbba0b4c73380bf35d67269cfa41b936c5c7b03c4b5d405b1bd89bcfff1b
+tests/unit/configurationOptionsTest.m,测试,function c=sfdrDefaults(),35d6cc3994db8a2bdf547057d85e4ae512fa4c29ea6d6306a86b1a3ad60598e6
+tests/unit/criticalInputEstimateTest.m,测试,,39e90b0ba9ab8c3a1345282afe7d69e9e3cde49d584c2d3b605f2dc3080e86ae
+tests/unit/dacCoreTest.m,测试,"function config = makeSimpleIsolationConfig(dataFolder, files)",09436e722aa01262295dc09883d087e9d43af681f192ed10b822e14d8fb99140
+tests/unit/dacSplitCodeTokenTest.m,测试,,207151ba6f665257bd3668094045f94fa54f0dfa8fe17e5bf7296e99a493dac7
+tests/unit/ioUtilitiesTest.m,测试,,bc3d2604fa790ced0c14166c60f72d7f8ac2065c20355a073e074cf6870edabc
+tests/unit/noiseInputContractTest.m,测试,"function config = chainConfig(folder, file)",1a8694e68144d2c58766e05547be945f38ef301732bdb859bb2ac5925b7fb257
+tests/unit/summaryWorkbookTest.m,测试,,47304429949190c9ee2ab3175b7e8bf9e56c2889e9ad12c10d6473ca1d30fbcb
+tools/buildDeviceRelease.m,维护/发布工具,"function release = buildDeviceRelease(deviceName, version)",3850d4929ae586218f38da375ed0d0d5980cd00cee3cf7e4a948e3b65206e841
+tools/calibrationArchivePrint.py,维护/发布工具,,37be238c89e68ace3b415831b0a14e9dc2f83de454e159e6a228bf7da9775019
+tools/deviceReleaseRegistry.m,维护/发布工具,function spec = deviceReleaseRegistry(deviceName),f0667e86a32fbecc89c8a5fd714f130e76112cb3eebc54e09318ca6bca8220de
+tools/exportCalibrationArchive.mjs,维护/发布工具,,97ad261841e1d9519524f6dbab651a1fd1eef6065145fe2496dc0487f66df288
+tools/reporting/generate_ad9245_brief_report.py,维护/发布工具,,161960007e13bb7d58efd5b464b124b0ebc65b2b83203fb26d37000113c5386e
+tools/split_pico_mat_channels.m,切分工具,"function result = split_pico_mat_channels(dataFolder, selectedFiles, outputFolder, options)",1e1cbda9fddb937561f2a2e604097fc8b996fe40f9456fb724e7c7d7d3a04c29
+tools/verifyDeviceRelease.m,维护/发布工具,"function passed = verifyDeviceRelease(releaseFolder, spec)",1fa84864decafd874ce41245ea1093823673f22b4057c32a82327fbc9f2e391b
