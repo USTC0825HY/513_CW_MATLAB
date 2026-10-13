@@ -1,0 +1,8 @@
+set_property OUTPUT_VALUE 1 [get_hw_probes {module_b9726_test_top_inst/b9726_test_module[3].b9726_top_inst/adc_data_en} -of_objects [get_hw_vios -of_objects [get_hw_devices xc7vx690t_0] -filter {CELL_NAME=~"module_b9726_test_top_inst/b9726_test_module[3].b9726_top_inst/u_vio_b9726"}]]
+commit_hw_vio [get_hw_probes {module_b9726_test_top_inst/b9726_test_module[3].b9726_top_inst/adc_data_en} -of_objects [get_hw_vios -of_objects [get_hw_devices xc7vx690t_0] -filter {CELL_NAME=~"module_b9726_test_top_inst/b9726_test_module[3].b9726_top_inst/u_vio_b9726"}]]
+
+set_property OUTPUT_VALUE 2 [get_hw_probes module_b9726_test_top_inst/yb2208_dout_sel -of_objects [get_hw_vios -of_objects [get_hw_devices xc7vx690t_0] -filter {CELL_NAME=~"module_b9726_test_top_inst/vio_adda_sel_inst"}]]
+commit_hw_vio [get_hw_probes {module_b9726_test_top_inst/yb2208_dout_sel} -of_objects [get_hw_vios -of_objects [get_hw_devices xc7vx690t_0] -filter {CELL_NAME=~"module_b9726_test_top_inst/vio_adda_sel_inst"}]]
+
+set_property OUTPUT_VALUE 1 [get_hw_probes module_b9726_test_top_inst/ad_2208_9245_sel -of_objects [get_hw_vios -of_objects [get_hw_devices xc7vx690t_0] -filter {CELL_NAME=~"module_b9726_test_top_inst/vio_adda_sel_inst"}]]
+commit_hw_vio [get_hw_probes {module_b9726_test_top_inst/ad_2208_9245_sel} -of_objects [get_hw_vios -of_objects [get_hw_devices xc7vx690t_0] -filter {CELL_NAME=~"module_b9726_test_top_inst/vio_adda_sel_inst"}]]

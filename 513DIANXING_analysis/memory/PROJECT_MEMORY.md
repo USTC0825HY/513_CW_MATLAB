@@ -330,3 +330,9 @@ split_dac_isolation_channels v0.2.0只切分A/B/C/D并记录接口、时基和�
 - R2025b分批回归228个不同测试的最近一次结果全部通过；最后针对性30/30、导出13/13。含板型/版本/取消/缺参/冲突、ASD/RMS/PSD和联合链路比例、历史显式刻度、CSV含换行读回及3份新PICO结果包。初轮215/226与后续修复记录保留，非单次全套通过。
 - 新系数可能改变重算噪声。Word、原始数据和历史结果保持原样；没有提交/推送Git。合成与夹具验证不替代真实硬件条件核验；未全面重跑历史大数据、未运行R2018或重制发布包。
 - 交付：CW_analysis/CW_513_ANALYSIS/docs/20261012_board_calibration/REPORT.md、刻度逐行对照.csv、regression_latest.csv及来源/输出核验JSON。完整日志和派生结果在F:/01_Laser/.codex_work/20261012-board-calibration。
+
+## 2026-10-13 云端代码同步
+
+- 仓库README更新为26个入口，补充两套板型刻度、参数调用、输出位置及2026-10-12验证范围；分析库README同步。
+- 当前513分析源码、配置、测试、刻度CSV、审计文档和Phase_delay辅助源码上传至GitHub USTC0825HY/513_CW_MATLAB的codex/ad677-noise-sync分支。主体提交f91f26e；本条及辅助脚本随补充提交保存。
+- 原始采集、运行结果、ZIP和其他独立工程保留本地。本次检查README链接、Git差异及上传范围，数值回归沿用2026-10-12记录。
