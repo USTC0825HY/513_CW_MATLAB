@@ -71,6 +71,9 @@ for k = 1:numel(selectedFiles)
             'CSV必须包含16 bit有符号整数码（-32768～32767）：%s', path);
     end
 end
+if isnan(config.sampleRate)
+    config.parameterSources.sampleRate = 'derived from measured valid strobe period';
+end
 config.sampleRate = effectiveSampleRate;
 results = converter.adc.runBandwidth(config, dataFolder, ...
     selectedFiles, outputFolder);

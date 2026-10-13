@@ -3,13 +3,14 @@ function config = ad2208Config(analysisId)
 
 config = struct();
 config.deviceId = 'AD2208';
-config.reportCalibration = converter.calibration.reportCalibration('AD2208');
 config.analysisId = lower(char(analysisId));
 config.version = '1.4.0';
 config.releaseReady = true;
+config.formalEnabled = false;
 config.adcBits = 16;
 config.adcFullScalePeakCode = 2^(config.adcBits - 1);
 config.adcCodeFormat = 'signed';
+config.inputRadix = 'auto';
 config.adcDataColumn = 4;
 config.headerModulePattern = '(?i)yb2208_test_module\[(\d+)\]';
 % Hardware module index is zero based in the Vivado ILA CSV header.
@@ -87,6 +88,7 @@ switch config.analysisId
         % sample-to-sample phase continuity from file-name order.
         config.recordsAreSampleContiguous = false;
     case 'input_noise'
+        config.formalEnabled = true; % Preserve the existing ILA judgment policy.
         config.version = '1.6.0';
         config.sampleRate = 100e6;
         config.noiseBandHz = [10e6, 25e6];
@@ -99,8 +101,12 @@ switch config.analysisId
         config.inputTermination = '50 ohm to ground; see YB2208 test instruction T07R001';
         config.referencePlane = 'AD2208 external board input';
         config.formalConditionSource = 'YB2208_test_instruction_hy T07R001';
-        config.calibrationSource = which('converter.calibration.reportCalibration');
-        config.calibrationSourceSha256 = converter.runtime.sha256File(config.calibrationSource);
+    case 'pico_noise'
+        config = struct('analysisId', 'ad2208_pico_noise_1hz', 'version', '1.2.0', ...
+            'baselineMode', 'none', 'fpgaGain', 128, 'asdCheckHz', 1, ...
+            'referencePlane', 'AD2208 external board input', 'plotDpi', 180, 'waveVariable', '', ...
+            'calibrationWorkbook', '');
+        config.welch = struct('targetResolutionHz', 0.2, 'overlapRatio', 0.5, 'windowType', 'hann');
     otherwise
         error('ad2208:UnknownAnalysis', ...
             '不支持的 AD2208 分析类型：%s。', analysisId);

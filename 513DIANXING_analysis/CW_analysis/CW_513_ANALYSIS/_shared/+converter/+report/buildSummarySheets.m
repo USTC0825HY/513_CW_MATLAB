@@ -149,6 +149,11 @@ function note=conditionNote(config)
 note=sprintf('%s；%s',char(field(config,'deviceId','')),char(field(config,'referencePlane','参考面未记录')));
 if isfield(config,'hardwareGain'), note=[note sprintf('；电压增益 %.9g',config.hardwareGain)]; end
 if isfield(config,'fpgaGain'), note=[note sprintf('；FPGA增益 %.9g',config.fpgaGain)]; end
+if isfield(config,'calibrationSelection')
+    records=config.calibrationSelection.adc;
+    labels=arrayfun(@(r) [r.channel '/' r.calibrationState],records,'UniformOutput',false);
+    note=[note '；刻度：' records(1).boardType '；' strjoin(labels,', ')];
+end
 note=[note '；空白=未测或不可计算，完整依据见evidence。'];
 end
 function label=interfaceLabel(config,t)

@@ -1,4 +1,8 @@
-# CW 513 ADC 输入等效噪声入口
+# CW 513 ADC 输入等效噪声公共内核
+
+日常运行2208、9245或677目录中的单项噪声入口，由入口负责文件、接口和板型选择。内核也接受显式配置；使用内置报告刻度时必须给出 `boardType='jianding'` 或 `'jiaqiang'`，并明确 `entries`。默认 `calibrationState='current'`。自定义ADC刻度与DAC刻度须成对指定。规则和55条报告记录见 [CALIBRATION.md](../CALIBRATION.md)。
+
+运行读取随代码发布的刻度CSV；报告文件名与SHA-256用于溯源，不在运行时打开Word或搜索历史刻度结果目录。`evidence/selected_adc_calibration.csv`、`selected_dac_calibration.csv`和`result.mat`记录实际使用值。
 
 正式入口为 `adc_input_equiv_noise_analysis.m`。它位于
 `CW_513_ANALYSIS` 库，调用 `_shared/+converter/+io/loadPicoMat.m`、

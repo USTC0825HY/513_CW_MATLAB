@@ -3,6 +3,9 @@ function writeSourceManifest(runFolder, fileName)
 if nargin<2, fileName='script_source_manifest.csv'; end
 root=fileparts(fileparts(fileparts(fileparts(mfilename('fullpath')))));
 files=dir(fullfile(root,'**','*.m'));
+catalog=fullfile(fileparts(which('converter.calibration.calibrationCatalog')), ...
+    'report_calibrations_20261004.csv');
+files=[files;dir(catalog)];
 paths=cell(numel(files),1); hashes=paths;
 for k=1:numel(files)
     paths{k}=fullfile(files(k).folder,files(k).name);

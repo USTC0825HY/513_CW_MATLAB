@@ -60,7 +60,9 @@ originalPath = path;
 pathCleanup = onCleanup(@() path(originalPath));
 bootstrapRuntime();
 cfg = localConfig(campaign, runOptions);
-cfg = localValidateCalibration(cfg, runOptions.interface);
+[cfg, ~, cancelled] = converter.calibration.resolveNoiseCalibration( ...
+    cfg, 'AD2208', {runOptions.interface}, interactive, true);
+if cancelled, return; end
 if strlength(outputFolder) == 0
     outputFolder = fullfile(dataFolder, 'results');
 end
@@ -78,23 +80,17 @@ result = adc_input_equiv_noise_analysis(cfg);
 localWriteEntryEvidence(result);
 converter.runtime.finalizeBundle(result.runFolder, result.config);
 result = converter.runtime.refreshResultPaths(result, result.runFolder);
-fprintf('DA9726 fixed calibration: k_DAC = %.15g V/CodePp (no DAC CSV read)\n', ...
+fprintf('DA9726 selected calibration: k_DAC = %.15g V/code\n', ...
     result.calibration.kDac);
 disp(result.summary(:, {'interface','sample_rate_hz','duration_s', ...
     'asd_check_actual_hz','input_asd_at_check_n_v_per_sqrt_hz','formal_state'}));
 end
 
 function cfg = localConfig(~, options)
-cfg = struct('analysisId', 'ad2208_pico_noise_1hz', 'version', '1.2.0', ...
-    'baselineMode', 'none', 'fpgaGain', 128, 'asdCheckHz', 1, ...
-    'referencePlane', 'AD2208 external board input', 'plotDpi', 180, 'waveVariable', '', ...
-    'calibrationWorkbook', which('converter.calibration.reportCalibration'));
-% User-pinned DA9726 JG18 slope. Do not locate or read DAC calibration CSVs.
-cfg.kDacVPerCodePp = 1.01451391294771e-4;
-cfg.dacCalibrationSource = 'Fixed configuration: DA9726 JG18; user-pinned k_DAC = 1.01451391294771e-4 V/CodePp';
-cfg.welch = struct('targetResolutionHz', 0.2, 'overlapRatio', 0.5, 'windowType', 'hann');
-allowed = {'interface','fpgaGain','asdCheckHz','referencePlane','plotDpi', ...
-    'calibrationWorkbook','welch','waveVariable'};
+cfg = ad2208Config('pico_noise');
+allowed = {'boardType','calibrationState','adcCalibrationRows','kDacVPerCodePp','dacSummaryPath', 'interface','fpgaGain','asdCheckHz','referencePlane','plotDpi', ...
+    'calibrationWorkbook','welch','waveVariable','metadata'};
+defaults = cfg;
 names = fieldnames(options);
 if ~all(ismember(names, allowed))
     error('ad2208:PicoUnknownOption', '存在不支持的 runOptions 字段。请查 README。');
@@ -113,6 +109,10 @@ for k = 1:numel(names)
         cfg.(name) = options.(name);
     end
 end
+applied = options;
+if isfield(applied,'interface'), applied = rmfield(applied,'interface'); end
+if isfield(applied,'welch'), applied.welch = cfg.welch; end
+cfg = converter.runtime.finalizeConfig(defaults, applied);
 validateattributes(cfg.fpgaGain, {'numeric'}, {'real','scalar','finite','nonzero'});
 validateattributes(cfg.asdCheckHz, {'numeric'}, {'real','scalar','finite','positive'});
 validateattributes(cfg.plotDpi, {'numeric'}, {'real','scalar','finite','positive'});
@@ -123,19 +123,12 @@ if ~isequal(string(cfg.welch.windowType), "hann")
 end
 end
 
-function cfg = localValidateCalibration(cfg, interfaceName)
-% Validate selected ADC calibration before the core creates a result directory.
-rows = converter.calibration.loadAdcCalibration(cfg.calibrationWorkbook);
-match = strcmp({rows.device},'AD2208') & strcmp({rows.interface},char(interfaceName));
-if nnz(match) ~= 1
-    error('cw513:AdcCalibrationAmbiguous','AD2208/%s 刻度必须唯一匹配。',interfaceName);
-end
-validateattributes(rows(match).slope,{'numeric'},{'real','scalar','finite','positive'});
-end
-
 function localWriteEntryEvidence(result)
 cfg = result.config;
-paths = [{[cfg.entryScript '.m']}; {cfg.coreScript}; cellstr(string({result.manifest.path})')];
+% Report references already carry their pinned SHA in the calibration records.
+% Hash only live source/input files here; never reopen a report during analysis.
+raw = result.manifest(strcmp(string({result.manifest.source_type}),'raw'));
+paths = [{[cfg.entryScript '.m']}; {cfg.coreScript}; cellstr(string({raw.path})')];
 items = repmat(struct('path',"",'size_bytes',0,'modified',"",'sha256',""),numel(paths),1);
 for k = 1:numel(paths)
     info = dir(paths{k});

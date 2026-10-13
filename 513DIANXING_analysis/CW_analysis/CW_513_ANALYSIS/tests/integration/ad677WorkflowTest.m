@@ -80,15 +80,16 @@ classdef ad677WorkflowTest < matlab.unittest.TestCase
                 string(testCase.RepositoryRoot), 'IgnoreCase', true)));
         end
 
-        function testIlaUsesFixedScaleAndReportsValidRate(testCase)
+        function testIlaReplaysExplicit20260928ScaleAndReportsValidRate(testCase)
             outputFolder = fullfile(testCase.WorkFolder, 'ila_result');
             result = adc_ila_noise_analysis(testCase.NoiseFolder, ...
-                {'ad677_noise_ch1.csv'}, outputFolder);
+                {'ad677_noise_ch1.csv'}, outputFolder, struct('inputRadix','decimal', ...
+                'noiseCalibration',struct('channel','677_1','slopeVPerCode',1.53251359250316e-4)));
             row = result.summary(1, :);
             testCase.verifyEqual(row.SampleCount, 131072);
             testCase.verifyEqual(row.SampleRateHz, 100e6, AbsTol=1e-6);
             testCase.verifyEqual(row.CalibrationSlopeVPerCode, ...
-                1.536050e-4, AbsTol=1e-15);
+                1.53251359250316e-4, AbsTol=1e-15);
             testCase.verifyEqual(row.ValidPulseCount, 1024);
             testCase.verifyEqual(row.EffectiveUpdateRateHz, ...
                 781250, AbsTol=1e-9);
@@ -96,14 +97,16 @@ classdef ad677WorkflowTest < matlab.unittest.TestCase
             testCase.verifyEqual(string(row.FormalStatus), "暂不能判定");
         end
 
-        function testPicoUsesFixedAdcAndJg18Scales(testCase)
+        function testPicoReplaysExplicit20260928AdcAndJg18Scales(testCase)
             outputFolder = fullfile(testCase.WorkFolder, 'pico_result');
-            options = struct('interface', '677_2');
+            options = struct('interface', '677_2', 'adcCalibrationRows', ...
+                struct('device','AD677','interface','677_2','slope',1.70337125111340e-4), ...
+                'kDacVPerCodePp',1.01451391294771e-4);
             result = adc_pico_noise_1hz_analysis(testCase.PicoFolder, ...
                 'long_noise.mat', outputFolder, options);
             row = result.summary(1, :);
             testCase.verifyEqual(row.k_adc_v_per_code, ...
-                1.695154e-4, AbsTol=1e-15);
+                1.70337125111340e-4, AbsTol=1e-15);
             testCase.verifyEqual(row.k_dac_v_per_code, ...
                 1.01451391294771e-4, AbsTol=1e-18);
             testCase.verifyEqual(row.fpga_gain, 128);
@@ -113,11 +116,19 @@ classdef ad677WorkflowTest < matlab.unittest.TestCase
 
         function testPicoRejectsShortRecordBeforeOutput(testCase)
             outputFolder = fullfile(testCase.WorkFolder, 'short_result');
-            options = struct('interface', '677_1');
+            options = struct('interface', '677_1','boardType','jianding');
             testCase.verifyError(@() adc_pico_noise_1hz_analysis( ...
                 testCase.PicoFolder, 'short_noise.mat', outputFolder, options), ...
                 'ad677:PicoFrequencyCoverage');
             testCase.verifyFalse(isfolder(outputFolder));
+        end
+
+        function testHistoricalReportCalibrationRemainsAvailable(testCase)
+            % Historical values remain a separate versioned contract. Current
+            % entry tests above verify configured coefficients, not board calibration validity.
+            rows = converter.calibration.reportCalibration('AD677','jianding');
+            testCase.verifyEqual([rows.slopeVPerCode], ...
+                [1.536050e-4, 1.695154e-4], AbsTol=1e-15);
         end
     end
 

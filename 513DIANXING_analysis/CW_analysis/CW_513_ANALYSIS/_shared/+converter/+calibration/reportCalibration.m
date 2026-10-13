@@ -1,68 +1,37 @@
-function rows = reportCalibration(device)
-%REPORTCALIBRATION Vpp = slopeVPerCode * CodePp + interceptV.
-% AD9245 rows were restated on 20260918 from the corrected high-impedance
-% power scale (20260917 captures; the generator had been set to 50 ohm
-% display mode while the real load is high-Z, so the actual input Vpp is
-% twice the legacy bookkeeping). AD2208 ADC6_JG24 was restated on 20260922
-% after input-path resoldering (post-resolder 50 ohm power sweep; the old
-% row was the pre-resolder high-Z bookkeeping at half the slope). Other
-% devices keep the transcription from the dedicated calibration sections of
-% SZSD_YCQD测试结果__20260903.docx.
-% Noise uses the slope after mean removal, never the amplitude-fit intercept.
-sourceDocument = 'SZSD_YCQD测试结果__20260903.docx';
-sourceSha256 = 'B1160A7585EA6CB2D6F4CCE4A6424AC3134B0AF61D5BF5FD5B41CB93DB442C32';
-ad9245Source = ['I:/513_CW_test/CW_Data/513_CW_jiaqiang/AD9245/' ...
-    '02_ad9245_power/results (20260917 高阻功率刻度)'];
-ad2208JG24Source = ['I:/01_CW_TEST/CW_Data/513_CW_jiaqiang/AD2208/' ...
-    '03_inputpower/JIAQIANG-SZSD-AD2208-inputpower-Retest/ADC6_JG24 ' ...
-    '(20260922捕获, run_20260924_005300_power_scale)'];
-values = { ...
-    'AD2208', 'ADC1_JG15', 0.00002347136, 0.0003274615, 0.99999328, 1000000, NaN, 'AD2208 刻度', sourceDocument; ...
-    'AD2208', 'ADC2_JG17', 0.0000443806, -0.00004978057, 0.99999321, 1000000, NaN, 'AD2208 刻度', sourceDocument; ...
-    'AD2208', 'ADC3_JG19', 0.0000237623, 0.0007470679, 0.9999941, 1000000, NaN, 'AD2208 刻度', sourceDocument; ...
-    'AD2208', 'ADC5_JG22', 0.00002378017, 0.0003932618, 0.9999941, 1000000, NaN, 'AD2208 刻度', sourceDocument; ...
-    'AD2208', 'ADC6_JG24', 0.0000380213159017, 0.0000238796952318, 0.999993771005, 1000000, 19, 'AD2208刻度 20260922改焊接后重测(50Ω)', ad2208JG24Source; ...
-    'AD9245', 'X1G', 0.000133543437079903, 0.00149916225450014, 0.999996818929588, 1000, 11, 'AD9245刻度 20260917高阻重测', ad9245Source; ...
-    'AD9245', 'X2G', 0.00013435496464215, 0.00149814028137122, 0.999996532647428, 1000, 11, 'AD9245刻度 20260917高阻重测', ad9245Source; ...
-    'AD9245', 'X3G', 0.000134279849034641, 0.0014947484991574, 0.999996309297578, 1000, 11, 'AD9245刻度 20260917高阻重测', ad9245Source; ...
-    'AD9245', 'X4G', 0.000134160461844848, 0.00143553145783053, 0.99999669310996, 1000, 11, 'AD9245刻度 20260917高阻重测', ad9245Source; ...
-    'DA766', 'X11-5', 0.0003039664, 0.03613255, 0.999995, NaN, NaN, 'DA766 刻度', sourceDocument; ...
-    'DA766', 'X11-6', 0.0003052196, 0.03397334, 0.999995, NaN, NaN, 'DA766 刻度', sourceDocument; ...
-    'DA766', 'X11-7', 0.0003045198, 0.03244908, 0.999995, NaN, NaN, 'DA766 刻度', sourceDocument; ...
-    'DA766', 'X12G', 0.0003050184, 0.03566069, 0.999997, NaN, NaN, 'DA766 刻度', sourceDocument; ...
-    'DA766', 'X7', 0.0003050171, 0.03549978, 0.999995, NaN, NaN, 'DA766 刻度', sourceDocument; ...
-    'DA766', 'X77-7', 0.0003034652, 0.03389897, 0.999994, NaN, NaN, 'DA766 刻度', sourceDocument; ...
-    'DA766', 'X77-8', 0.0003040355, 0.03295411, 0.999995, NaN, NaN, 'DA766 刻度', sourceDocument; ...
-    'DA766', 'X9', 0.000304654, 0.03335241, 0.999995, NaN, NaN, 'DA766 刻度', sourceDocument; ...
-    'AD677', '677_1', 0.000153605, 0.076322, 0.999986, 1000, 10, 'AD677 输入功率刻度', sourceDocument; ...
-    'AD677', '677_2', 0.0001695154, 0.083014, 0.999976, 1000, 10, 'AD677 输入功率刻度', sourceDocument; ...
-    'DA9726', 'DAC1_JG18', 0.0001014514, NaN, NaN, NaN, NaN, 'AD9245 输入等效噪声 DA9726 JG18系数', sourceDocument; ...
-};
-template = struct('device','','channel','','slopeVPerCode',NaN, ...
-    'interceptV',NaN,'fitR2',NaN,'calibrationFrequencyHz',NaN, ...
-    'pointCount',NaN,'sourceSection','','sourceDocument',sourceDocument, ...
-    'sourceDocumentSha256',sourceSha256,'definition','Vpp = k*CodePp + b');
-rows = repmat(template,size(values,1),1);
-for k = 1:size(values,1)
-    rows(k).device = values{k,1};
-    rows(k).channel = values{k,2};
-    rows(k).slopeVPerCode = values{k,3};
-    rows(k).interceptV = values{k,4};
-    rows(k).fitR2 = values{k,5};
-    rows(k).calibrationFrequencyHz = values{k,6};
-    rows(k).pointCount = values{k,7};
-    rows(k).sourceSection = values{k,8};
-    rows(k).sourceDocument = values{k,9};
-    if ~strcmp(rows(k).sourceDocument, sourceDocument)
-        % A restated row cites its own measurement record, so the shared
-        % report document SHA-256 no longer applies to it.
-        rows(k).sourceDocumentSha256 = '';
-    end
+function rows = reportCalibration(device, boardType, calibrationState, channels)
+%REPORTCALIBRATION Select by board, device, interface and rework state.
+% rows = converter.calibration.reportCalibration('AD2208','jianding', ...
+%     'current', {'ADC6_JG24'});
+% current chooses after if present, otherwise the unique unchanged record.
+if nargin < 2 || strlength(string(boardType)) == 0
+    error('converter:calibration:BoardRequired','内置刻度需要 boardType=''jianding'' 或 ''jiaqiang''。');
 end
-if nargin > 0
-    rows = rows(strcmp({rows.device},char(device)));
-    if isempty(rows)
-        error('converter:calibration:UnknownDevice','报告中没有该器件的刻度。');
+boardType = validatestring(boardType, {'jianding','jiaqiang'});
+if nargin < 3 || isempty(calibrationState), calibrationState = 'current'; end
+calibrationState = validatestring(calibrationState, {'current','before','after'});
+catalog = converter.calibration.calibrationCatalog();
+catalog = catalog(strcmp({catalog.device},device) & strcmp({catalog.boardType},boardType));
+if isempty(catalog), error('converter:calibration:UnknownDevice','没有 %s/%s 刻度。',boardType,device); end
+if nargin < 4 || isempty(channels), channels = unique({catalog.channel},'stable'); end
+channels = cellstr(string(channels));
+rows = catalog([]);
+for k = 1:numel(channels)
+    candidates = catalog(strcmp({catalog.channel},channels{k}));
+    if strcmp(calibrationState,'current')
+        if any(strcmp({candidates.calibrationState},'after'))
+            selected = candidates(strcmp({candidates.calibrationState},'after'));
+        else
+            selected = candidates;
+        end
+    else
+        selected = candidates(strcmp({candidates.calibrationState},calibrationState));
     end
+    if numel(selected) ~= 1
+        error('converter:calibration:StateUnavailable', ...
+            '%s/%s/%s 请求 %s；可用版本：%s。',boardType,device,channels{k}, ...
+            calibrationState,strjoin({candidates.calibrationState},', '));
+    end
+    validateattributes(selected.slopeVPerCode,{'numeric'},{'scalar','real','finite','positive'});
+    rows(end+1,1) = selected; %#ok<AGROW>
 end
 end

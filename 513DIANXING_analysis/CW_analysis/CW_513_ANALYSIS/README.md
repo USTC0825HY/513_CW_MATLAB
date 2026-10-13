@@ -1,6 +1,10 @@
 # CW_513_ANALYSIS 使用说明
 
+2026-10-12 刻度更新：鉴定件与电性加强件分开配置。2208/677 ILA 与2208/9245/677 PICO噪声交互运行时选择板型，显式传文件时填写 `boardType='jianding'` 或 `'jiaqiang'`。改焊版本默认 `calibrationState='current'`。系数维护位置、完整对照和调用示例见 [刻度配置](CALIBRATION.md)。其他单项分析入口保留原调用方式。
+
 本目录是513/CW电性测试的当前MATLAB分析库，覆盖AD2208、AD9245、AD677、ADC128、DA9726和DA766。正式入口全部是单项分析脚本；运行时只加载本目录的`_shared/+converter`公共内核，不依赖旧`laser_analysis`、旧workflow或归档脚本。
+
+2026-10-02 配置整理：参数在哪里改、怎样单次覆盖、哪些旧字段不生效，见 [参数配置说明](CONFIGURATION.md)；验证证据见 [配置优化报告](docs/20261002_private_config/REPORT.md)。
 
 ## 1. 当前可以分析什么
 
@@ -10,10 +14,10 @@
 | `9245_hy` | 6 | 3 dB带宽、刻度/动态范围、SFDR、PICO 1 Hz噪声、隔离度、ADC INL/DNL |
 | `677_hy` | 4 | 3 dB带宽、刻度/动态范围、ILA噪声、PICO 1 Hz噪声 |
 | `128_hy` | 1 | 3 dB带宽 |
-| `9726_hy` | 3 | 正弦刻度/输出Vpp、噪声、隔离度 |
+| `9726_hy` | 4 | 正弦刻度/输出Vpp、直流台阶输出电压、噪声、隔离度 |
 | `766_hy` | 4 | 十进制刻度、十六进制刻度/输出Vpp、噪声、隔离度 |
 
-共25个正式入口。DAC INL/DNL、独立DC输出范围、相位噪声和ADC128独立噪声目前没有正式入口，不会用其他指标代替。
+共26个正式入口。9726直流输出电压入口保持原有CSV/PNG/MAT布局；其他入口的统一结果包规则不自动适用于它。DAC INL/DNL、相位噪声和ADC128独立噪声目前没有正式入口，不会用其他指标代替。
 
 ## 2. 最简单的运行方式
 
@@ -34,7 +38,7 @@ which adc_sfdr_analysis -all
 
 如果结果中先出现旧库、发布副本或其他器件目录，请清理MATLAB路径并重新进入目标目录。不要同时把多个器件目录递归加入路径。
 
-每个入口的完整函数签名、显式调用示例、默认参数和输入要求见：
+当前函数签名、显式调用示例、默认参数和输入要求以各器件README为准。2026-09-20清单保留作为早期版本参考：
 
 - [`docs/20260920_revision/ENTRYPOINTS.md`](docs/20260920_revision/ENTRYPOINTS.md)
 - [`docs/20260920_revision/ENTRYPOINTS.csv`](docs/20260920_revision/ENTRYPOINTS.csv)
@@ -161,7 +165,9 @@ CW_513_ANALYSIS/
 
 ## 9. 测试与当前验证状态
 
-本轮已完成：
+2026-10-12刻度修订：55条报告刻度核对通过；分批汇总228个不同测试的最近一次结果全部通过，最后两批30/30、13/13。包含板型、版本、取消、来源冲突、噪声比例及输出来源检查。详见[实施报告](docs/20261012_board_calibration/REPORT.md)和[回归清单](docs/20261012_board_calibration/regression_latest.csv)。本轮使用合成/夹具数据，历史大型实测批次未全面重算。2026-10-13仅更新说明并上传代码。
+
+以下为2026-09-20历史验证记录：
 
 - 144个MATLAB脚本清单和SHA-256核对。
 - 十六进制边界、纯数字歧义、非法输入、valid抽取和所选数据列测试。
@@ -189,3 +195,19 @@ AD9245旧黄金数据的四个入口已经按历史25 MHz条件实际运行，�
 5. 打开新结果目录中的`结果汇总.xlsx`。
 6. 需要复核时查看`evidence/run_config.mat`、完整CSV、输入哈希和STATUS。
 7. 将参考面、端接、增益和仪器条件补入测试记录后，再判断能否形成正式结论。
+
+## 11. 两套板型刻度如何选择
+
+零参数运行2208/677 ILA、2208/9245/677 PICO噪声时，按窗口选择板型。显式文件调用在原有runOptions/configOverride中设置板型，例如在2208_hy：
+
+```matlab
+options = struct('boardType','jianding', ...
+    'calibrationState','current','inputRadix','decimal');
+result = adc_ila_noise_analysis(dataFolder,selectedFiles,outputFolder,options);
+```
+
+加强件改为`jiaqiang`。`current`优先改焊后，否则采用唯一记录并保留其原状态；`before`/`after`要求对应版本确实存在。9245 PICO仍是三参数调用，选项放第三参数。
+
+长期系数集中维护在[`report_calibrations_20261004.csv`](_shared/+converter/+calibration/report_calibrations_20261004.csv)，共55条。PICO同步选择同板DA9726 JG18。自定义刻度、工作簿及来源冲突规则见[CALIBRATION.md](CALIBRATION.md)。
+
+结果汇总.xlsx上方显示板型和版本；evidence保存实际系数、报告哈希及表格定位。切换板型后重算噪声会相应变化。DAC电压噪声、扫描刻度拟合及不使用电压刻度的指标保留原计算方式。

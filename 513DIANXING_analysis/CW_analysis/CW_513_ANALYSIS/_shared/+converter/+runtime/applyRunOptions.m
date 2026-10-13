@@ -6,7 +6,6 @@ function [config, options] = applyRunOptions(config, options)
 
 if nargin < 2 || isempty(options)
     options = struct();
-    return;
 end
 if ~isstruct(options) || ~isscalar(options)
     error('converter:runtime:InvalidRunOptions', ...
@@ -14,16 +13,20 @@ if ~isstruct(options) || ~isscalar(options)
 end
 
 if isfield(options, 'configOverride')
+    extra = setdiff(fieldnames(options), {'configOverride','powerSetpoints','metadata'});
+    if ~isempty(extra)
+        error('converter:runtime:MixedOverrideStyles', ...
+            '使用configOverride时，算法参数必须全部放入其中：%s', strjoin(extra, ', '));
+    end
     override = options.configOverride;
+    if isfield(options, 'metadata'), override.metadata = options.metadata; end
 else
     override = options;
     if isfield(override, 'powerSetpoints')
         override = rmfield(override, 'powerSetpoints');
     end
 end
-if ~isempty(override)
-    config = converter.runtime.mergeConfig(config, override);
-end
+config = converter.runtime.finalizeConfig(config, override);
 if isfield(config, 'inputRadix') && ...
         (~(ischar(config.inputRadix) || (isstring(config.inputRadix) && isscalar(config.inputRadix))) || ...
         ~ismember(lower(char(config.inputRadix)), {'auto', 'hex', 'decimal'}))

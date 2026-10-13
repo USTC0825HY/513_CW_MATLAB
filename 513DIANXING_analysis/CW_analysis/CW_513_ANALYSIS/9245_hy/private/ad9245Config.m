@@ -3,14 +3,15 @@ function config = ad9245Config(analysisId)
 
 config = struct();
 config.deviceId = 'AD9245';
-config.reportCalibration = converter.calibration.reportCalibration('AD9245');
 config.analysisId = lower(analysisId);
 config.version = '1.1.0';
 config.releaseReady = true;
+config.formalEnabled = false;
 config.adcBits = 14;
 config.adcFullScalePeakCode = 2^(config.adcBits - 1);
 config.adcCodeFormat = 'signed';
-config.adcDataColumn = 0;
+config.inputRadix = 'auto';
+config.adcDataColumn = 0; % 0 means the last CSV column, not header detection.
 config.headerModulePattern = '(?i)ad9245_test_module\[(\d+)\]';
 config.fitCycles = 20;
 config.minimumFitSamples = 1024;
@@ -58,6 +59,8 @@ switch config.analysisId
         config.drivenChannel = 'X3G';
         config.minimumIsolationDb = 40;
     case 'power_scale'
+        config.autoSelectPowerRangeFromUnclipped = true; % Used only by the dBm range branch.
+        config.powerScalePlotMode = 'inverse';
         config.version = '1.3.0';
         config.sampleRate = ilaCaptureSampleRateHz;
         % The 20260917 AD9245 power sweeps are 1 kHz Vpp-labelled sweeps
@@ -89,6 +92,11 @@ switch config.analysisId
         config.maximumGlitchFraction = 0;
         config.clippingMarginCode = 1;
         config.recordsAreSampleContiguous = false;
+    case 'pico_noise'
+        config = struct('analysisId', 'ad9245_input_equiv_noise_1hz', ...
+            'version', '1.4.0', 'baselineMode', 'none', 'fpgaGain', 128, ...
+            'asdCheckHz', 1, 'referencePlane', 'AD9245 external board input', 'plotDpi', 180);
+        config.welch = struct('targetResolutionHz', 0.2, 'overlapRatio', 0.5, 'windowType', 'hann');
     otherwise
         error('ad9245:UnknownAnalysis', ...
             '不支持的 AD9245 分析类型：%s。', analysisId);

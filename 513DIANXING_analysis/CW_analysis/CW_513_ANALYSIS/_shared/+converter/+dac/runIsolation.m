@@ -102,7 +102,7 @@ if ~isfield(config, 'pairManifest') || isempty(config.pairManifest)
 end
 source = config.pairManifest;
 if ischar(source) || isstring(source)
-    tableValue = readtable(char(source));
+    tableValue = readtable(char(source), 'Delimiter', ',', 'ReadVariableNames', true, 'Encoding', 'UTF-8');
     pairs = table2struct(tableValue);
 elseif istable(source)
     pairs = table2struct(source);

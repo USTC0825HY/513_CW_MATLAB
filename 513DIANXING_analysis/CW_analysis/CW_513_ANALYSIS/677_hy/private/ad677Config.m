@@ -4,21 +4,18 @@ function config = ad677Config(analysisId)
 config = struct();
 config.deviceId = 'AD677';
 config.analysisId = lower(char(analysisId));
-if ~strcmp(config.analysisId, 'input_noise')
-    config.reportCalibration = converter.calibration.reportCalibration('AD677');
-end
 config.version = '0.1.0';
 config.releaseReady = true;
 config.formalEnabled = false;
-config.formalStatus = '暂不能判定';
-config.formalStatusReason = ...
-    '板端/ADC引脚参考面、终端负载和指标限值尚未确认';
+config.metadata = struct('formalStatusReason', ...
+    '板端/ADC引脚参考面、终端负载和指标限值尚未确认');
 config.sampleRate = 100e6;
 config.sampleRateDefinition = ...
     'Vivado ILA capture clock; ADC code is held between adc_data_vld pulses';
 config.adcBits = 16;
 config.adcFullScalePeakCode = 2^(config.adcBits - 1);
 config.adcCodeFormat = 'signed';
+config.inputRadix = 'auto';
 config.adcCodingDefinition = '16-bit signed codes; explicit decimal values or hexadecimal two''s-complement words';
 config.adcDataColumn = 4;
 config.validDataColumn = 5;
@@ -63,8 +60,8 @@ switch config.analysisId
         config.bandwidthFrequencySource = 'file';
         config.fitFrequencySource = 'file';
         config.clippingMarginCode = round(0.02 * config.adcFullScalePeakCode);
-        config.frequencyCoverageHz = [100, 30e3];
-        config.bandwidthLimitHz = NaN;
+        config.metadata.frequencyCoverageHz = [100, 30e3]; % Descriptive, not a filter.
+        config.metadata.bandwidthLimitHz = NaN;
     case 'power_scale'
         config.version = '0.2.0';
         config.testFrequencyHz = 1e3;
@@ -80,7 +77,7 @@ switch config.analysisId
         config.excludeFrequencyMismatchFromPowerScale = true;
         config.powerSetpointSource = ...
             'run_manifest amplitude/source readback, validated against filename Vpp';
-        config.scaleRequirement = 'not supplied';
+        config.metadata.scaleRequirement = 'not supplied';
     case 'input_noise'
         config.version = '0.4.0';
         config.referencePlane = ...
@@ -95,45 +92,17 @@ switch config.analysisId
         config.welchNfft = 131072;
         config.samplesIncludeHold = true;
         config.inputTermination = 'not confirmed';
-        config.formalConditionSource = 'No approved AD677 noise limit supplied';
-        config.noiseCalibration = localNoiseCalibration();
-        config.noiseCalibrationSource = ...
-            'Fixed in 677_hy/private/ad677Config.m; noise uses slope only';
-        config.picoFpgaGain = 128;
-        config.picoAsdCheckHz = 1;
-        config.picoWelch = struct('targetResolutionHz', 0.2, ...
-            'overlapRatio', 0.5, 'windowType', 'hann');
-        config.picoDacCalibration = struct( ...
-            'device', 'DA9726', 'channel', 'DAC1_JG18', ...
-            'slopeVPerCode', 1.01451391294771e-4, ...
-            'unit', 'V/code', 'configurationStatus', 'fixed', ...
-            'source', ['Fixed DA9726 JG18 calibration; ' ...
-                'no DAC result CSV lookup']);
+        config.formalConditionSource = 'User reference line: 1 uV/sqrtHz; formal measurement conditions unconfirmed';
+    case 'pico_noise'
+        config = struct('analysisId', 'ad677_pico_noise_1hz', 'version', '1.0.0', ...
+            'baselineMode', 'none', 'fpgaGain', 128, ...
+            'asdCheckHz', 1, ...
+            'referencePlane', 'AD677 external board input; physical board/ADC-pin plane unverified', 'plotDpi', 180, 'waveVariable', '', ...
+            'welch', struct('targetResolutionHz',0.2,'overlapRatio',0.5,'windowType','hann'), ...
+            'plotLimitUvPerSqrtHz', 1, ...
+            'formalEnabled', false);
     otherwise
         error('ad677:UnknownAnalysis', ...
             '不支持的 AD677 分析类型：%s。', analysisId);
 end
-end
-
-function rows = localNoiseCalibration()
-% Noise conversion removes the mean, so amplitude-fit intercepts are unused.
-% 20260928 revision: slopes updated from the 20260919 JIAQIANGJIAN 1 kHz
-% amplitude sweeps (0.25-2.5 Vpp), processed 20260920 by adc_power_scale:
-%   677_1 1.53251359250316e-4 V/code (10 pts, R2 0.9999966)
-%   677_2 1.7033712511134e-4  V/code (9 pts,  R2 0.9999868)
-% Previous 20260902 values (1.536050e-4 / 1.695154e-4, from the 20260820
-% sweeps) remain in git history for traceability of all pre-20260928 runs.
-template = struct('device', 'AD677', 'channel', '', ...
-    'slopeVPerCode', NaN, 'interceptV', NaN, 'fitR2', NaN, ...
-    'calibrationFrequencyHz', NaN, 'pointCount', NaN, ...
-    'unit', 'V/code', 'configurationStatus', 'fixed', ...
-    'sourceDocument', ['20260919 JIAQIANGJIAN AD677 scale sweeps; ' ...
-    'processed 20260920 (cw513_revision_20260920_222108 / run_20260920_172452)'], ...
-    'sourceSection', '677_hy/private/ad677Config.m', ...
-    'definition', 'InputNoiseV=(Code-mean(Code))*slopeVPerCode');
-rows = repmat(template, 2, 1);
-rows(1).channel = '677_1';
-rows(1).slopeVPerCode = 1.53251359250316e-4;
-rows(2).channel = '677_2';
-rows(2).slopeVPerCode = 1.70337125111340e-4;
 end

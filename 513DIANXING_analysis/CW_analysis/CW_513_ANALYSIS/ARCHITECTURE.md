@@ -46,13 +46,13 @@ FPGA `G=128` 和 DA9726 JG18 刻度来源；PSD/ASD 与输入等效换算由
 MAT 的选择、接口校验和刻度来源设置，调用现有 `noise_chain_hy` 公共内核；
 不复制噪声公式。PICO 内核仅加入相邻 `_shared`，不再递归加入所有器件目录。
 新入口返回时恢复调用前 MATLAB 路径，记录入口/内核哈希及刻度来源。
-AD2208 PICO入口的DA9726斜率固定为1.01451391294771e-4 V/CodePp；
-ADC刻度默认来自 `_shared/+converter/+calibration/reportCalibration.m`，显式指定工作簿时才读取外部文件；不查找或读取DA9726刻度CSV。
+PICO 入口按显式板型配套选择 ADC 与 DA9726 JG18 刻度；
+ADC刻度通过 `reportCalibration` 查询公共CSV目录表；显式指定工作簿时读取用户刻度。自定义DAC可指定确定的CSV，不自动搜索历史结果。
 
 `677_hy/adc_ila_noise_analysis.m` 复用 `converter.adc.runInputNoise`，但保留
 全部100 MHz ILA抓取点，valid列只统计脉冲数和有效更新率。AD677噪声斜率
-直接保存在 `private/ad677Config.m`，不读取公共报告刻度。`677_hy/adc_pico_noise_1hz_analysis.m`
-复用 `noise_chain_hy`，固定DA9726 JG18斜率和G=128；接口必须由用户选择或显式指定，
+按板型从公共报告刻度表选择。`677_hy/adc_pico_noise_1hz_analysis.m`
+复用 `noise_chain_hy`，使用同板DA9726 JG18斜率，默认G=128；接口必须由用户选择或显式指定，
 采样率来自MAT时基。频率覆盖检查在建立结果目录之前完成。
 
 ## 文件选择与参数传递
@@ -67,7 +67,7 @@ DA9726 的 `dac_noise_analysis` 与 `dac_scale_analysis` 只共用上述输入�
 
 取消选择时，在创建结果目录前返回，不调用createRun。传入完整文件、接口和配对信息时不显示对话框。DA9726隔离度的简化交互先单选驱动、再多选受扰；接口来自切分MAT元数据或文件名前缀，驱动频率由 `converter.dac.estimateToneFrequency` 统一搜索，未知阻抗/探头信息写入限制而不伪造。隔离度报告将长表 `isolation_db` 同步整理为驱动×受扰矩阵，输出 `dac_isolation_matrix_db.csv` 及按有限 dB 值自适应范围的矩阵热力图；40 dB参考阈值不再用于设置图轴范围。DA766继续使用原逐对条件输入。ADC隔离度和ILA噪声仍使用采集表头或inputChannels确认通道，禁止文件名自动改写驱动条件或选择刻度。
 
-2208隔离度第四参数按字段覆盖默认配置；9245使用runOptions。9245 PICO保留三参数签名，entries或selectedFiles/interfaces作为显式文件映射；一个接口一次一份，避免核心接口命名文件覆盖。2208 PICO仍单份MAT，固定DA9726系数保持不变。两类PICO入口返回时恢复原路径。
+2208隔离度第四参数按字段覆盖默认配置；9245使用runOptions。9245 PICO保留三参数签名，entries或selectedFiles/interfaces作为显式文件映射；一个接口一次一份，避免核心接口命名文件覆盖。2208 PICO仍单份MAT；五个噪声入口通过 converter.calibration.resolveNoiseCalibration 解析板型和刻度来源。两类PICO入口返回时恢复原路径。
 
 ## 2026-09-20 输入和输出合同
 
@@ -76,3 +76,6 @@ CSV基数解析统一位于 `converter.io.readAdcCsv/resolveAdcInputRadix`；交
 所有新结果由 `converter.runtime.finalizeBundle` 整理：根目录仅保留精简 `结果汇总.xlsx` 和PNG；完整CSV、FIG、配置、完整结果MAT、源码哈希和状态在evidence。共享 `buildSummarySheets` 只挑选已计算字段及换算显示单位，`writeSummaryXlsx` 写标准OOXML数值单元格，不依赖Excel进程。缺少应有字段报错，缺测数值留空。历史结果不迁移；审计读取用 `evidencePath` 兼容旧目录。
 
 本次修改的是主源码。历史ZIP、独立发布目录和旁边的CW_513_CODE没有被更新或删除，不能声称它们已经包含本次修正。
+## 2026-10-12 刻度调用链
+
+`器件噪声入口 → resolveNoiseCalibration → reportCalibration → calibrationCatalog → report_calibrations_20261004.csv`。解析发生在选完文件、接口之后，创建结果目录之前。private 不再预加载刻度；拟合、SFDR、相对带宽、码比隔离度及INL/DNL不会触发板型选择。PICO内核检查最终系数与calibrationSelection的一致性，完整选中记录进入证据包，XLSX只写板型和版本摘要。

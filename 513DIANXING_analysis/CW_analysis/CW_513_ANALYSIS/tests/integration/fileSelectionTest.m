@@ -187,13 +187,13 @@ classdef fileSelectionTest < matlab.unittest.TestCase
         function ilaRejectsUncalibratedHeaderWithoutGuessingName(t)
             t.target('2208_hy','adc_ila_noise_analysis');
             t.verifyError(@() adc_ila_noise_analysis(t.Raw,{'misleading_JG15.csv'}, ...
-                fullfile(t.Work,'out')), 'converter:adc:MissingCalibration');
+                fullfile(t.Work,'out'),struct('boardType','jianding')), 'converter:calibration:StateUnavailable');
             t.verifyFalse(isfolder(fullfile(t.Work,'out')));
         end
         function ilaFixedRecordLengthRejectsShortCapture(t)
             t.target('2208_hy','adc_ila_noise_analysis');
             t.verifyError(@() adc_ila_noise_analysis(t.Raw,{'JG15.csv'}, ...
-                fullfile(t.Work,'out')), 'converter:adc:FixedNoiseRecordLength');
+                fullfile(t.Work,'out'),struct('boardType','jianding')), 'converter:adc:FixedNoiseRecordLength');
             t.verifyEqual(t.calls(),0);
         end
         function duplicateAndMissingCsvRejectedBeforeOutput(t)

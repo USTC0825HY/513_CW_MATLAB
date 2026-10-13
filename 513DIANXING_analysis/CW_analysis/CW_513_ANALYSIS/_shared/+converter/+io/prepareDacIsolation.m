@@ -1,6 +1,12 @@
 function [config, cancelled] = prepareDacIsolation(config, dataFolder, pairs, outputFolder, overrides, defaultFolder)
 %PREPAREDACISOLATION Select isolation captures or validate an explicit manifest.
-config = converter.runtime.mergeConfig(config, overrides);
+config = converter.runtime.finalizeConfig(config, overrides);
+if isfield(overrides,'hardwareGain') && config.hardwareGain ~= 1 && ...
+        isfield(config,'measurementCondition') && ~isfield(overrides,'measurementCondition')
+    config.measurementCondition = sprintf( ...
+        'PicoScope电压按调用者指定的两路共同增益%g补偿；输入阻抗和探头倍率未确认', config.hardwareGain);
+    if ~isfield(overrides,'referencePlane'), config.referencePlane = config.measurementCondition; end
+end
 if isempty(dataFolder), dataFolder = config.dataFolder; end
 if isempty(dataFolder), dataFolder = defaultFolder; end
 if isempty(outputFolder), outputFolder = config.outputFolder; end
@@ -11,7 +17,6 @@ if isempty(pairs)
     if localLogicalOption(config, 'simpleIsolationSelection', false)
         % Interactive isolation uses calibrated Pico voltage directly.
         % Unknown loading remains metadata and disables formal judgment.
-        config.hardwareGain = 1;
         if localLogicalOption(config, 'autoDetectDrive', false)
             [selectedFiles, dataFolder] = converter.io.selectMatFiles( ...
                 dataFolder, config.inputFiles, '选择全部单通道隔离度MAT');
@@ -43,7 +48,7 @@ elseif ischar(pairs) || isstring(pairs)
     if ~isfile(manifestPath)
         error('converter:io:InputFileNotFound', '配对清单不存在：%s', manifestPath);
     end
-    pairs = table2struct(readtable(manifestPath));
+    pairs = table2struct(readtable(manifestPath, 'Delimiter', ',', 'ReadVariableNames', true, 'Encoding', 'UTF-8'));
 elseif istable(pairs)
     pairs = table2struct(pairs);
 end
@@ -105,7 +110,7 @@ victimPath = fullfile(folder, name);
 values = inputdlg({'驱动接口','受扰接口','参考 MAT 波形变量', ...
     '受扰 MAT 波形变量','已确认驱动频率 / Hz','共同参考面和负载', ...
     '共同线性电压增益（未放大或已补偿填1）'}, ...
-    '明确本次隔离度条件', 1, {'','','A','A','','','1'});
+    '明确本次隔离度条件', 1, {'','','A','A','','',num2str(config.hardwareGain)});
 if isempty(values), pairs = struct([]); cancelled = true; return; end
 pairs = struct('driven_file', drivenPath, 'victim_file', victimPath, ...
     'driven_label', values{1}, 'victim_label', values{2}, ...

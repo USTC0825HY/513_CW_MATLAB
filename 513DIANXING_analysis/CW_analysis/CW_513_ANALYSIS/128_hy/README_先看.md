@@ -1,5 +1,19 @@
 # ADC128 带宽分析
 
+## 参数怎么改（2026-10-02 配置整理）
+
+长期默认值改本目录 `private` 的配置文件；只改一次测试时，使用入口已有的配置参数。实际顺序是：默认值 → 本次覆盖 → 派生值计算与校验。未填写的字段沿用默认值。数据目录、文件列表、输出目录的位置参数非空时，优先使用位置参数。
+
+参数拼错会报错并提示相近字段。自定义说明放在 `metadata`，例如 `struct('metadata',struct('operator','实验员'))`。常规ADC可使用直接字段或 `struct('configOverride',settings)`，不要两种形式混放；`powerSetpoints`仍是刻度的独立输入。其他入口的特殊签名以本文说明为准。
+
+运行开始时会显示主要参数。常规结果的 `evidence/run_config.mat` 保存最终配置，其中 `parameterSources` 说明字段来自默认值、本次覆盖还是派生计算；PICO联合噪声查看结果MAT的 `result.config`。9726直流输出电压保留原输出布局，在运行目录增加 `run_config.mat`，变量名为 `options`。精简XLSX不增加过程参数列。
+
+完整入口和配置分支对照见 [配置使用说明](../CONFIGURATION.md)。旧运行配置中的已知停用字段兼容保留并提示不生效，不代表这些开关已经实现。
+
+- 仍为12位unsigned，数据列5、valid列4、ILA时钟50 MHz；`sampleRate=NaN`表示按选通间隔推导，显式有限采样率表示调用者覆盖。
+- 下沿 `clippingMarginLowCode=-1` 保留；33 Ω和50 Ω只是源阻抗说明，默认不自动乘83/33。不要把修改电阻字段当成已经启用了带宽换算。
+
+
 运行 `128_hy/adc_bandwidth_analysis.m`，默认采集参数在 `128_hy/private/adc128Config.m`；
 零参数会弹文件选择框。CSV进制缺少声明时，交互运行还会要求确认进制：
 

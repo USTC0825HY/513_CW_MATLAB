@@ -98,6 +98,9 @@ for k = 1:numel(selectedFiles)
         error('adc128:CodeRange', 'CSV必须包含0～4095的整数原始码：%s', path);
     end
 end
+if isnan(config.sampleRate)
+    config.parameterSources.sampleRate = 'derived from measured valid strobe period';
+end
 config.sampleRate = effectiveSampleRate;
 results = converter.adc.runBandwidth(config, dataFolder, selectedFiles, outputFolder);
 end

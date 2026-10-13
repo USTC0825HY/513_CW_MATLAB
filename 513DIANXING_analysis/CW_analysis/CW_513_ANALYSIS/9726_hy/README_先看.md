@@ -1,5 +1,32 @@
 # DA9726 分析脚本使用说明
 
+## 2026-10-12：先选择板型，再使用刻度
+
+鉴定件和电性加强件使用各自报告的刻度表。需要刻度的噪声入口在交互运行时询问板型，每次重新选择；显式传文件时填写 `boardType='jianding'`（鉴定件）或 `'jiaqiang'`（电性加强件）。
+
+`calibrationState='current'` 优先使用该接口的改焊后记录；仅有一条记录时沿用该记录及其原状态。`'before'`、`'after'` 用于明确要求对应版本；该接口没有所选版本时会列出可用版本并结束。
+
+长期刻度统一维护在 [`report_calibrations_20261004.csv`](../_shared/+converter/+calibration/report_calibrations_20261004.csv)。private 只保存分析参数。逐行数值、来源和自定义刻度示例见 [CALIBRATION.md](../CALIBRATION.md)。
+
+运行时显示实际板型、接口、版本和斜率；打开 `结果汇总.xlsx` 查看简短刻度说明，完整记录在 `evidence` 的配置/结果 MAT 与刻度 CSV 中。单位为 **V/code**；噪声去均值后仅使用斜率，截距不参与噪声换算。历史结果保持原样。
+
+
+## 参数怎么改（2026-10-02 配置整理）
+
+长期默认值改本目录 `private` 的配置文件；只改一次测试时，使用入口已有的配置参数。实际顺序是：默认值 → 本次覆盖 → 派生值计算与校验。未填写的字段沿用默认值。数据目录、文件列表、输出目录的位置参数非空时，优先使用位置参数。
+
+参数拼错会报错并提示相近字段。自定义说明放在 `metadata`，例如 `struct('metadata',struct('operator','实验员'))`。常规ADC可使用直接字段或 `struct('configOverride',settings)`，不要两种形式混放；`powerSetpoints`仍是刻度的独立输入。其他入口的特殊签名以本文说明为准。
+
+运行开始时会显示主要参数。常规结果的 `evidence/run_config.mat` 保存最终配置，其中 `parameterSources` 说明字段来自默认值、本次覆盖还是派生计算；PICO联合噪声查看结果MAT的 `result.config`。9726直流输出电压保留原输出布局，在运行目录增加 `run_config.mat`，变量名为 `options`。精简XLSX不增加过程参数列。
+
+完整入口和配置分支对照见 [配置使用说明](../CONFIGURATION.md)。旧运行配置中的已知停用字段兼容保留并提示不生效，不代表这些开关已经实现。
+
+- `scale/noise/isolation/output_voltage`分别配置正弦刻度、噪声、隔离度和直流输出；正弦刻度增益1，噪声增益100。
+- PICO真实采样率逐文件读取Tinterval/fs。配置中的250 kHz或历史39.0625 MHz不是本次实测采样率，修改它不会改变MAT时基。
+- 隔离度默认两路共同增益1；显式指定其他共同增益会保留，两路幅值比中的共同增益抵消。当前不支持两路不同放大倍数。
+- 直流输出默认边沿阈值0.25 V、最短保持0.05 s、平台容差0.02 V、平滑窗口201点；第四参数options按字段覆盖，原空值沿用默认。
+
+
 更新：2026-09-16。
 
 在 MATLAB 编辑器中打开对应脚本并点击 Run，也可以在命令窗口输入函数名。不带参数运行时，按弹窗选择原始文件。程序只处理选中的文件；在文件、接口或测量条件对话框中取消，均不生成结果。
@@ -128,7 +155,7 @@ r = split_dac_isolation_channels(d, ...
 1. 选择驱动输出的参考MAT。
 2. 在第二个窗口一次多选同一驱动条件下的全部受扰MAT。
 
-选完直接计算，不再弹参数输入框。程序从切分MAT的 `ChannelLabel` 或文件名前缀读取接口，自动选择唯一A/B/C/D变量，从驱动路寻找最强非DC正弦并精确拟合频率，所有受扰路使用同一频率。交互模式固定 `hardwareGain=1`，测量条件记录为“PicoScope输入端直接测量；无外部放大；输入阻抗和探头倍率未记录”。因此可以得到隔离度数值，但正式状态保持“暂不能判定”。任何一步取消都不写结果。
+选完直接计算，不再弹参数输入框。程序从切分MAT的 `ChannelLabel` 或文件名前缀读取接口，自动选择唯一A/B/C/D变量，从驱动路寻找最强非DC正弦并精确拟合频率，所有受扰路使用同一频率。交互模式默认 `hardwareGain=1`，显式共同增益覆盖会保留。默认测量条件记录为“PicoScope输入端直接测量；无外部放大；输入阻抗和探头倍率未记录”；显式设置非1共同增益时，记录会说明按该增益补偿，仍不视为阻抗或探头条件已经确认。因此可以得到隔离度数值，但正式状态保持“暂不能判定”。任何一步取消都不写结果。
 
 交互模式只接受每份包含一个A/B/C/D波形的单通道MAT。若仍是多通道PICO原文件，先运行 `split_dac_isolation_channels`。驱动文件不得在受扰列表中重复出现；驱动拟合R²低于0.98时停止计算。
 
@@ -177,7 +204,7 @@ r = dac_isolation_analysis(d, pair, out, struct('hardwareGain',1));
 
 ## 报告刻度配置
 
-本器件的报告刻度由 `private` 配置中的 `reportCalibration` 字段加载，统一保存在 `_shared/+converter/+calibration/reportCalibration.m`。完整数值、单位和缺失项见 [CALIBRATION.md](../CALIBRATION.md)。刻度分析入口仍根据所选数据重新拟合，不会用报告数值替换新测量结果。
+本器件的两板刻度统一保存在 [`report_calibrations_20261004.csv`](../_shared/+converter/+calibration/report_calibrations_20261004.csv)，在需要电压换算时选择。完整数值与版本见 [CALIBRATION.md](../CALIBRATION.md)。刻度入口继续用所选扫描数据拟合。DAC 电压噪声只使用实测电压及电压增益，SFDR、相对带宽、码比隔离度和 INL/DNL 保持原计算方式。
 
 ### 噪声参数与通道检查（2026-09-20）
 
@@ -227,3 +254,11 @@ r1 = dac_scale_analysis(scaleDir, files, ...
 通道与接口按文件名顺序对应（A=CH1/JG20、B=CH2/JG21、C=CH3/JG23、D=CH4/JG25），映射关系仍须与实际接线记录核对。切分manifest的 `raw_code` 列即刻度横轴：10%→6554(0x199A)、50%→32768(0x8000)、99%→64880(0xFD70)。
 
 默认拟合上限 `maximumCodeVpp=0.9×2^16` 会把99%档（0xFD70）保留测量但不纳入直线拟合；确需纳入时在第四参数显式覆盖 `maximumCodeVpp` 并在测试记录中说明。某档4路波形均无1 MHz正弦（逐点拟合R²接近0）时，该档会被质量门槛自动排除出拟合，保留在measurements并注明原因；这类采集应核对DDS配置后重测，不能用拟合结果反推。
+
+查询报告刻度（仅查询，不会替换新数据拟合）：
+
+```matlab
+rows = converter.calibration.reportCalibration('DA9726','jianding','current');
+```
+
+查询前先运行本目录的单项入口完成公共库加载，或将相邻 `_shared` 加入路径。DAC 噪声与刻度拟合无需选择板型。

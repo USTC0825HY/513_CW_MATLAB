@@ -1,0 +1,26 @@
+[
+  {
+    "run": "regression",
+    "total": 226,
+    "passed": 215,
+    "failed": 11
+  },
+  {
+    "run": "focused",
+    "total": 15,
+    "passed": 13,
+    "failed": 2
+  },
+  {
+    "run": "final_tests",
+    "total": 30,
+    "passed": 30,
+    "failed": 0
+  },
+  {
+    "run": "export_tests",
+    "total": 13,
+    "passed": 13,
+    "failed": 0
+  }
+]

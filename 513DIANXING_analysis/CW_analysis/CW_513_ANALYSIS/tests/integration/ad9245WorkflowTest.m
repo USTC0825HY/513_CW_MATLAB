@@ -23,6 +23,19 @@ classdef ad9245WorkflowTest < matlab.unittest.TestCase
     end
 
     methods (Test)
+        function derivesSfdrRateFromOnlySourceOverride(testCase)
+            results = adc_sfdr_analysis(testCase.DataFolders.sfdr, ...
+                {'X3G_1MHz.csv'}, fullfile(testCase.WorkFolder,'source_rate_only'), ...
+                struct('inputRadix','decimal','sampleRate',25e6));
+            testCase.verifyEqual(results.AnalysisSampleRateHz,5e6,AbsTol=1e-9);
+            testCase.verifyEqual(results.SampleStride,5);
+        end
+
+        function rejectsHiddenDbmRangeBeforeSelection(testCase)
+            testCase.verifyError(@()adc_power_scale_analysis([],[],[], ...
+                struct('powerRangeDbm',[-20 0])), 'converter:runtime:InactivePowerRange');
+        end
+
         function runsSfdrEntry(testCase)
             files = {'X3G_1MHz.csv'};
             options = struct('configOverride', struct('inputRadix','decimal', ...

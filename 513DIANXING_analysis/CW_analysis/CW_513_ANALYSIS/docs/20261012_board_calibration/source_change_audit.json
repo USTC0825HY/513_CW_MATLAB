@@ -1,0 +1,190 @@
+{
+  "changedExistingFiles": [
+    {
+      "path": "ARCHITECTURE.md",
+      "beforeSha256": "3731939d05cd3c546745b40f27c2d7a3f96d59497dfbd75cfc5f314fdd54cf7d",
+      "afterSha256": "bba05a77348b3cd0e0dc9efcad41ddf8632224e26e9df9cf236b0584c96fb7ef"
+    },
+    {
+      "path": "CALIBRATION.md",
+      "beforeSha256": "c351a5d66225302180c76ae8bf032795d9f29b2899b58359dfe7776d768188d8",
+      "afterSha256": "ecc37cb234d65406a5b72d5b9af46ea72607e2bc264e65b77b0b6c36421b1849"
+    },
+    {
+      "path": "CONFIGURATION.md",
+      "beforeSha256": "f8f46a1f772d9d58b3378af78ad3b204d675e561278c1ed1396451acb82932ba",
+      "afterSha256": "99e587e694666250eb1f303762cb81febcadb001a491b8740ee0117081c7fabe"
+    },
+    {
+      "path": "METRICS.md",
+      "beforeSha256": "152ddd463446aaa7e02bca508eff711bd82e3c145dc51630577ef308da828a4f",
+      "afterSha256": "6cc3bc22281b49cd9a1e8994d955e6471be7b1313eeeef10c78420b535e874d7"
+    },
+    {
+      "path": "README.md",
+      "beforeSha256": "645665d2e9a1d863f82fe7ac5a2e0eea2ed3ba7cd8840356509a67701da45615",
+      "afterSha256": "27b988dabd053bccabc788e62d883fb33b649d70f3384bab1689819a44add8e3"
+    },
+    {
+      "path": "2208_hy\\adc_ila_noise_analysis.m",
+      "beforeSha256": "3b0ab52424fccee248b4f5e26953b9e9acb72134d4d25a216c312333d92d1729",
+      "afterSha256": "49d75014bda75e9598369a6dd8a348431895e0b9841fd10705d4565f57f997e3"
+    },
+    {
+      "path": "2208_hy\\adc_pico_noise_1hz_analysis.m",
+      "beforeSha256": "aa5dbc108bc76c6e13d653e7053a2a45d1b024d7f278d70388f34bdbf536c7de",
+      "afterSha256": "abdd53a0437a3482cb3bca4a66b11d7cc192579547476588f524e35741d49d5c"
+    },
+    {
+      "path": "2208_hy\\README_先看.md",
+      "beforeSha256": "8ae372c32bf6ee885e090dc9edd4b42dbe4c9bb3c66a18c562e455e966deefdb",
+      "afterSha256": "2235b9408f2374b4a62b9bd500457fd07edfd02361e8836d9364effbaa8e27a8"
+    },
+    {
+      "path": "677_hy\\adc_ila_noise_analysis.m",
+      "beforeSha256": "fd67195a9469b9cbde619e865b487b74b0370ec2a8d442aa274f0e19e7d20068",
+      "afterSha256": "2ae040ed00b9c107e43b6933ac3446f579b1313bfed882b19bea2d4ae55c0dcb"
+    },
+    {
+      "path": "677_hy\\adc_pico_noise_1hz_analysis.m",
+      "beforeSha256": "5709b91c70080922703dcc7a23b525ab5a0405216e4aab85df49d04aa0a1a8c2",
+      "afterSha256": "60542f2e4c76f8fa202158aa1fad11fac656e59ef243743bcc72f41f11f05b1e"
+    },
+    {
+      "path": "677_hy\\README_先看.md",
+      "beforeSha256": "1abeeec3060b157d226e3b1031810e47bd8978dcb98f1df0c0fb19ed390fecad",
+      "afterSha256": "71f8f8b03af44f63d848a8940ec89c77bc302223f9a481133ff51924afeec20b"
+    },
+    {
+      "path": "766_hy\\README_先看.md",
+      "beforeSha256": "0dca3e055f3ebcb0e152a335fa33fdc5f3e4062cb7ab09af1e3f4f322d4e339e",
+      "afterSha256": "febe43f3658da7a105ccfaac8880f3085de5be4af84f502fc14615b44be8e951"
+    },
+    {
+      "path": "9245_hy\\adc_input_noise_analysis.m",
+      "beforeSha256": "20132bd07ee8610c78a083cb97c420a71b707a9b45db0ee30fe50ded8974c16a",
+      "afterSha256": "9b5f399b6daf9c6bac475fad224329b454b5290ed15fecf4ca81f8d5ba16c639"
+    },
+    {
+      "path": "9245_hy\\README_先看.md",
+      "beforeSha256": "c85fad93c6369d7fc8a644fd087191ca1e1cf4db255047f67f1f8cc333694fcc",
+      "afterSha256": "3575a068419dc0d23e754ff9198596f6f0019f557ab3a0c6569d36eceac0e024"
+    },
+    {
+      "path": "9726_hy\\README_先看.md",
+      "beforeSha256": "527996858a139e1e285b5192ac9916e241492f64471b2d7f24fafb523f9766ee",
+      "afterSha256": "f3f0cc0de7c4930373d6f2558c551e412968d349cd60e7f56a8d421657197721"
+    },
+    {
+      "path": "noise_chain_hy\\adc_input_equiv_noise_analysis.m",
+      "beforeSha256": "a84bb29ba2b4c92af1eea830546d486ff2169379099fdee0dcbd6716935bd329",
+      "afterSha256": "8d70e8fdcc362bf8ddb589719b47bcfa9542b4e915b0ede25db16ff7a304ccd8"
+    },
+    {
+      "path": "noise_chain_hy\\README.md",
+      "beforeSha256": "e54d6424817befbe48e66fa42d01676129229843ede148463fadd297e1e5c431",
+      "afterSha256": "721a858695eb2db4c917e9b5e275be241e19d2ce1e6c5f853afd00a2705650cc"
+    },
+    {
+      "path": "2208_hy\\private\\ad2208Config.m",
+      "beforeSha256": "6edbd3805a340022a2cce4d57155574c8161a2deb5d1b77683167b96efb3a113",
+      "afterSha256": "ded8bcd9fdfa7e1987b94e9aea3916c05297a8e8de6b240d098cd1161f4d4ffc"
+    },
+    {
+      "path": "677_hy\\private\\ad677Config.m",
+      "beforeSha256": "385a967846b4a519f4835d6c9d5830126098bd52b8d0d75f6568832195185445",
+      "afterSha256": "b4d4ce7dd6df3e8889fd7fc6ecb2b0c24cd825f19405a0862c8538f1e18e08ee"
+    },
+    {
+      "path": "766_hy\\private\\da766Config.m",
+      "beforeSha256": "3bb6c6df274f25dc2a36c431cac35c30fc2f1681598ce9914fa39d8af1d4f165",
+      "afterSha256": "d691f2cbfcae6b099dc253e349c5d2a97698485aee36c54508d403f6c7774128"
+    },
+    {
+      "path": "9245_hy\\private\\ad9245Config.m",
+      "beforeSha256": "00e59fed93df0a4fda7fc1eb56079a1a097612b45966e1a983131b89d85a8ca9",
+      "afterSha256": "656d524afddd75fa3a5ff5989775af0ba4248affd899d680a66ca3c1188d8f0f"
+    },
+    {
+      "path": "9726_hy\\private\\da9726Config.m",
+      "beforeSha256": "f0e054cd47abce6be27d2b245c65ba4835313a9507c0dbadc5631337ea027859",
+      "afterSha256": "042775e87dfa36a250ece33eb83e44008b06eb17fbee20d97be1e35c922ac949"
+    },
+    {
+      "path": "tests\\integration\\ad677WorkflowTest.m",
+      "beforeSha256": "b0462b925fdae5a95d4e3d171c415ea5f3cd3d80f80bba9eb4342adb6e2677b9",
+      "afterSha256": "8514d981e0dfb18528e446fe76319550d43cf722022e0ff597836c6364b375f2"
+    },
+    {
+      "path": "tests\\integration\\fileSelectionTest.m",
+      "beforeSha256": "f544b35bb58fed2ced72ce80cd09ad7a51454a08d309a42181d10637ba286131",
+      "afterSha256": "5777fd2daf39de5f824f2a2302c81553f882d685238bc814e132feb2554d9202"
+    },
+    {
+      "path": "_shared\\+converter\\+adc\\runInputNoise.m",
+      "beforeSha256": "e6b32ef8cfe8a6d0d7a5f062f44420673abd680faeb55772adafb2be94fd5eea",
+      "afterSha256": "c2163429ce28e20eb4b80e0372f38ae92895fa6405b976a14bc125321a8800ed"
+    },
+    {
+      "path": "_shared\\+converter\\+calibration\\loadAdcCalibration.m",
+      "beforeSha256": "f85d17102113f601fb76ee2edd78e01ae5d10341739d1e07e7d74988b63c9d0e",
+      "afterSha256": "278b05af4d5f626117968ea605372dbbdc511b6317c8c728099f0c1ed5ffafb5"
+    },
+    {
+      "path": "_shared\\+converter\\+calibration\\reportCalibration.m",
+      "beforeSha256": "c7ff964ddcd11dbfa2d6c9dfb98ad56088930e06172524516eb94b86821a1915",
+      "afterSha256": "d576b8268e60ffe0285615c7f650c6909747ac2b0de9fedf451a8877fba28467"
+    },
+    {
+      "path": "_shared\\+converter\\+report\\buildSummarySheets.m",
+      "beforeSha256": "5862fe2471d4684b05790ea5f80aae3f4da2ecfdad3ef09f4e4da31281fe85a8",
+      "afterSha256": "1c0445228cca4264a6955e786ae9980a18322235a02c2491fa3e4badf437c635"
+    },
+    {
+      "path": "_shared\\+converter\\+report\\writeTable.m",
+      "beforeSha256": "ed3d316de167c83fd10fcc2b719ac7f43b32c2c5a5bbf6cf18c6293936f5ce7d",
+      "afterSha256": "faddcec461c3ec71a683670f8034c2e1947fd9437397343c7ed71f5f04169cd1"
+    },
+    {
+      "path": "_shared\\+converter\\+runtime\\knownConfigFields.m",
+      "beforeSha256": "a388f0a91778b8bf3adacca32be9d473210fa008354673f05038fadbfe50e8ce",
+      "afterSha256": "9032eabebcd8c0bc55ae061c0c9dfd136090160e851cf14880987e9dec981b0b"
+    },
+    {
+      "path": "_shared\\+converter\\+runtime\\writeSourceManifest.m",
+      "beforeSha256": "ab8b9539125388b1cf6d676ebd387877d9db4d9e1ec39677bf2901b1e958f2fd",
+      "afterSha256": "531118e2df8dcd620f66a29bf1ecbe1b3376770d3dae2448a46cba18e0072912"
+    }
+  ],
+  "unchangedAdcDacKernelFiles": [
+    "_shared/+converter/+adc/analyzeDynamicMetrics.m",
+    "_shared/+converter/+adc/calculateBandwidth.m",
+    "_shared/+converter/+adc/calculateInlDnl.m",
+    "_shared/+converter/+adc/calculateIsolation.m",
+    "_shared/+converter/+adc/calculatePowerScale.m",
+    "_shared/+converter/+adc/dbmToVpp.m",
+    "_shared/+converter/+adc/estimateCriticalInput.m",
+    "_shared/+converter/+adc/estimateFrequency.m",
+    "_shared/+converter/+adc/findAccuratePeak.m",
+    "_shared/+converter/+adc/findThreeDbCrossing.m",
+    "_shared/+converter/+adc/fitSine.m",
+    "_shared/+converter/+adc/refineSineFrequency.m",
+    "_shared/+converter/+adc/runBandwidth.m",
+    "_shared/+converter/+adc/runInlDnl.m",
+    "_shared/+converter/+adc/runIsolation.m",
+    "_shared/+converter/+adc/runPowerScale.m",
+    "_shared/+converter/+adc/runSfdr.m",
+    "_shared/+converter/+adc/vppToDbm.m",
+    "_shared/+converter/+dac/estimateToneFrequency.m",
+    "_shared/+converter/+dac/fitTone.m",
+    "_shared/+converter/+dac/loadPicoMat.m",
+    "_shared/+converter/+dac/README.md",
+    "_shared/+converter/+dac/runIsolation.m",
+    "_shared/+converter/+dac/runNoise.m",
+    "_shared/+converter/+dac/runScale.m"
+  ],
+  "unchangedNoiseFunctions": [
+    "localWelch",
+    "localSegmentAsdAtBin"
+  ]
+}

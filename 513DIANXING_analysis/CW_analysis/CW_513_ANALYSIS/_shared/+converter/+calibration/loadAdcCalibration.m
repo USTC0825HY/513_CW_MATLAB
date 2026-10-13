@@ -5,15 +5,8 @@ rows = struct('device',{},'interface',{},'slope',{}, ...
     'intercept',{},'r2',{},'dataGroup',{});
 if strcmpi(char(java.io.File(char(sourcePath)).getCanonicalPath()), ...
         char(java.io.File(bundledPath).getCanonicalPath()))
-    sourceType = 'calibration_configuration';
-    catalog = converter.calibration.reportCalibration();
-    catalog = catalog(ismember({catalog.device},{'AD2208','AD9245','AD677'}));
-    for k = 1:numel(catalog)
-        c = catalog(k);
-        rows(end+1) = struct('device',c.device,'interface',c.channel, ...
-            'slope',c.slopeVPerCode,'intercept',c.interceptV,'r2',c.fitR2, ...
-            'dataGroup',[c.sourceDocument ' / ' c.sourceSection]); %#ok<AGROW>
-    end
+    error('converter:calibration:BoardRequired', ...
+        '内置刻度请通过 boardType 和 calibrationState 选择；工作簿参数只接受用户刻度文件。');
 else
     sourceType = 'calibration_workbook';
     if ~isfile(sourcePath)

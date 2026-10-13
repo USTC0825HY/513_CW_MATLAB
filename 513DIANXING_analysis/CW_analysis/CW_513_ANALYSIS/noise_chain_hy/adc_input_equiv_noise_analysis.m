@@ -1,7 +1,7 @@
 function result = adc_input_equiv_noise_analysis(runConfig)
 %ADC_INPUT_EQUIV_NOISE_ANALYSIS Formal CW_513_ANALYSIS 1 Hz input-equivalent ASD.
 %   S_in(f) = S_PICO(f) * (k_ADC/(abs(G_FPGA)*k_DAC))^2.
-%   k_ADC and k_DAC are Vpp/CodePp calibration slopes.  The default
+%   k_ADC and k_DAC use V/code, with each report-defined code amplitude axis.  The default
 %   baseline mode is 'none': PICO/DAC baseline is intentionally not removed.
 
 bootstrapFormalRuntime();
@@ -11,17 +11,45 @@ else
     runConfig = localMergeDefaults(localDefaultConfig(), runConfig);
 end
 
+if ~isfield(runConfig,'calibrationSelection')
+    devices=unique({runConfig.entries.device},'stable');
+    originalConfig=runConfig;
+    selectedAdc=struct([]); selectedCore=struct([]);
+    for deviceIndex=1:numel(devices)
+        entries=runConfig.entries(strcmp({runConfig.entries.device},devices{deviceIndex}));
+        [resolved,~]=converter.calibration.resolveNoiseCalibration( ...
+            originalConfig,devices{deviceIndex},{entries.interface},false,true);
+        selectedAdc=[selectedAdc; resolved.calibrationSelection.adc(:)]; %#ok<AGROW>
+        selectedCore=[selectedCore; resolved.adcCalibrationRows(:)]; %#ok<AGROW>
+    end
+    runConfig=resolved;
+    runConfig.calibrationSelection.adc=selectedAdc;
+    runConfig.adcCalibrationRows=selectedCore;
+end
+% Saved configurations must agree with their selected source records.
+devices=unique({runConfig.entries.device},'stable');
+for deviceIndex=1:numel(devices)
+    checked=runConfig;
+    checked.calibrationSelection.adc=checked.calibrationSelection.adc( ...
+        strcmp({checked.calibrationSelection.adc.device},devices{deviceIndex}));
+    checked.adcCalibrationRows=checked.adcCalibrationRows( ...
+        strcmp({checked.adcCalibrationRows.device},devices{deviceIndex}));
+    entries=runConfig.entries(strcmp({runConfig.entries.device},devices{deviceIndex}));
+    converter.calibration.resolveNoiseCalibration(checked,devices{deviceIndex},{entries.interface},false,true);
+end
+
 validateattributes(runConfig.fpgaGain, {'numeric'}, {'real','scalar','finite','nonzero'});
+converter.runtime.reportConfiguration(runConfig);
 validateattributes(runConfig.asdCheckHz, {'numeric'}, {'real','scalar','finite','positive'});
 validateattributes(runConfig.welch.targetResolutionHz, {'numeric'}, {'real','scalar','finite','positive'});
 validateattributes(runConfig.welch.overlapRatio, {'numeric'}, {'real','scalar','finite','>=',0,'<',1});
 if ~strcmpi(runConfig.welch.windowType, 'hann') || ~strcmpi(runConfig.baselineMode, 'none')
     error('cw513:UnsupportedNoiseMethod', '当前联合噪声只实现Hann窗和不扣除本底模式。');
 end
+calibration = localLoadCalibration(runConfig);
 runFolder = localCreateRunFolder(runConfig.outputRoot, runConfig.analysisId);
 runConfig.outputFolder = runFolder;
 mkdir(runFolder);
-calibration = localLoadCalibration(runConfig);
 rows = repmat(localEmptyRow(), numel(runConfig.entries), 1);
 manifest = localManifestSeed(runConfig, calibration);
 
@@ -158,6 +186,12 @@ for k = 1:numel(runConfig.entries)
     rows(k) = row;
 end
 
+if isfield(runConfig,'calibrationSelection')
+    converter.report.writeTable(struct2table(runConfig.calibrationSelection.adc,'AsArray',true), ...
+        fullfile(runFolder,'selected_adc_calibration.csv'));
+    converter.report.writeTable(struct2table(runConfig.calibrationSelection.dac,'AsArray',true), ...
+        fullfile(runFolder,'selected_dac_calibration.csv'));
+end
 summary = struct2table(rows);
 converter.report.writeTable(summary, fullfile(runFolder, 'input_equiv_noise_summary.csv'));
 converter.report.writeTable(localParametersTable(runConfig, calibration), ...
@@ -189,9 +223,7 @@ cfg.minimumAsdSegmentCount = 4;
 cfg.maximumAsdBinRelativeError = 0.25;
 cfg.referencePlane = 'ADC external board input';
 cfg.plotDpi = 180;
-cfg.calibrationWorkbook = fullfile('F:', '01_Laser', ...
-    '0_20260727_513test', 'CW_Data', '513_CW_DATA', ...
-    'CW_513_ANALYSIS_AD2208_AD9245_刻度参数_20260822.xlsx');
+cfg.calibrationWorkbook = '';
 cfg.dacSummaryPath = '';
 cfg.welch = struct('targetResolutionHz', 0.2, 'overlapRatio', 0.5, ...
     'windowType', 'hann');
@@ -224,67 +256,26 @@ end
 end
 
 function calibration = localLoadCalibration(cfg)
-if isfield(cfg, 'adcCalibrationRows') && ~isempty(cfg.adcCalibrationRows)
-    adcRows = cfg.adcCalibrationRows;
-    sourceType = 'device_configuration';
-    adcSource = char(string(cfg.adcCalibrationSource));
-else
-    [adcRows, sourceType] = converter.calibration.loadAdcCalibration(cfg.calibrationWorkbook);
-    adcSource = cfg.calibrationWorkbook;
+% The shared selector has already checked source conflicts and replay values.
+selection = cfg.calibrationSelection;
+dac = selection.dac;
+dacSource = cfg.dacCalibrationSource;
+dacHash = '';
+intercept = NaN;
+r2 = NaN;
+if strcmp(selection.sourceType,'report_table')
+    dacHash = dac.sourceDocumentSha256;
+elseif isfield(dac,'sourcePath')
+    dacSource = dac.sourcePath;
+    dacHash = dac.sourceSha256;
 end
-if isfield(cfg, 'kDacVPerCodePp') && ~isempty(cfg.kDacVPerCodePp)
-    % A task-specific entry may intentionally pin k_DAC when the requested
-    % analysis must use a supplied value instead of locating a CSV summary.
-    kDac = double(cfg.kDacVPerCodePp);
-    if ~isscalar(kDac) || ~isfinite(kDac) || kDac <= 0
-        error('cw513:InvalidFixedDacCalibration', ...
-            'kDacVPerCodePp 必须是有限的正标量，单位为 V/CodePp。');
-    end
-    if isfield(cfg, 'dacCalibrationSource') && ...
-            strlength(string(cfg.dacCalibrationSource)) > 0
-        dacSource = char(string(cfg.dacCalibrationSource));
-    else
-        dacSource = sprintf('Fixed configuration: k_DAC = %.15g V/CodePp', kDac);
-    end
-    dacSourceSha256 = '';
-    dacIntercept = NaN;
-    dacR2 = NaN;
-else
-    if isempty(cfg.dacSummaryPath)
-        base = fileparts(cfg.calibrationWorkbook);
-        candidates = [dir(fullfile(base, 'DA9726', 'sin_scale', ...
-            'DAC1_JG18', 'result', 'run_*_scale', 'dac_scale_summary.csv')); ...
-            dir(fullfile(base, 'DA9726', 'sin_scale', ...
-            'DAC1_JG18', 'results', 'run_*_scale', 'dac_scale_summary.csv'))];
-        if isempty(candidates)
-            error('cw513:DacCalibrationMissing', '未找到 DA9726 JG18 刻度汇总。');
-        end
-        [~, order] = sort([candidates.datenum], 'descend');
-        cfg.dacSummaryPath = fullfile(candidates(order(1)).folder, ...
-            candidates(order(1)).name);
-    end
-    dacTable = readtable(cfg.dacSummaryPath, 'TextType', 'string');
-    dacSource = cfg.dacSummaryPath;
-    dacSourceSha256 = converter.runtime.sha256File(cfg.dacSummaryPath);
-    kDac = double(dacTable.slope_v_per_code_vpp(1));
-    dacIntercept = double(dacTable.intercept_v(1));
-    dacR2 = double(dacTable.fit_r_squared(1));
-end
-calibration = struct('adcRows', adcRows, 'sourceType', sourceType, ...
-    'workbookPath', adcSource, ...
-    'workbookSha256', localSourceSha256(adcSource), ...
-    'dacSummaryPath', dacSource, ...
-    'dacSummarySha256', dacSourceSha256, ...
-    'kDac', kDac, ...
-    'dacIntercept', dacIntercept, ...
-    'dacR2', dacR2);
-end
-
-function sha256 = localSourceSha256(sourcePath)
-sha256 = '';
-if isfile(sourcePath)
-    sha256 = converter.runtime.sha256File(sourcePath);
-end
+if isfield(dac,'interceptV'), intercept=dac.interceptV; end
+if isfield(dac,'fitR2'), r2=dac.fitR2; end
+calibration = struct('adcRows', cfg.adcCalibrationRows, ...
+    'sourceType', selection.sourceType, 'workbookPath', cfg.adcCalibrationSource, ...
+    'workbookSha256', selection.adc(1).sourceDocumentSha256, ...
+    'dacSummaryPath', dacSource, 'dacSummarySha256', dacHash, ...
+    'kDac', cfg.kDacVPerCodePp, 'dacIntercept', intercept, 'dacR2', r2);
 end
 
 function value = localPlotLimit(cfg)

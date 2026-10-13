@@ -1,6 +1,6 @@
 function [config, cancelled] = prepareDacInputs(config, dataFolder, files, outputFolder, overrides, defaultFolder)
 %PREPAREDACINPUTS Resolve file selection before invoking DAC calculation.
-config = converter.runtime.mergeConfig(config, overrides);
+config = converter.runtime.finalizeConfig(config, overrides);
 % Explicit positional inputs take priority; configuration inputs remain usable.
 if isempty(dataFolder), dataFolder = config.dataFolder; end
 if isempty(dataFolder), dataFolder = defaultFolder; end
@@ -13,6 +13,9 @@ if cancelled, return; end
 config.dataFolder = char(dataFolder);
 config.inputFiles = files;
 config.outputFolder = converter.io.resolveOutputBase(dataFolder, outputFolder);
+config.parameterSources.dataFolder = 'resolved positional/configuration/selected folder';
+config.parameterSources.inputFiles = 'resolved explicit files or interactive selection';
+config.parameterSources.outputFolder = 'resolved output base';
 % A declared MAT channel applies once to all captures, or once per capture.
 if ~isempty(config.dataVariables) && ...
         ~ismember(numel(string(config.dataVariables)), [1 numel(files)])

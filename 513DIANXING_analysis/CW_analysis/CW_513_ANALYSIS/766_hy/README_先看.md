@@ -1,5 +1,31 @@
 # DA766 分析脚本使用说明
 
+## 2026-10-12：先选择板型，再使用刻度
+
+鉴定件和电性加强件使用各自报告的刻度表。需要刻度的噪声入口在交互运行时询问板型，每次重新选择；显式传文件时填写 `boardType='jianding'`（鉴定件）或 `'jiaqiang'`（电性加强件）。
+
+`calibrationState='current'` 优先使用该接口的改焊后记录；仅有一条记录时沿用该记录及其原状态。`'before'`、`'after'` 用于明确要求对应版本；该接口没有所选版本时会列出可用版本并结束。
+
+长期刻度统一维护在 [`report_calibrations_20261004.csv`](../_shared/+converter/+calibration/report_calibrations_20261004.csv)。private 只保存分析参数。逐行数值、来源和自定义刻度示例见 [CALIBRATION.md](../CALIBRATION.md)。
+
+运行时显示实际板型、接口、版本和斜率；打开 `结果汇总.xlsx` 查看简短刻度说明，完整记录在 `evidence` 的配置/结果 MAT 与刻度 CSV 中。单位为 **V/code**；噪声去均值后仅使用斜率，截距不参与噪声换算。历史结果保持原样。
+
+
+## 参数怎么改（2026-10-02 配置整理）
+
+长期默认值改本目录 `private` 的配置文件；只改一次测试时，使用入口已有的配置参数。实际顺序是：默认值 → 本次覆盖 → 派生值计算与校验。未填写的字段沿用默认值。数据目录、文件列表、输出目录的位置参数非空时，优先使用位置参数。
+
+参数拼错会报错并提示相近字段。自定义说明放在 `metadata`，例如 `struct('metadata',struct('operator','实验员'))`。常规ADC可使用直接字段或 `struct('configOverride',settings)`，不要两种形式混放；`powerSetpoints`仍是刻度的独立输入。其他入口的特殊签名以本文说明为准。
+
+运行开始时会显示主要参数。常规结果的 `evidence/run_config.mat` 保存最终配置，其中 `parameterSources` 说明字段来自默认值、本次覆盖还是派生计算；PICO联合噪声查看结果MAT的 `result.config`。9726直流输出电压保留原输出布局，在运行目录增加 `run_config.mat`，变量名为 `options`。精简XLSX不增加过程参数列。
+
+完整入口和配置分支对照见 [配置使用说明](../CONFIGURATION.md)。旧运行配置中的已知停用字段兼容保留并提示不生效，不代表这些开关已经实现。
+
+- `scale`是普通十进制刻度，`scale_hex`是十六进制专用刻度，`noise`是噪声，`isolation`是隔离度。各分支只列相关参数。
+- 十六进制刻度的1525 Hz、增益1、512～65536码幅范围已集中到 `private/da766Config.m` 的 `scale_hex` 分支。入口第四参数仍是数值频率，例如 `dac_scale_hex_analysis(d,files,out,1525)`，不是struct。
+- 噪声仍是增益100、Hann、目标0.2 Hz、50%重叠、1～100 kHz积分；停用的resolutionAuditRequired不是实际开关。覆盖判断由目标间隔、段数和频点偏差控制。
+
+
 更新：2026-09-09。
 
 在 MATLAB 编辑器中打开对应脚本并点击 Run，也可以在命令窗口输入函数名。不带参数运行时，按弹窗选择原始文件。程序只处理选中的文件；在文件、接口或测量条件对话框中取消，均不生成结果。
@@ -71,7 +97,7 @@ X7有两批不同采集条件的数据：`X7-CODE*.mat` 使用Pico变量A、约0
 
 如果误用 `dac_scale_analysis` 选择这些十六进制文件，程序会提示改用 `dac_scale_hex_analysis`，并在创建结果目录前停止。原始MAT无需改名。
 
-函数签名为 `(dataFolder,selectedFiles,outputFolder)`，没有第四参数。省略数据目录可直接选择MAT；省略输出使用默认results规则。
+函数签名为 `(dataFolder,selectedFiles,outputFolder,toneFrequencyHz)`；第四参数可省略，也可传本次频率数值。省略数据目录可直接选择MAT；省略输出使用默认results规则。
 
 该专用入口保留1525 Hz、16bit补码、CodePp=2×abs(signedCode)、增益1、R²≥0.98、CodePp范围512～65536（纳入0x7FFF）。文件名允许在十六进制码值后带 `_CH2` 等采集信息。首个所选MAT提供配置中的采样率记录，内核逐文件读取实际时基。其它频率、增益或通道条件应使用通用刻度入口并明确参数。
 
@@ -120,10 +146,18 @@ r = dac_isolation_analysis(d, pair, out, struct('hardwareGain',1));
 
 ## 报告刻度配置
 
-本器件的报告刻度由 `private` 配置中的 `reportCalibration` 字段加载，统一保存在 `_shared/+converter/+calibration/reportCalibration.m`。完整数值、单位和缺失项见 [CALIBRATION.md](../CALIBRATION.md)。刻度分析入口仍根据所选数据重新拟合，不会用报告数值替换新测量结果。
+本器件的两板刻度统一保存在 [`report_calibrations_20261004.csv`](../_shared/+converter/+calibration/report_calibrations_20261004.csv)，在需要电压换算时选择。完整数值与版本见 [CALIBRATION.md](../CALIBRATION.md)。刻度入口继续用所选扫描数据拟合。DAC 电压噪声只使用实测电压及电压增益，SFDR、相对带宽、码比隔离度和 INL/DNL 保持原计算方式。
 
 ### 噪声参数与通道检查（2026-09-20）
 
 噪声计算先把MAT电压除以hardwareGain，再计算PSD；因此100倍增益只补偿一次：ASD和积分RMS除100，PSD除10000。MAT存在多个A/B/C/D波形时，必须在第四参数dataVariables中选定实际通道；显式指定A但文件只有B会报错，不会自动换通道。未指定通道时只接受唯一波形。遇到NaN/Inf会停止该记录，避免删除样点后把时基压短。
 
 积分频带必须被实际频谱完整覆盖，而且频带内至少有两个频点；未覆盖时保留可计算的部分频带诊断值，但状态为暂不能判定，不能当成完整频带的RMS。窄到只有一个频点时返回NaN，不返回误导性的零。
+
+查询报告刻度（仅查询，不会替换新数据拟合）：
+
+```matlab
+rows = converter.calibration.reportCalibration('DA766','jianding','current');
+```
+
+查询前先运行本目录的单项入口完成公共库加载，或将相邻 `_shared` 加入路径。DAC 噪声与刻度拟合无需选择板型。

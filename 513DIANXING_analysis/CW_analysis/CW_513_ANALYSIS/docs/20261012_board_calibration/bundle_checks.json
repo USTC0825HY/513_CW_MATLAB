@@ -1,0 +1,29 @@
+[
+  {
+    "runFolder": "F:\\01_Laser\\.codex_work\\20261012-board-calibration\\tp13684d82_2714_4f4b_a931_90c01faf2dd8\\jd\\run_20261012_212901_ad2208_pico_noise_1hz",
+    "board": "jianding",
+    "state": "unspecified",
+    "note": "；AD2208 external board input；FPGA增益 128；刻度：jianding；ADC6_JG24/unspecified；空白=未测或不可计算，完整依据见evidence。；未扣PICO/DAC本底。",
+    "csvRowCount": 1,
+    "xlsxReadable": true,
+    "catalogHashRecorded": true
+  },
+  {
+    "runFolder": "F:\\01_Laser\\.codex_work\\20261012-board-calibration\\tp13684d82_2714_4f4b_a931_90c01faf2dd8\\jq\\run_20261012_212933_ad2208_pico_noise_1hz",
+    "board": "jiaqiang",
+    "state": "after",
+    "note": "；AD2208 external board input；FPGA增益 128；刻度：jiaqiang；ADC6_JG24/after；空白=未测或不可计算，完整依据见evidence。；未扣PICO/DAC本底。",
+    "csvRowCount": 1,
+    "xlsxReadable": true,
+    "catalogHashRecorded": true
+  },
+  {
+    "runFolder": "F:\\01_Laser\\.codex_work\\20261012-board-calibration\\tp13684d82_2714_4f4b_a931_90c01faf2dd8\\before\\run_20261012_212947_ad2208_pico_noise_1hz",
+    "board": "jiaqiang",
+    "state": "before",
+    "note": "；AD2208 external board input；FPGA增益 128；刻度：jiaqiang；ADC6_JG24/before；空白=未测或不可计算，完整依据见evidence。；未扣PICO/DAC本底。",
+    "csvRowCount": 1,
+    "xlsxReadable": true,
+    "catalogHashRecorded": true
+  }
+]

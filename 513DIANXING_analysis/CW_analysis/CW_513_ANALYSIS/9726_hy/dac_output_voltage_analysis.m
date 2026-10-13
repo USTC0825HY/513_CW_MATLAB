@@ -38,6 +38,8 @@ if ~isfolder(outputFolder), mkdir(outputFolder); end
 stamp = char(datetime('now', 'Format', 'yyyyMMdd_HHmmss'));
 runFolder = fullfile(outputFolder, ['run_' stamp '_output_voltage']);
 mkdir(runFolder);
+save(fullfile(runFolder, 'run_config.mat'), 'options');
+converter.runtime.reportConfiguration(options);
 
 allRows = {};
 channelResults = [];
@@ -91,7 +93,7 @@ end
 
 % -----------------------------------------------------------------------
 function r = localAnalyseChannel(w, fs, options)
-smoothed = movmedian(w, 201);
+smoothed = movmedian(w, options.smoothingWindowSamples);
 edges = find(abs(diff(smoothed)) > options.edgeThreshold);
 bounds = [1; edges(:); numel(w)];
 keep = diff(bounds) >= round(options.minHoldS * fs);
@@ -290,20 +292,11 @@ if total == 0, value = NaN; else, value = 1 - sum(residual.^2) / total; end
 end
 
 function o = localDefaults(o)
-if ~isfield(o, 'codeListHex') || isempty(o.codeListHex)
-    o.codeListHex = {'8000', '9FFF', 'BFFF', 'DFFF', '0000', ...
-        '1FFF', '3FFF', '5FFF', '7FFF'};
+defaults = da9726Config('output_voltage');
+converter.runtime.validateOverrideFields(defaults, o, {'metadata','parameterSources'});
+fields = fieldnames(o);
+for k = 1:numel(fields)
+    if isempty(o.(fields{k})), o = rmfield(o, fields{k}); end
 end
-if ~isfield(o, 'edgeThreshold') || isempty(o.edgeThreshold)
-    o.edgeThreshold = 0.25;
-end
-if ~isfield(o, 'minHoldS') || isempty(o.minHoldS)
-    o.minHoldS = 0.05;
-end
-if ~isfield(o, 'levelTolV') || isempty(o.levelTolV)
-    o.levelTolV = 0.02;
-end
-if ~isfield(o, 'channelLabels') || isempty(o.channelLabels)
-    o.channelLabels = {};
-end
+o = converter.runtime.finalizeConfig(defaults, o);
 end

@@ -32,7 +32,9 @@ config.allowRadixPrompt = interactive;
 channels = converter.io.resolveAdcChannels(config, dataFolder, selectedFiles, interactive);
 if isempty(channels), results = struct([]); return; end
 config.inputChannels = cellstr(channels);
-calibration = config.reportCalibration;
+[config, calibration, cancelled] = converter.calibration.resolveNoiseCalibration( ...
+    config, 'AD2208', channels, interactive, false);
+if cancelled, results = struct([]); return; end
 [config, selectedFiles, dataFolder, radixCancelled] = converter.io.prepareAdcRadix( ...
     config, dataFolder, selectedFiles);
 if radixCancelled, results = []; return; end

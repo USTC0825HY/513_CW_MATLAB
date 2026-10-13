@@ -1,5 +1,32 @@
 # AD677 输入频率、输入功率与噪声分析
 
+## 2026-10-12：先选择板型，再使用刻度
+
+鉴定件和电性加强件使用各自报告的刻度表。需要刻度的噪声入口在交互运行时询问板型，每次重新选择；显式传文件时填写 `boardType='jianding'`（鉴定件）或 `'jiaqiang'`（电性加强件）。
+
+`calibrationState='current'` 优先使用该接口的改焊后记录；仅有一条记录时沿用该记录及其原状态。`'before'`、`'after'` 用于明确要求对应版本；该接口没有所选版本时会列出可用版本并结束。
+
+长期刻度统一维护在 [`report_calibrations_20261004.csv`](../_shared/+converter/+calibration/report_calibrations_20261004.csv)。private 只保存分析参数。逐行数值、来源和自定义刻度示例见 [CALIBRATION.md](../CALIBRATION.md)。
+
+运行时显示实际板型、接口、版本和斜率；打开 `结果汇总.xlsx` 查看简短刻度说明，完整记录在 `evidence` 的配置/结果 MAT 与刻度 CSV 中。单位为 **V/code**；噪声去均值后仅使用斜率，截距不参与噪声换算。历史结果保持原样。
+
+
+## 参数怎么改（2026-10-02 配置整理）
+
+长期默认值改本目录 `private` 的配置文件；只改一次测试时，使用入口已有的配置参数。实际顺序是：默认值 → 本次覆盖 → 派生值计算与校验。未填写的字段沿用默认值。数据目录、文件列表、输出目录的位置参数非空时，优先使用位置参数。
+
+参数拼错会报错并提示相近字段。自定义说明放在 `metadata`，例如 `struct('metadata',struct('operator','实验员'))`。常规ADC可使用直接字段或 `struct('configOverride',settings)`，不要两种形式混放；`powerSetpoints`仍是刻度的独立输入。其他入口的特殊签名以本文说明为准。
+
+运行开始时会显示主要参数。常规结果的 `evidence/run_config.mat` 保存最终配置，其中 `parameterSources` 说明字段来自默认值、本次覆盖还是派生计算；PICO联合噪声查看结果MAT的 `result.config`。9726直流输出电压保留原输出布局，在运行目录增加 `run_config.mat`，变量名为 `options`。精简XLSX不增加过程参数列。
+
+完整入口和配置分支对照见 [配置使用说明](../CONFIGURATION.md)。旧运行配置中的已知停用字段兼容保留并提示不生效，不代表这些开关已经实现。
+
+- `input_noise` 配置 ILA 参数，`pico_noise` 配置 PICO 参数；两者统一按板型读取公共报告刻度。
+- 原始20260919刻度结果路径本次未能定位，未补填R²、点数等未知元数据。版本回归通过也不等于重新验证了板级刻度。
+- ILA保持100 MHz和131072点，记录1.31072 ms、频点间隔762.939453125 Hz。请求1～10000 Hz时，实际频带内频点约762.939～9918.213 Hz，不能评价1 Hz；控制台会提示，`evidence/*_frequency_coverage.mat`记录实际覆盖。
+- PICO仍用足够长的MAT记录、增益128和目标0.2 Hz；正式条件未确认，维持“暂不能判定”。
+
+
 本目录提供 AD677 的四个正式入口：`adc_bandwidth_analysis.m`、
 `adc_power_scale_analysis.m`、`adc_ila_noise_analysis.m` 和
 `adc_pico_noise_1hz_analysis.m`。入口调用相邻公共内核，不包含 SFDR、
@@ -28,9 +55,10 @@ manifest 表明信号源为 SDG6032X-E 且输出模式为 High-Z；这里的 Vpp
 ```matlab
 result = adc_bandwidth_analysis(csvFolder, csvFiles, resultFolder);
 result = adc_power_scale_analysis(csvFolder, csvFiles, resultFolder);
-result = adc_ila_noise_analysis(csvFolder, csvFiles, resultFolder);
+result = adc_ila_noise_analysis(csvFolder, csvFiles, resultFolder, ...
+    struct('boardType','jianding','inputRadix','decimal'));
 result = adc_pico_noise_1hz_analysis(matFolder, matFile, resultFolder, ...
-    struct('interface', '677_1'));
+    struct('interface','677_1','boardType','jianding'));
 ```
 
 省略 `csvFiles` 时，**带宽入口**直接自动扫描 `csvFolder` 内全部CSV（不弹窗）；无参数
@@ -139,16 +167,13 @@ ILA入口按CSV表头识别 `677_1/677_2`，不根据文件名猜通道。全部
 时钟，不等于AD677有效转换更新率。配置中的图上参考线为1 µV/√Hz，但正式开关仍关闭，结果为“暂不能判定”。
 频带标线按实际数量级显示单位，因此上限标为 `10 kHz`，不会显示为 `0 MHz`。
 
-噪声电压只在去均值后乘固定斜率，不使用截距：`677_1 = 1.536050e-4 V/code`，
-`677_2 = 1.695154e-4 V/code`。这两个值直接保存在 `private/ad677Config.m`，
-噪声入口不查公共报告刻度表或外部工作簿。
+噪声电压先去均值，再乘所选刻度斜率。鉴定件 `677_1/677_2` 分别为 `1.536050e-4 / 1.695154e-4 V/code`；加强件为 `0.000153251 / 0.000170337 V/code`。系数统一维护在公共刻度表。
 
 ## PICO 1 Hz输入等效噪声
 
 PICO入口按
 `S_AD677 = S_PICO * [k_AD677/(|G_FPGA|*k_DA9726_JG18)]^2` 换算。
-默认 `G_FPGA=128`，DA9726固定使用JG18斜率
-`1.01451391294771e-4 V/code`，不扫描DAC结果CSV，也不扣除PICO或DAC本底。
+默认 `G_FPGA=128`；DA9726 JG18 按板型配套选择：鉴定件 `1.014514e-4`，加强件 `1.022947e-4 V/code`。保留不扣除PICO或DAC本底。
 采样率只从MAT中的 `Tinterval` 或 `fs` 读取。显式运行必须提供
 `runOptions.interface`；文件名中的CH1/CH2不用于选择677接口。
 
@@ -158,7 +183,7 @@ PICO入口按
 
 ## 报告刻度配置
 
-输入频率和输入功率入口的报告刻度由 `private` 配置加载，统一保存在 `_shared/+converter/+calibration/reportCalibration.m`。完整数值、单位和缺失项见 [CALIBRATION.md](../CALIBRATION.md)。刻度分析入口仍根据所选数据重新拟合，不会用报告数值替换新测量结果。两个噪声入口只使用上面的器件固定斜率，不读取该报告刻度。
+本器件的两板刻度统一保存在 [`report_calibrations_20261004.csv`](../_shared/+converter/+calibration/report_calibrations_20261004.csv)，在需要电压换算时选择。完整数值与版本见 [CALIBRATION.md](../CALIBRATION.md)。刻度入口继续用所选扫描数据拟合。DAC 电压噪声只使用实测电压及电压增益，SFDR、相对带宽、码比隔离度和 INL/DNL 保持原计算方式。
 
 ## PICO MAT里有多个波形通道时怎么办
 
@@ -171,9 +196,23 @@ PICO入口按
 例如，在已有参数结构options上增加：
 
 ```matlab
+options = struct('boardType','jianding','interface','677_1');
 options.waveVariable = 'B';  % 仅在本次采集确实保存在B时这样写
 r = adc_pico_noise_1hz_analysis(dataFolder, {'本次原始文件.mat'}, outputFolder, options);
 ```
 
 options.interface仍须按本次真实板卡接口填写，其他增益、刻度和Welch参数不因选择B而改变。输出摘要中的wave_variable记录实际分析了哪个PICO变量。
 0.2 Hz频点间隔对应每段约5秒；这只够一段。默认覆盖检查还要求至少4段，50%重叠时通常需要至少12.5秒总记录。摘要中的asd_coverage_adequate只表示频率和分段覆盖满足配置，不代表器件性能已通过验收。
+
+## 按板型复跑噪声的最小示例
+
+```matlab
+options = struct('boardType','jianding','calibrationState','current');
+% CSV 的实际进制及接口需与采集记录一致
+options.inputRadix = 'decimal';
+r = adc_ila_noise_analysis(dataFolder, selectedCsvFiles, outputFolder, options);
+
+options = struct('boardType','jiaqiang','calibrationState','current', ...
+    'interface','677_1','fpgaGain',128);
+r = adc_pico_noise_1hz_analysis(dataFolder, 'capture.mat', outputFolder, options);
+```

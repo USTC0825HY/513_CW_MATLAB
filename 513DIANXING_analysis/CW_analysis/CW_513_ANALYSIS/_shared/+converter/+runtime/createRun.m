@@ -27,6 +27,9 @@ runContext.gitRevision = converter.runtime.getGitRevision( ...
     fileparts(mfilename('fullpath')));
 
 config.dataFolder = dataFolder;
+if isfield(config, 'parameterSources')
+    config.parameterSources.dataFolder = 'resolved selected data folder';
+end
 config.bundleLayoutVersion = 2;
 save(fullfile(runFolder, 'run_config.mat'), 'config');
 writeRunInfo(runContext, config, dataFolder);
@@ -58,6 +61,7 @@ else
         config.adcBits, config.adcCodeFormat);
 end
 fprintf('本次结果目录：%s\n', runFolder);
+converter.runtime.reportConfiguration(config);
 end
 
 function bits = localDacCodeBits(config)

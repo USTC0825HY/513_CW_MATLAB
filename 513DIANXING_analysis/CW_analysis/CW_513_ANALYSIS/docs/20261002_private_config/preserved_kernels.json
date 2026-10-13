@@ -1,0 +1,42 @@
+[
+  {
+    "path": "_shared/+converter/+adc/analyzeDynamicMetrics.m",
+    "unchanged": true,
+    "sha256": "3b1294c87f663b0879104c2d60cc1435c03511d882ebc67aa333d3394b1a0fec"
+  },
+  {
+    "path": "_shared/+converter/+adc/calculatePowerScale.m",
+    "unchanged": true,
+    "sha256": "873e938e1e2a720d058c6a07e414dbd57b61b536ef886062cb5205ff07e87b19"
+  },
+  {
+    "path": "_shared/+converter/+adc/calculateBandwidth.m",
+    "unchanged": true,
+    "sha256": "489268ee8ac0f8e1acf274ad32e9e50d9f25b6fa65962b0d62340b6c4f4c9f74"
+  },
+  {
+    "path": "_shared/+converter/+adc/calculateInlDnl.m",
+    "unchanged": true,
+    "sha256": "d4689d726720dbf737aa7f71a65f218c036b2a14441465c61d6475e9be0f1501"
+  },
+  {
+    "path": "_shared/+converter/+dac/runScale.m",
+    "unchanged": true,
+    "sha256": "260d0129ee1cea7a819459a4fdcb8eba352d64f0aaecb1e03dcb6cbb51295337"
+  },
+  {
+    "path": "_shared/+converter/+dac/runNoise.m",
+    "unchanged": true,
+    "sha256": "3e98bec62b718f67c0eae6c8c06027f555b11be5c1f31d98fa443fb50156d4e1"
+  },
+  {
+    "path": "_shared/+converter/+dac/runIsolation.m",
+    "unchanged": true,
+    "sha256": "f2eefdaa28682c4155d6e93d4972e82719cc0598223db3e0176a086e59a2f478"
+  },
+  {
+    "path": "_shared/+converter/+calibration/reportCalibration.m",
+    "unchanged": true,
+    "sha256": "c7ff964ddcd11dbfa2d6c9dfb98ad56088930e06172524516eb94b86821a1915"
+  }
+]

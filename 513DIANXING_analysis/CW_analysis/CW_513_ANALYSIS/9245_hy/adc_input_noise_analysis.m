@@ -16,6 +16,8 @@ campaign = fullfile('F:', filesep, '01_Laser', '0_20260727_513test', ...
 if isempty(dataFolder), dataFolder = fullfile(campaign, 'AD9245', '01_noise'); end
 result = struct([]);
 entries = struct('device', {}, 'interface', {}, 'matFile', {});
+interactive = ~(isfield(runOptions,'entries') && ~isempty(runOptions.entries)) && ...
+    ~(isfield(runOptions,'selectedFiles') && ~isempty(runOptions.selectedFiles));
 if isfield(runOptions, 'entries') && ~isempty(runOptions.entries)
     entries = runOptions.entries;
 elseif isfield(runOptions, 'selectedFiles') && ~isempty(runOptions.selectedFiles)
@@ -58,38 +60,34 @@ end
 if numel(unique(lower(string({entries.matFile})))) ~= numel(entries)
     error('converter:io:DuplicateInput', '同一 MAT 不能重复声明为不同接口。');
 end
-runConfig = struct('analysisId', 'ad9245_input_equiv_noise_1hz', ...
-    'version', '1.4.0', 'baselineMode', 'none', 'fpgaGain', 128, ...
-    'asdCheckHz', 1, 'referencePlane', 'AD9245 external board input', 'plotDpi', 180);
-runConfig.welch = struct('targetResolutionHz', 0.2, 'overlapRatio', 0.5, 'windowType', 'hann');
-runConfig.calibrationWorkbook = which('converter.calibration.reportCalibration');
-% Preserve the independently pinned AD9245 coefficient.
-runConfig.kDacVPerCodePp = 1.014514e-4;
-runConfig.dacCalibrationSource = ...
-    'Fixed configuration: DA9726 DAC1_JG18; k_DAC = 1.014514e-4 V/CodePp (user-specified)';
+runConfig = ad9245Config('pico_noise');
+converter.runtime.validateOverrideFields(runConfig, runOptions, ...
+    {'boardType','calibrationState','adcCalibrationRows','kDacVPerCodePp','dacSummaryPath','calibrationWorkbook','entries','selectedFiles','interfaces','outputRoot','waveVariable','metadata'});
+defaults = runConfig;
 names = fieldnames(runOptions);
 for k = 1:numel(names)
     if ismember(names{k}, {'entries','selectedFiles','interfaces'}), continue; end
     if strcmp(names{k}, 'welch')
+        converter.runtime.validateOverrideFields(runConfig.welch, runOptions.welch, {});
         runConfig.welch = converter.runtime.mergeConfig(runConfig.welch, runOptions.welch);
     else
         runConfig.(names{k}) = runOptions.(names{k});
     end
 end
+applied = runOptions;
+controls = intersect(fieldnames(applied), {'entries','selectedFiles','interfaces'});
+applied = rmfield(applied, controls);
+if isfield(applied,'welch'), applied.welch = runConfig.welch; end
+runConfig = converter.runtime.finalizeConfig(defaults, applied);
 runConfig.entries = entries;
 if isempty(outputFolder) && isfield(runConfig, 'outputRoot')
     outputFolder = runConfig.outputRoot;
 end
 runConfig.outputRoot = converter.io.resolveOutputBase(dataFolder, outputFolder);
 validateattributes(runConfig.fpgaGain, {'numeric'}, {'scalar','real','finite','nonzero'});
-rows = converter.calibration.loadAdcCalibration(runConfig.calibrationWorkbook);
-for k = 1:numel(entries)
-    match = strcmp({rows.device},'AD9245') & strcmp({rows.interface},entries(k).interface);
-    if nnz(match) ~= 1
-        error('cw513:AdcCalibrationAmbiguous','AD9245/%s 刻度必须唯一匹配。',entries(k).interface);
-    end
-    validateattributes(rows(match).slope,{'numeric'},{'scalar','real','finite','positive'});
-end
+[runConfig, ~, cancelled] = converter.calibration.resolveNoiseCalibration( ...
+    runConfig, 'AD9245', {entries.interface}, interactive, true);
+if cancelled, return; end
 noiseChainFolder = fullfile(fileparts(fileparts(mfilename('fullpath'))), 'noise_chain_hy');
 addpath(noiseChainFolder, '-begin');
 result = adc_input_equiv_noise_analysis(runConfig);

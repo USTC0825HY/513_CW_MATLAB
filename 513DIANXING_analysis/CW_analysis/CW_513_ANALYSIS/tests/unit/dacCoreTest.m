@@ -200,6 +200,19 @@ classdef dacCoreTest < matlab.unittest.TestCase
             testCase.verifyEqual(prepared.hardwareGain, 1);
         end
 
+        function automaticIsolationHonorsExplicitCommonGain(testCase)
+            [dataFolder, files, actualFrequency] = ...
+                makeIsolationSingleChannelFiles(testCase, [1.2, 0.01, 0.004]);
+            config = makeSimpleIsolationConfig(dataFolder, files);
+            [prepared, cancelled] = converter.io.prepareDacIsolation( ...
+                config, dataFolder, [], fullfile(dataFolder, 'results'), ...
+                struct('autoDetectDrive',true,'hardwareGain',100), dataFolder);
+            testCase.verifyFalse(cancelled);
+            testCase.verifyEqual(prepared.hardwareGain,100);
+            testCase.verifyEqual([prepared.pairManifest.frequency_hz], ...
+                repmat(actualFrequency,1,2),AbsTol=0.05);
+        end
+
         function automaticIsolationSelectionRejectsLowConfidence(testCase)
             [dataFolder, files] = makeIsolationSingleChannelFiles( ...
                 testCase, [1.0, 0.8]);

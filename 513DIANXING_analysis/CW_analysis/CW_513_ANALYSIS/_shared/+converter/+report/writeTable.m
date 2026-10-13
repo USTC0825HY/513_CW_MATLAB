@@ -2,7 +2,9 @@ function writeTable(dataTable, filePath)
 %WRITETABLE Write a table with a simple MATLAB R2018 fallback.
 
 try
-    writetable(dataTable, filePath);
+    % Source notes may contain paragraph breaks. Quote text so one record
+    % remains one CSV row in Excel, MATLAB and standard CSV readers.
+    writetable(dataTable, filePath, 'QuoteStrings', true);
     if localContainsText(dataTable)
         localPrependUtf8Bom(filePath);
     end

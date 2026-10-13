@@ -1,5 +1,32 @@
 # AD9245 分析脚本使用说明
 
+## 2026-10-12：先选择板型，再使用刻度
+
+鉴定件和电性加强件使用各自报告的刻度表。需要刻度的噪声入口在交互运行时询问板型，每次重新选择；显式传文件时填写 `boardType='jianding'`（鉴定件）或 `'jiaqiang'`（电性加强件）。
+
+`calibrationState='current'` 优先使用该接口的改焊后记录；仅有一条记录时沿用该记录及其原状态。`'before'`、`'after'` 用于明确要求对应版本；该接口没有所选版本时会列出可用版本并结束。
+
+长期刻度统一维护在 [`report_calibrations_20261004.csv`](../_shared/+converter/+calibration/report_calibrations_20261004.csv)。private 只保存分析参数。逐行数值、来源和自定义刻度示例见 [CALIBRATION.md](../CALIBRATION.md)。
+
+运行时显示实际板型、接口、版本和斜率；打开 `结果汇总.xlsx` 查看简短刻度说明，完整记录在 `evidence` 的配置/结果 MAT 与刻度 CSV 中。单位为 **V/code**；噪声去均值后仅使用斜率，截距不参与噪声换算。历史结果保持原样。
+
+
+## 参数怎么改（2026-10-02 配置整理）
+
+长期默认值改本目录 `private` 的配置文件；只改一次测试时，使用入口已有的配置参数。实际顺序是：默认值 → 本次覆盖 → 派生值计算与校验。未填写的字段沿用默认值。数据目录、文件列表、输出目录的位置参数非空时，优先使用位置参数。
+
+参数拼错会报错并提示相近字段。自定义说明放在 `metadata`，例如 `struct('metadata',struct('operator','实验员'))`。常规ADC可使用直接字段或 `struct('configOverride',settings)`，不要两种形式混放；`powerSetpoints`仍是刻度的独立输入。其他入口的特殊签名以本文说明为准。
+
+运行开始时会显示主要参数。常规结果的 `evidence/run_config.mat` 保存最终配置，其中 `parameterSources` 说明字段来自默认值、本次覆盖还是派生计算；PICO联合噪声查看结果MAT的 `result.config`。9726直流输出电压保留原输出布局，在运行目录增加 `run_config.mat`，变量名为 `options`。精简XLSX不增加过程参数列。
+
+完整入口和配置分支对照见 [配置使用说明](../CONFIGURATION.md)。旧运行配置中的已知停用字段兼容保留并提示不生效，不代表这些开关已经实现。
+
+- 修改SFDR原始采样率后，分析采样率自动按 `sampleRate/sfdrSampleStride` 计算。旧25 MHz数据只需覆盖 `sampleRate=25e6`，默认步长5得到5 MHz。若显式提供分析采样率，必须一致。
+- 当前刻度启用 `powerRangeVpp=[0.1,2.1]`。要切换dBm范围，必须同时传 `powerRangeVpp=[]`，例如 `struct('powerRangeVpp',[],'powerRangeDbm',[-10,6])`。只改dBm范围却保留Vpp范围会报错。
+- PICO噪声默认值集中在 `private/ad9245Config.m` 的 `pico_noise` 分支；仍用三参数调用。DA9726 JG18 按所选板型配套选择。
+- 未新增R²或频率偏差排除条件，99%临界输入方法不变。`adcDataColumn=0`明确表示最后一列。
+
+
 更新：2026-09-20。
 
 在 MATLAB 编辑器中打开对应脚本并点击 Run，也可以在命令窗口输入函数名。不带参数运行时，按弹窗选择原始文件。程序只处理选中的文件；在文件、接口或测量条件对话框中取消，均不生成结果。
@@ -46,7 +73,7 @@ dataRoot = 'F:/01_Laser/0_20260727_513test/CW_Data/513_CW_DATA';
 
 `private/ad9245Config.m` 当前为 `ilaCaptureSampleRateHz=20e6`、`sfdrSampleStride=5`、`sfdrAnalysisSampleRateHz=4e6`。输出同时记录源/分析样点数、采样率、步长和用途；ADC转换时钟字段单独记录20 MHz，不是CSV时基证据。
 
-分析20 MHz同步新数据时，必须同时设置 `sampleRate=20e6`、`ilaCaptureSampleRateHz=20e6`、`sfdrSampleStride=1`、`sfdrAnalysisSampleRateHz=20e6`，并更新 `sfdrSamplingMode`、`sfdrResultUse`、`ilaCaptureClock` 和 `sampleRateSource`。程序会拒绝“源采样率÷步长”与分析采样率不一致的配置。
+分析20 MHz同步新数据时，覆盖 `sampleRate=20e6`、`sfdrSampleStride=1` 即可自动得到20 MHz分析采样率；采集条件说明按证据填写。显式提供的分析采样率不一致时会报错。
 
 SFDR、带宽、功率刻度、隔离度和INL/DNL都支持第四参数 `runOptions`，可通过 `configOverride` 覆盖本次字段。修改配置后执行 `clear functions`，并检查 `evidence/run_config.mat`。
 
@@ -58,7 +85,7 @@ PICO噪声入口读取MAT中的时基，与这里的ILA采样率无关。
 
 | 项目 | 当前关键设置 |
 |---|---|
-| CSV 采样时基、码型 | 当前默认20 MHz；旧25 MHz采集必须覆盖为25 MHz。14 bit signed、自动数据列；ADC转换时钟单独记录 |
+| CSV 采样时基、码型 | 当前默认20 MHz；旧25 MHz采集必须覆盖为25 MHz。14 bit signed、CSV最后一列；ADC转换时钟单独记录 |
 | SFDR | 当前20 MHz ILA每5点保留1点，按4 MHz分析；周期Hann窗；NFFT上限131072；DC/基波跨度16、谐波跨度8、最高8次谐波；仅为抽样估算 |
 | 带宽 | 正弦拟合R²≥0.99；最低频连续3个有效点作参考；频差容差2% |
 | 刻度 | 1 kHz；当前有效Vpp拟合范围0.1～2.1 Vpp；保留旧−10～+6 dBm配置但Vpp范围优先。已确认50 Ω条件才按50 Ω换算 |
@@ -130,15 +157,13 @@ r = adc_inl_dnl_analysis(d, files, [], options);
 d = fullfile(dataRoot,'AD9245','01_noise');
 entry = struct('device','AD9245','interface','X3G', ...
     'matFile',fullfile(d,'X3G','X3G_100KSPS_CH1_G128.mat'));
-options = struct('entries',entry,'fpgaGain',128);
+options = struct('entries',entry,'fpgaGain',128,'boardType','jianding');
 r = adc_input_noise_analysis(d, [], options);
 ```
 
 也可以使用 `options.selectedFiles` 和对应的 `options.interfaces`，二者一一对应。仅给目录、未提供entries/files时会弹文件选择框。错误接口、重复接口、缺失文件或ADC刻度会报错；显式输入错误不会转入弹窗。
 
-默认PICO A、模拟增益1、去均值；采样率从MAT读取；FPGA增益128；1 Hz读数；Hann、0.2 Hz目标分辨率、50%重叠。参数在本噪声入口中；通过 `runOptions.fpgaGain`、`calibrationWorkbook`、`referencePlane`、`asdCheckHz`、`plotDpi` 等覆盖；`welch` 可只给需要改的子字段。ADC刻度默认使用随代码发布的20260903报告新刻度：X1G=6.705657e-5、X2G=6.643794e-5、X3G=6.718326e-5、X4G=6.695195e-5 V/CodePp。无需另传工作簿；显式提供 `calibrationWorkbook` 时才使用指定工作簿，以复现旧结果。报告噪声章节引用的旧系数不再作为默认值。
-
-DA9726 JG18固定系数为1.014514e-4 V/CodePp，默认不读DAC刻度CSV。2208入口使用不同的固定系数，两者不要混用。当前总链路换算仍不扣PICO/DAC本底。
+默认模拟增益1、去均值；采样率从MAT读取；FPGA增益128；Hann窗、0.2 Hz目标频点间隔、50%重叠。MAT 单波形自动选取，多波形用 `waveVariable` 指定。长期参数在 `private/ad9245Config.m` 的 `pico_noise` 分支；本次参数由第三参数覆盖。内置刻度按 `boardType` 和 `calibrationState` 选择；ADC 与 DA9726 JG18 配套同板刻度。具体系数见公共对照表，保留不扣除 PICO/DAC 本底的计算方法。
 
 默认结果按前述raw同级/其它目录内部results规则，子目录名为 `run_时间_ad9245_input_equiv_noise_1hz`，返回 `r.runFolder`。先看 `input_equiv_noise_summary.csv`，再看每接口ASD图、参数和source_manifest（PSD图与PSD列已移除以减轻结果负担）。部分记录已有完整性问题，必须检查每行状态和note；生成结果不能证明ADC本征噪声合格。
 
@@ -150,4 +175,4 @@ DA9726 JG18固定系数为1.014514e-4 V/CodePp，默认不读DAC刻度CSV。2208
 
 ## 报告刻度配置
 
-本器件的报告刻度由 `private` 配置中的 `reportCalibration` 字段加载，统一保存在 `_shared/+converter/+calibration/reportCalibration.m`。完整数值、单位和缺失项见 [CALIBRATION.md](../CALIBRATION.md)。刻度分析入口仍根据所选数据重新拟合，不会用报告数值替换新测量结果。
+本器件的两板刻度统一保存在 [`report_calibrations_20261004.csv`](../_shared/+converter/+calibration/report_calibrations_20261004.csv)，在需要电压换算时选择。完整数值与版本见 [CALIBRATION.md](../CALIBRATION.md)。刻度入口继续用所选扫描数据拟合。DAC 电压噪声只使用实测电压及电压增益，SFDR、相对带宽、码比隔离度和 INL/DNL 保持原计算方式。
