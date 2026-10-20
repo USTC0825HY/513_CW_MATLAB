@@ -4,6 +4,7 @@
 
 - 新增 `tools/platform/cw513_platform.m` JSON桥及26入口catalog；通过六个器件目录的薄适配器读取private默认配置。支持独立文件预览、显式参数运行、现有结果表及FIG曲线数值输出。软件桥与采集设备初始化独立，计算公式及筛选阈值保持原实现。用法见[平台桥说明](../CW_analysis/CW_513_ANALYSIS/tools/platform/README.md)。
 - 2026-10-20合成验证：26项默认配置可读取；2208 ILA与9726 PICO噪声桥/原入口数值一致，独立Welch PSD、1 Hz ASD和积分噪声复算通过。证据在 `F:/01_Laser/.codex_work/20261020-cw-analysis-platform/matlab/smoke2`；属软件验证，未新增板级测量结论。
+- 平台主体源码固定为 `ade413ce0a57017af8316079132a79cf8a67180e`；后续参考点/参考线显示修订另行记录。2026-10-20单次原有全库回归228/228通过、0失败/0未完成；平台桥8个不同入口合成实跑，另外18个默认配置/签名检查。26项矩阵、轻量回归清单、刻度浮点范围边界及来源层显示限制见[平台验证记录](../CW_analysis/CW_513_ANALYSIS/tools/platform/docs/VALIDATION_20261020.md)。
 - 六器件26个正式入口：2208=7、9245=6、677=4、128=1、9726=4、766=4。分类、签名及哈希见[源码结构](../CW_analysis/CW_513_ANALYSIS/docs/20261013_structure_governance/STRUCTURE.md)。
 - 内置刻度为20261004报告的55条记录（鉴定件27、加强件28），按板型/接口/改焊状态选择。CSV是代码配置，XLSX是同源归档，见[刻度说明](../CW_analysis/CW_513_ANALYSIS/CALIBRATION.md)。旧20条混合表和固定DAC系数仅对应历史版本。
 - current优先改焊后，否则取唯一原状态；PICO选择同板DA9726 JG18；显式自定义刻度标记user。扫描刻度和DAC电压噪声保留各自原计算方式。

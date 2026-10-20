@@ -353,3 +353,14 @@ r = dac_noise_analysis(d, {'jg18_2MSPS_20S_CH1_G_100.mat'}, ...
 - 169份现有MATLAB源码及刻度CSV共170文件SHA-256不变。新增生成工具采用artifact-tool导出，XML辅助仅补筛选/打印设置；两表单渲染及4页A3横向分页检查通过。
 - laser-electrical-data-analysis的SKILL及3份引用同步至Codex/ZCode，两侧哈希一致，技能验证器通过。本次未新增数值回归或硬件验证。
 - 交付见CW_analysis/CW_513_ANALYSIS/docs/20261013_structure_governance/REPORT.md和SOURCE_STRUCTURE.csv；项目文档、工作簿及工具同步现有codex/ad677-noise-sync分支，技能本地同步。
+
+## 2026-10-20 独立分析平台 MATLAB 桥
+
+- 平台运行源码提交 `ade413ce0a57017af8316079132a79cf8a67180e`，从整合后的main `1ed05b8` 建立feature开发；新增JSON桥、26入口catalog、六private薄适配器和独立测试，既有算法、阈值、private数值及刻度CSV未改。
+- R2025b单次 `run_all_tests`：228通过、0失败、0未完成，测试累计657.016649 s。另对26入口默认配置读取、非交互缺参/未知参数、显示数组和十六进制边界检查通过。
+- 平台桥8个不同入口合成实跑：2208 ILA、2208/9245/677 PICO、9726 noise、9726 DC输出、2208刻度和带宽。ILA与DAC噪声桥/直接入口数值一致，独立Welch PSD、1 Hz ASD和积分RMS检查通过；DC已知斜率及JSON刻度设定值拟合检查通过。另18项仅完成平台配置/签名检查，原库回归不等同逐入口平台实跑。
+- Python manifest/手工选数通过真实MATLAB分别完成8点带宽和3点刻度，共4次运行，表格和曲线数值逐项相同。原刻度自动上沿换算得到1.1999999999999997 Vpp，1.2 Vpp点因直接区间比较被排除，实际2点参与拟合；两条路线行为一致，本轮未改筛选公式。
+- 18个新增.m执行checkcode，无语法错误；运行代码无诊断，输出测试保留1条isscalar性能建议。图形标题逐字符空格问题在平台显示层修正并重新读取同一FIG核对。
+- 参考点/异常点显示补丁：MATLAB LineStyle=none的line对象输出为scatter并保留marker/颜色；ConstantLine转换为保存轴范围内的参考线。小型FIG中的ks/rx单点、−3 dB水平虚线、频带竖直点线均通过数值和样式断言；只修改显示适配与测试。
+- 本次未新增真实硬件数据处理或板级方法验证。原报告层部分刻度标签仍显示Vpp/CodePp，通用文件名可能成为接口显示标签；按来源记录，未顺带改动原报告层。
+- 交付：`CW_analysis/CW_513_ANALYSIS/tools/platform/docs/VALIDATION_20261020.md`、26入口矩阵、228项回归记录和平台SHA-256清单。大型合成波形/完整结果/日志留在 `F:/01_Laser/.codex_work/20261020-cw-analysis-platform/matlab`。

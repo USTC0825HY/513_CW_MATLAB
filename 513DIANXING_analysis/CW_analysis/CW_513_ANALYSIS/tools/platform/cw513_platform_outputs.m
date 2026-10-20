@@ -113,6 +113,11 @@ for k = numel(axesList):-1:1
     children = findall(ax);
     for j = numel(children):-1:1
         object = children(j);
+        if isa(object,'matlab.graphics.chart.decoration.ConstantLine')
+            reference = localConstantLine(object,ax);
+            if ~isempty(reference), plot.series{end+1}=reference; end
+            continue;
+        end
         if ~isprop(object,'XData') || ~isprop(object,'YData'), continue; end
         if isprop(object,'CData') && strcmp(get(object,'Type'),'image')
             matrix = get(object,'CData');
@@ -130,15 +135,19 @@ for k = numel(axesList):-1:1
             continue;
         end
         style = 'line';
-        if strcmp(get(object,'Type'),'scatter'), style = 'scatter'; end
+        if strcmp(get(object,'Type'),'scatter') || ...
+                (strcmp(get(object,'Type'),'line') && strcmp(object.LineStyle,'none'))
+            style = 'scatter';
+        end
         if ~ismember(get(object,'Type'),{'line','scatter','bar','stair'}), continue; end
         label = '';
         if isprop(object,'DisplayName'), label = get(object,'DisplayName'); end
         if isempty(label), label = sprintf('Curve %d',numel(plot.series)+1); end
         indices = localIndices(y,12000);
         plot.display_only_decimation = plot.display_only_decimation || numel(indices)<numel(y);
-        plot.series{end+1} = struct('label',label,'name',label, ...
+        series = struct('label',label,'name',label, ...
             'x',{num2cell(x(indices(:)).')},'y',{num2cell(y(indices(:)).')},'style',style);
+        plot.series{end+1} = localAppearance(series,object);
     end
     if ~isempty(plot.series) || strcmp(plot.kind,'heatmap')
         plots{end+1} = plot; %#ok<AGROW>
@@ -156,6 +165,42 @@ for k = 1:numel(allObjects)
         'row_labels',{cellstr(string(object.YData)).'}, ...
         'column_labels',{cellstr(string(object.XData)).'}, ...
         'source_file',file,'display_only_decimation',false); %#ok<AGROW>
+end
+end
+
+function series = localConstantLine(object,ax)
+series = [];
+if strcmp(object.Visible,'off'), return; end
+axisName = char(object.InterceptAxis);
+if strcmp(axisName,'x')
+    x=[object.Value object.Value]; y=get(ax,'YLim');
+elseif strcmp(axisName,'y')
+    x=get(ax,'XLim'); y=[object.Value object.Value];
+else
+    return;
+end
+label=localString(object.DisplayName);
+if isempty(label), label=localString(object.Label); end
+if isempty(label), label=sprintf('%s = %.12g',axisName,object.Value); end
+series=struct('label',label,'name',label,'x',{num2cell(x)},'y',{num2cell(y)}, ...
+    'style','line','reference_line',true,'reference_axis',axisName, ...
+    'reference_value',object.Value);
+series=localAppearance(series,object);
+end
+
+function series = localAppearance(series,object)
+if isprop(object,'LineStyle'), series.line_style=char(object.LineStyle); end
+if isprop(object,'Marker'), series.marker=char(object.Marker); end
+if isprop(object,'MarkerSize'), series.marker_size=object.MarkerSize; end
+if isprop(object,'Color')
+    color=object.Color;
+elseif isprop(object,'CData') && isnumeric(object.CData) && numel(object.CData)==3
+    color=object.CData;
+else
+    color=[];
+end
+if isnumeric(color) && numel(color)==3 && all(isfinite(color))
+    series.color=color(:).';
 end
 end
 

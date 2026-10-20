@@ -11,7 +11,13 @@ config=struct('deviceId','synthetic','analysisId','adapter_test');
 save(fullfile(folder,'run_config.mat'),'config');
 writetable(table(1,'VariableNames',{'SingleValue'}),fullfile(folder,'test_summary.csv'));
 fig=figure('Visible','off');
-subplot(1,2,1); plot(1,2,'o'); title('Single point'); xlabel('Frequency (Hz)');
+subplot(1,2,1);
+plot(1,2,'ks','DisplayName','reference sample'); hold on;
+plot(2,-4,'rx','DisplayName','excluded sample');
+xlim([0.5 2.5]); ylim([-5 3]);
+yline(-3,'--','-3 dB','Color',[0.2 0.3 0.4]);
+xline(1.5,':','band edge','Color',[0.5 0.6 0.7]);
+title('Single point'); xlabel('Frequency (Hz)');
 subplot(1,2,2); imagesc([3;4]); title('Two rows');
 savefig(fig,fullfile(folder,'adapter.fig')); close(fig);
 initial=struct('warnings',{{}});
@@ -21,10 +27,26 @@ line=response.plots{find(cellfun(@(x)strcmp(x.kind,'line'),response.plots),1)};
 heat=response.plots{find(cellfun(@(x)strcmp(x.kind,'heatmap'),response.plots),1)};
 assert(strcmp(line.title,'Single point'));
 assert(strcmp(line.x_label,'Frequency (Hz)'));
-assert(iscell(line.series{1}.x) && isequal(line.series{1}.x,{1}));
+names=cellfun(@(x)x.name,line.series,'UniformOutput',false);
+reference=line.series{strcmp(names,'reference sample')};
+excluded=line.series{strcmp(names,'excluded sample')};
+limit=line.series{strcmp(names,'-3 dB')};
+band=line.series{strcmp(names,'band edge')};
+assert(iscell(reference.x) && isequal(reference.x,{1}));
+assert(strcmp(reference.style,'scatter')&&strcmp(reference.marker,'square'));
+assert(isequal(reference.color,[0 0 0]));
+assert(strcmp(excluded.style,'scatter')&&strcmp(excluded.marker,'x'));
+assert(isequal(excluded.color,[1 0 0]));
+assert(isequal(limit.x,{0.5,2.5})&&isequal(limit.y,{-3,-3}));
+assert(limit.reference_line&&strcmp(limit.line_style,'--'));
+assert(isequal(limit.color,[0.2 0.3 0.4]));
+assert(isequal(band.x,{1.5,1.5})&&isequal(band.y,{-5,3}));
+assert(band.reference_line&&strcmp(band.line_style,':'));
 assert(iscell(heat.matrix{1}) && isequal(heat.matrix{1},{3}));
 text=jsonencode(response);
 assert(contains(text,'"x":[1]') && contains(text,'"matrix":[[3],[4]]'));
+fid=fopen(fullfile(workFolder,'figure_response.json'),'w','n','UTF-8');
+fprintf(fid,'%s',text); fclose(fid);
 csv=fullfile(workFolder,'boundary.csv');
 fid=fopen(csv,'w'); closer=onCleanup(@() fclose(fid));
 fprintf(fid,'Sample in Buffer,Sample in Window,TRIGGER,ADC1_JG15\n');
@@ -46,7 +68,8 @@ diagnostics=cell(1,numel(files));
 for k=1:numel(files)
     diagnostics{k}=struct('file',files{k},'messages',{num2cell(checkcode(files{k},'-id'))});
 end
-report=struct('text_and_singleton_arrays','passed','hex_boundaries','passed', ...
+report=struct('text_and_singleton_arrays','passed','markers_and_reference_lines','passed', ...
+    'hex_boundaries','passed', ...
     'checked_files',numel(files),'diagnostics',{diagnostics});
 fid=fopen(fullfile(workFolder,'output_contract_report.json'),'w','n','UTF-8');
 fprintf(fid,'%s',jsonencode(report)); fclose(fid);

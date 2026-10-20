@@ -77,6 +77,8 @@ DAC 隔离度每条记录包含 `driven_file`、`victim_file`、`driven_variable
 
 数组包括单条和空集合也保持 JSON 数组。图形的 `series` 包含 `label/name`、`x`、`y`、`style`；热图包含 `matrix`、`row_labels`、`column_labels`。显示抽取使用分桶最小值/最大值包络，`display_only_decimation` 标记是否抽取；正式分析仍读取完整样点。
 
+曲线还可包含 `color`（RGB）、`marker`（MATLAB标记名称）、`marker_size` 和 `line_style`。原图中的独立参考点/异常点按 scatter 显示；`xline/yline` 保留为实际轴范围内的两点参考线，并记录 `reference_line`、`reference_axis`、`reference_value`，以显示 −3 dB线和频带边界。
+
 输入预览显示解码后的 ADC 码，或未经增益补偿、保留均值的 PICO 实测电压。valid 抽取后的时基尚需由对应入口确定时，预览横轴显示保留样点序号。预览不代替正式频谱计算。
 
 每次运行追加 `evidence/platform_job.json`。DC 输出电压入口保留原有输出布局；桥不补造其原本没有的 XLSX。
@@ -89,3 +91,5 @@ report = run_platform_smoke('指定的全新派生测试目录');
 ```
 
 该检查在干净路径下读取全部 26 项配置，核对十进制/十六进制预览、非法参数反馈，并对合成 AD2208 ILA 和 DA9726 PICO 噪声执行桥与原入口比较，再以独立 `pwelch` 复算 PSD、1 Hz ASD 和积分噪声。检查属于软件和输入契约验证，不代表板级测试条件或正式指标已经验证。
+
+2026-10-20 的实际结果、26 个入口逐项状态和未覆盖项见 [平台验证记录](docs/VALIDATION_20261020.md)。现有全库回归单次 228/228 通过；本轮经平台桥实跑的不同入口为 8 个，另外 18 个完成默认配置与调用适配检查。
