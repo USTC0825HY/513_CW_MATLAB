@@ -1,5 +1,7 @@
 # CW_513_ANALYSIS 使用说明
 
+2026-10-20 独立分析平台：新增 [MATLAB JSON 桥](tools/platform/README.md)，将现有26个入口提供给无需连接采集设备的可视化分析窗口。默认值仍读取各器件 private 配置；波形预览、结果表和可交互曲线来自实际输入及保存的结果。六个 `cw513_*_config.m` 是平台配置适配器，不是新增指标入口。
+
 2026-10-12 刻度更新：鉴定件与电性加强件分开配置。2208/677 ILA 与2208/9245/677 PICO噪声交互运行时选择板型，显式传文件时填写 `boardType='jianding'` 或 `'jiaqiang'`。改焊版本默认 `calibrationState='current'`。系数维护位置、完整对照和调用示例见 [刻度配置](CALIBRATION.md)。其他单项分析入口保留原调用方式。
 
 本目录是513/CW电性测试的当前MATLAB分析库，覆盖AD2208、AD9245、AD677、ADC128、DA9726和DA766。正式入口全部是单项分析脚本；运行时只加载本目录的`_shared/+converter`公共内核，不依赖旧`laser_analysis`、旧workflow或归档脚本。
